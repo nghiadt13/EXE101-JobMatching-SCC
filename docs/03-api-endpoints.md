@@ -229,11 +229,18 @@ Tạo job mới
 
 ### GET /jobs
 
-List jobs (public: chỉ PUBLISHED, recruiter: all own jobs)
+List jobs
+
+- Public/Candidate: chỉ jobs `PUBLISHED`
+- Recruiter: chỉ jobs của chính recruiter, gồm `DRAFT`, `PUBLISHED`, `CLOSED`
+- Supports query: `page`, `limit`, `search`, `status` (status filter chỉ có ý nghĩa cho recruiter own list)
 
 ### GET /jobs/:id
 
-Get job detail
+Get job detail theo `id` hoặc `slug`
+
+- Public/Candidate: chỉ truy cập được job `PUBLISHED`
+- Recruiter: truy cập được own jobs mọi status
 
 ### PATCH /jobs/:id (Recruiter only)
 
@@ -245,11 +252,19 @@ Soft delete job
 
 ### POST /jobs/:id/publish (Recruiter only)
 
-Publish job (DRAFT → PUBLISHED)
+Publish job (chỉ `DRAFT -> PUBLISHED`)
 
 ### POST /jobs/:id/close (Recruiter only)
 
-Close job (PUBLISHED → CLOSED)
+Close job (chỉ `PUBLISHED -> CLOSED`)
+
+### Jobs Error Codes
+
+- `400`: transition invalid hoặc payload invalid
+- `401`: chưa đăng nhập cho recruiter endpoints
+- `403`: không phải recruiter owner
+- `404`: job không tồn tại hoặc không visible với role hiện tại
+- `409`: slug conflict
 
 ## Applications
 

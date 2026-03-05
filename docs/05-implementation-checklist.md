@@ -48,12 +48,12 @@ Timeline: **1-2 tuần** (14 ngày)
 
 ### Ngày 8-9: Job Management
 
-- [ ] Create jobs CRUD API
-- [ ] Implement job status transitions
-- [ ] Create job form (với rich editor)
-- [ ] Create job list page
-- [ ] Create job detail page
-- [ ] Test job posting flow
+- [x] Create jobs CRUD API
+- [x] Implement job status transitions
+- [x] Create job form (với rich editor)
+- [x] Create job list page
+- [x] Create job detail page
+- [x] Test job posting flow
 
 ### Ngày 10-11: Matching Algorithm
 

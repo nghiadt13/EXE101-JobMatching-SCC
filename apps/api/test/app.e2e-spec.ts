@@ -1,6 +1,6 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { UserRole } from '@prisma/client';
+import { JobStatus, UserRole } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
@@ -41,6 +41,25 @@ type MockCv = {
   deletedAt: Date | null;
 };
 
+type MockJob = {
+  id: string;
+  recruiterId: string;
+  title: string;
+  slug: string;
+  description: string;
+  skills: string[];
+  location: Record<string, unknown> | null;
+  salaryMin: number | null;
+  salaryMax: number | null;
+  employmentType: string;
+  status: JobStatus;
+  publishedAt: Date | null;
+  closedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
+};
+
 describe('Auth and User/Profile (e2e)', () => {
   let app: INestApplication;
   let users: MockUser[];
@@ -50,6 +69,7 @@ describe('Auth and User/Profile (e2e)', () => {
   let recruiterToken = '';
   let candidateToken = '';
   let cvs: MockCv[];
+  let jobs: MockJob[];
 
   beforeAll(async () => {
     process.env.JWT_SECRET = 'test-jwt-secret';
@@ -113,6 +133,44 @@ describe('Auth and User/Profile (e2e)', () => {
         parsedData: { skills: ['TypeScript'], summary: 'seeded summary' },
         skills: ['TypeScript'],
         isPrimary: true,
+        createdAt: now,
+        updatedAt: now,
+        deletedAt: null,
+      },
+    ];
+    jobs = [
+      {
+        id: 'job-1',
+        recruiterId: 'recruiter-1',
+        title: 'Backend Engineer',
+        slug: 'backend-engineer',
+        description: 'Published backend engineer role',
+        skills: ['TypeScript', 'NestJS'],
+        location: { city: 'HCM' },
+        salaryMin: 1000,
+        salaryMax: 2000,
+        employmentType: 'FULL_TIME',
+        status: JobStatus.PUBLISHED,
+        publishedAt: now,
+        closedAt: null,
+        createdAt: now,
+        updatedAt: now,
+        deletedAt: null,
+      },
+      {
+        id: 'job-2',
+        recruiterId: 'recruiter-1',
+        title: 'Draft Recruiter Job',
+        slug: 'draft-recruiter-job',
+        description: 'Draft recruiter internal job',
+        skills: ['Recruiting'],
+        location: { city: 'HCM' },
+        salaryMin: null,
+        salaryMax: null,
+        employmentType: 'FULL_TIME',
+        status: JobStatus.DRAFT,
+        publishedAt: null,
+        closedAt: null,
         createdAt: now,
         updatedAt: now,
         deletedAt: null,
@@ -418,9 +476,213 @@ describe('Auth and User/Profile (e2e)', () => {
         update: jest.fn(),
         updateMany: jest.fn(),
       },
+      job: {
+        count: jest.fn(({ where }: { where?: Record<string, unknown> }) => {
+          let filtered = [...jobs];
+          if (where?.['deletedAt'] === null) {
+            filtered = filtered.filter((item) => item.deletedAt === null);
+          }
+          if (typeof where?.['recruiterId'] === 'string') {
+            filtered = filtered.filter(
+              (item) => item.recruiterId === where['recruiterId'],
+            );
+          }
+          if (typeof where?.['status'] === 'string') {
+            filtered = filtered.filter(
+              (item) => item.status === where['status'],
+            );
+          }
+          return Promise.resolve(filtered.length);
+        }),
+        findMany: jest.fn(
+          ({
+            where,
+            skip,
+            take,
+          }: {
+            where?: Record<string, unknown>;
+            skip?: number;
+            take?: number;
+          }) => {
+            let filtered = [...jobs];
+            if (where?.['deletedAt'] === null) {
+              filtered = filtered.filter((item) => item.deletedAt === null);
+            }
+            if (typeof where?.['recruiterId'] === 'string') {
+              filtered = filtered.filter(
+                (item) => item.recruiterId === where['recruiterId'],
+              );
+            }
+            if (typeof where?.['status'] === 'string') {
+              filtered = filtered.filter(
+                (item) => item.status === where['status'],
+              );
+            }
+            if (Array.isArray(where?.['OR'])) {
+              const orFilters = where['OR'] as Array<{
+                title?: { contains?: string };
+                description?: { contains?: string };
+              }>;
+              filtered = filtered.filter((item) =>
+                orFilters.some((entry) => {
+                  const titleNeedle = entry.title?.contains?.toLowerCase();
+                  const descNeedle = entry.description?.contains?.toLowerCase();
+                  return (
+                    (titleNeedle
+                      ? item.title.toLowerCase().includes(titleNeedle)
+                      : false) ||
+                    (descNeedle
+                      ? item.description.toLowerCase().includes(descNeedle)
+                      : false)
+                  );
+                }),
+              );
+            }
+            const start = skip ?? 0;
+            const end = take ? start + take : undefined;
+            return Promise.resolve(
+              filtered.slice(start, end).map((item) => ({
+                id: item.id,
+                recruiterId: item.recruiterId,
+                title: item.title,
+                slug: item.slug,
+                description: item.description,
+                skills: item.skills,
+                location: item.location,
+                salaryMin: item.salaryMin,
+                salaryMax: item.salaryMax,
+                employmentType: item.employmentType,
+                status: item.status,
+                publishedAt: item.publishedAt,
+                closedAt: item.closedAt,
+                createdAt: item.createdAt,
+                updatedAt: item.updatedAt,
+              })),
+            );
+          },
+        ),
+        findFirst: jest.fn(({ where }: { where?: Record<string, unknown> }) => {
+          const found = jobs.find((item) => {
+            const byId =
+              typeof where?.['id'] === 'string'
+                ? item.id === where['id']
+                : true;
+            const byRecruiter =
+              typeof where?.['recruiterId'] === 'string'
+                ? item.recruiterId === where['recruiterId']
+                : true;
+            const byDeleted =
+              where?.['deletedAt'] === null ? item.deletedAt === null : true;
+            const bySlug =
+              typeof where?.['slug'] === 'string'
+                ? item.slug === where['slug']
+                : true;
+            const byStatus =
+              typeof where?.['status'] === 'string'
+                ? item.status === where['status']
+                : true;
+            const byOr = Array.isArray(where?.['OR'])
+              ? (where?.['OR'] as Array<{ id?: string; slug?: string }>).some(
+                  (entry) =>
+                    (entry.id ? item.id === entry.id : false) ||
+                    (entry.slug ? item.slug === entry.slug : false),
+                )
+              : true;
+
+            return (
+              byId && byRecruiter && byDeleted && bySlug && byStatus && byOr
+            );
+          });
+          if (!found) {
+            return Promise.resolve(null);
+          }
+          return Promise.resolve({
+            id: found.id,
+            recruiterId: found.recruiterId,
+            title: found.title,
+            slug: found.slug,
+            description: found.description,
+            skills: found.skills,
+            location: found.location,
+            salaryMin: found.salaryMin,
+            salaryMax: found.salaryMax,
+            employmentType: found.employmentType,
+            status: found.status,
+            publishedAt: found.publishedAt,
+            closedAt: found.closedAt,
+            createdAt: found.createdAt,
+            updatedAt: found.updatedAt,
+            deletedAt: found.deletedAt,
+          });
+        }),
+        create: jest.fn(({ data }: { data: Record<string, unknown> }) => {
+          const created: MockJob = {
+            id: `job-${jobs.length + 1}`,
+            recruiterId: String(data.recruiterId),
+            title: String(data.title),
+            slug: String(data.slug),
+            description: String(data.description),
+            skills: Array.isArray(data.skills) ? (data.skills as string[]) : [],
+            location: (data.location as Record<string, unknown> | null) ?? null,
+            salaryMin: (data.salaryMin as number | null) ?? null,
+            salaryMax: (data.salaryMax as number | null) ?? null,
+            employmentType: String(data.employmentType),
+            status: JobStatus.DRAFT,
+            publishedAt: null,
+            closedAt: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            deletedAt: null,
+          };
+          jobs.push(created);
+          return Promise.resolve({
+            ...created,
+          });
+        }),
+        update: jest.fn(
+          ({
+            where,
+            data,
+          }: {
+            where: { id: string };
+            data: Record<string, unknown>;
+          }) => {
+            const index = jobs.findIndex((item) => item.id === where.id);
+            const updated: MockJob = {
+              ...jobs[index],
+              ...data,
+              updatedAt: new Date(),
+            };
+            jobs[index] = updated;
+            return Promise.resolve({
+              id: updated.id,
+              recruiterId: updated.recruiterId,
+              title: updated.title,
+              slug: updated.slug,
+              description: updated.description,
+              skills: updated.skills,
+              location: updated.location,
+              salaryMin: updated.salaryMin,
+              salaryMax: updated.salaryMax,
+              employmentType: updated.employmentType,
+              status: updated.status,
+              publishedAt: updated.publishedAt,
+              closedAt: updated.closedAt,
+              createdAt: updated.createdAt,
+              updatedAt: updated.updatedAt,
+              deletedAt: updated.deletedAt,
+            });
+          },
+        ),
+      },
       $transaction: jest.fn((callback: (tx: unknown) => unknown) =>
         callback({
           cV: {
+            update: jest.fn(),
+            findFirst: jest.fn(),
+            updateMany: jest.fn(),
+          },
+          job: {
             update: jest.fn(),
             findFirst: jest.fn(),
             updateMany: jest.fn(),
@@ -607,6 +869,59 @@ describe('Auth and User/Profile (e2e)', () => {
       .get('/api/cvs')
       .set('Authorization', `Bearer ${recruiterToken}`)
       .expect(403);
+  });
+
+  it('allows recruiter to create a draft job', async () => {
+    const response = await createRequest()
+      .post('/api/jobs')
+      .set('Authorization', `Bearer ${recruiterToken}`)
+      .send({
+        title: 'Senior Recruiter',
+        description: 'Need recruiter with at least 3 years of experience.',
+        skills: ['Communication', 'Sourcing'],
+        employmentType: 'FULL_TIME',
+      })
+      .expect(201);
+
+    const body = response.body as { status: string; recruiterId: string };
+    expect(body.status).toBe('DRAFT');
+    expect(body.recruiterId).toBe('recruiter-1');
+  });
+
+  it('rejects candidate from creating jobs', async () => {
+    await createRequest()
+      .post('/api/jobs')
+      .set('Authorization', `Bearer ${candidateToken}`)
+      .send({
+        title: 'Should fail',
+        description: 'Candidate cannot create jobs',
+        skills: ['X'],
+        employmentType: 'FULL_TIME',
+      })
+      .expect(403);
+  });
+
+  it('returns only published jobs for public listing', async () => {
+    const response = await createRequest().get('/api/jobs').expect(200);
+    const body = response.body as { items: Array<{ status: string }> };
+    expect(body.items.every((item) => item.status === 'PUBLISHED')).toBe(true);
+  });
+
+  it('allows recruiter to list own draft jobs', async () => {
+    const response = await createRequest()
+      .get('/api/jobs')
+      .set('Authorization', `Bearer ${recruiterToken}`)
+      .expect(200);
+
+    const body = response.body as { items: Array<{ status: string }> };
+    expect(body.items.some((item) => item.status === 'DRAFT')).toBe(true);
+  });
+
+  it('blocks closing a draft job', async () => {
+    await createRequest()
+      .post('/api/jobs/job-2/close')
+      .set('Authorization', `Bearer ${recruiterToken}`)
+      .expect(400);
   });
 
   async function loginAndGetToken(email: string): Promise<string> {
