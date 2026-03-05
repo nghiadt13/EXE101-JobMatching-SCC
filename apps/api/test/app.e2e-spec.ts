@@ -698,7 +698,8 @@ describe('Auth and User/Profile (e2e)', () => {
         ),
       },
       application: {
-        count: jest.fn(({ where }: { where?: Record<string, unknown> }) => {
+        count: jest.fn(
+          ({ where }: { where?: Record<string, unknown> } = {}) => {
           let filtered = [...applications];
           if (typeof where?.['candidateId'] === 'string') {
             filtered = filtered.filter(
@@ -724,7 +725,8 @@ describe('Auth and User/Profile (e2e)', () => {
             }
           }
           return Promise.resolve(filtered.length);
-        }),
+          },
+        ),
         findMany: jest.fn(
           ({
             where,
@@ -1324,6 +1326,64 @@ describe('Auth and User/Profile (e2e)', () => {
         status: 'APPLIED',
       })
       .expect(400);
+  });
+
+  it('rejects dashboard stats without bearer token', async () => {
+    await createRequest().get('/api/dashboard/stats').expect(401);
+  });
+
+  it('returns candidate dashboard stats', async () => {
+    const response = await createRequest()
+      .get('/api/dashboard/stats')
+      .set('Authorization', `Bearer ${candidateToken}`)
+      .expect(200);
+
+    const body = response.body as {
+      totalApplications: number;
+      pendingApplications: number;
+      interviewCount: number;
+    };
+    expect(body.totalApplications).toBeGreaterThanOrEqual(0);
+    expect(body.pendingApplications).toBeGreaterThanOrEqual(0);
+    expect(body.interviewCount).toBeGreaterThanOrEqual(0);
+  });
+
+  it('returns recruiter dashboard stats', async () => {
+    const response = await createRequest()
+      .get('/api/dashboard/stats')
+      .set('Authorization', `Bearer ${recruiterToken}`)
+      .expect(200);
+
+    const body = response.body as {
+      totalJobs: number;
+      activeJobs: number;
+      totalApplications: number;
+      pendingReview: number;
+    };
+    expect(body.totalJobs).toBeGreaterThanOrEqual(0);
+    expect(body.activeJobs).toBeGreaterThanOrEqual(0);
+    expect(body.totalApplications).toBeGreaterThanOrEqual(0);
+    expect(body.pendingReview).toBeGreaterThanOrEqual(0);
+  });
+
+  it('returns admin dashboard stats', async () => {
+    const response = await createRequest()
+      .get('/api/dashboard/stats')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+
+    const body = response.body as {
+      totalUsers: number;
+      totalRecruiters: number;
+      totalCandidates: number;
+      totalJobs: number;
+      totalApplications: number;
+    };
+    expect(body.totalUsers).toBeGreaterThan(0);
+    expect(body.totalRecruiters).toBeGreaterThanOrEqual(0);
+    expect(body.totalCandidates).toBeGreaterThanOrEqual(0);
+    expect(body.totalJobs).toBeGreaterThanOrEqual(0);
+    expect(body.totalApplications).toBeGreaterThanOrEqual(0);
   });
 
   async function loginAndGetToken(email: string): Promise<string> {

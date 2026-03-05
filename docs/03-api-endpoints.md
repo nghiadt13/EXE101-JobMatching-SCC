@@ -366,7 +366,7 @@ Response:
 
 ### GET /dashboard/stats (Role-based)
 
-Get dashboard statistics
+Get dashboard statistics for authenticated role (`CANDIDATE`, `RECRUITER`, `ADMIN`).
 
 **Candidate:**
 
@@ -394,7 +394,15 @@ Get dashboard statistics
 ```json
 {
   "totalUsers": 100,
+  "totalRecruiters": 20,
+  "totalCandidates": 75,
   "totalJobs": 50,
   "totalApplications": 200
 }
 ```
+
+### Dashboard Error Codes
+
+- `401`: chưa đăng nhập hoặc thiếu token
+- `403`: role không hợp lệ cho endpoint
+- `404`: candidate chưa có candidate profile

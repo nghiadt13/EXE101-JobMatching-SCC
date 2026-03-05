@@ -77,14 +77,14 @@ Timeline: **1-2 tuần** (14 ngày)
 
 ### Ngày 13: Dashboard & UI
 
-- [ ] Create dashboard stats API
-- [ ] Create candidate dashboard
-- [ ] Create recruiter dashboard
-- [ ] Create admin dashboard
-- [ ] Polish UI/UX
-- [ ] Add loading states
-- [ ] Add error handling
-- [ ] Responsive design
+- [x] Create dashboard stats API
+- [x] Create candidate dashboard
+- [x] Create recruiter dashboard
+- [x] Create admin dashboard
+- [x] Polish UI/UX
+- [x] Add loading states
+- [x] Add error handling
+- [x] Responsive design
 
 ### Ngày 14: Testing & Polish
 
@@ -157,9 +157,9 @@ Timeline: **1-2 tuần** (14 ngày)
 
 ### Dashboard
 
-- [ ] Candidate dashboard stats đúng
-- [ ] Recruiter dashboard stats đúng
-- [ ] Admin dashboard stats đúng
+- [x] Candidate dashboard stats đúng
+- [x] Recruiter dashboard stats đúng
+- [x] Admin dashboard stats đúng
 
 ## Demo Scenario
 

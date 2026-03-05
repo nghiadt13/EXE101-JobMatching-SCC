@@ -5,6 +5,7 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { ApplicationsModule } from './applications/applications.module';
 import { CvsModule } from './cvs/cvs.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 import { JobsModule } from './jobs/jobs.module';
 import { MatchingModule } from './matching/matching.module';
 import { ProfileModule } from './profile/profile.module';
@@ -24,6 +25,7 @@ import { UsersModule } from './users/users.module';
     CvsModule,
     JobsModule,
     MatchingModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [AppService],
