@@ -3,6 +3,7 @@
 ## Tổng Quan
 
 **6 tables chính** cho MVP:
+
 - users
 - jobs
 - candidates
@@ -13,6 +14,7 @@
 ## Schema Chi Tiết
 
 ### 1. users
+
 ```prisma
 model User {
   id        String   @id @default(uuid())
@@ -37,6 +39,7 @@ enum UserRole {
 ```
 
 ### 2. candidates
+
 ```prisma
 model Candidate {
   id        String   @id @default(uuid())
@@ -56,6 +59,7 @@ model Candidate {
 ```
 
 ### 3. cvs
+
 ```prisma
 model CV {
   id          String   @id @default(uuid())
@@ -80,6 +84,7 @@ model CV {
 ```
 
 ### 4. jobs
+
 ```prisma
 model Job {
   id          String   @id @default(uuid())
@@ -117,6 +122,7 @@ enum JobStatus {
 ```
 
 ### 5. applications
+
 ```prisma
 model Application {
   id          String   @id @default(uuid())
@@ -151,6 +157,7 @@ enum ApplicationStatus {
 ```
 
 ### 6. skills (Reference)
+
 ```prisma
 model Skill {
   id       String @id @default(uuid())
@@ -189,10 +196,12 @@ model Skill {
 ## Migration Strategy
 
 ### Phase 1 (MVP)
+
 - Skills lưu trong JSONB
 - Đơn giản, nhanh implement
 
 ### Phase 2 (Future)
+
 - Migrate sang normalized skills tables
 - Thêm job_skills, candidate_skills junction tables
 - Tốt hơn cho matching accuracy

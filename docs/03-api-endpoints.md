@@ -5,7 +5,9 @@ Base URL: `http://localhost:3001/api`
 ## Authentication
 
 ### POST /auth/register
+
 Đăng ký user mới
+
 ```json
 Request:
 {
@@ -23,7 +25,9 @@ Response:
 ```
 
 ### POST /auth/login
+
 Đăng nhập
+
 ```json
 Request:
 {
@@ -41,29 +45,37 @@ Response:
 ## Users (Admin only)
 
 ### GET /users
+
 List users với pagination
 
 ### GET /users/:id
+
 Get user by ID
 
 ### PATCH /users/:id
+
 Update user
 
 ### DELETE /users/:id
+
 Soft delete user
 
 ## Profile
 
 ### GET /profile
+
 Get current user profile
 
 ### PATCH /profile
+
 Update current user profile
 
 ## CVs (Candidate only)
 
 ### POST /cvs/upload
+
 Upload CV file
+
 ```
 Content-Type: multipart/form-data
 File: cv.pdf hoặc cv.docx
@@ -81,24 +93,31 @@ Response:
 ```
 
 ### GET /cvs
+
 List CVs của candidate hiện tại
 
 ### GET /cvs/:id
+
 Get CV detail
 
 ### PATCH /cvs/:id
+
 Update parsed data (sau khi review)
 
 ### DELETE /cvs/:id
+
 Soft delete CV
 
 ### POST /cvs/:id/set-primary
+
 Đặt CV làm primary
 
 ## Jobs
 
 ### POST /jobs (Recruiter only)
+
 Tạo job mới
+
 ```json
 {
   "title": "Senior Backend Developer",
@@ -112,27 +131,35 @@ Tạo job mới
 ```
 
 ### GET /jobs
+
 List jobs (public: chỉ PUBLISHED, recruiter: all own jobs)
 
 ### GET /jobs/:id
+
 Get job detail
 
 ### PATCH /jobs/:id (Recruiter only)
+
 Update job
 
 ### DELETE /jobs/:id (Recruiter only)
+
 Soft delete job
 
 ### POST /jobs/:id/publish (Recruiter only)
+
 Publish job (DRAFT → PUBLISHED)
 
 ### POST /jobs/:id/close (Recruiter only)
+
 Close job (PUBLISHED → CLOSED)
 
 ## Applications
 
 ### POST /applications (Candidate only)
+
 Apply vào job
+
 ```json
 {
   "jobId": "uuid",
@@ -151,13 +178,17 @@ Response:
 ```
 
 ### GET /applications (Candidate: own, Recruiter: own jobs)
+
 List applications với filters
 
 ### GET /applications/:id
+
 Get application detail
 
 ### PATCH /applications/:id/status (Recruiter only)
+
 Update application status
+
 ```json
 {
   "status": "INTERVIEW",
@@ -168,7 +199,9 @@ Update application status
 ## Matching
 
 ### POST /matching/calculate
+
 Calculate match score (internal use)
+
 ```json
 {
   "cvId": "uuid",
@@ -190,9 +223,11 @@ Response:
 ## Dashboard
 
 ### GET /dashboard/stats (Role-based)
+
 Get dashboard statistics
 
 **Candidate:**
+
 ```json
 {
   "totalApplications": 5,
@@ -202,6 +237,7 @@ Get dashboard statistics
 ```
 
 **Recruiter:**
+
 ```json
 {
   "totalJobs": 10,
@@ -212,6 +248,7 @@ Get dashboard statistics
 ```
 
 **Admin:**
+
 ```json
 {
   "totalUsers": 100,

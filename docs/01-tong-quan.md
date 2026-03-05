@@ -7,6 +7,7 @@ Xây dựng platform tuyển dụng với AI matching tự động giữa CV ứ
 ## Phạm Vi MVP (1-2 Tuần)
 
 ### Core Features
+
 - Authentication với 3 roles
 - CV management + AI parsing
 - Job posting management
@@ -15,6 +16,7 @@ Xây dựng platform tuyển dụng với AI matching tự động giữa CV ứ
 - Dashboard đơn giản
 
 ### Không Có Trong MVP
+
 - ❌ Email notifications
 - ❌ Email verification
 - ❌ Company team management
@@ -24,17 +26,20 @@ Xây dựng platform tuyển dụng với AI matching tự động giữa CV ứ
 ## User Roles
 
 ### 1. Admin
+
 - Quản lý toàn bộ hệ thống
 - CRUD users
 - Xem tất cả data
 
 ### 2. Recruiter/HR
+
 - Đăng job postings
 - Xem applications
 - Review candidates với match scores
 - Chỉ xem data của mình
 
 ### 3. Candidate
+
 - Upload/tạo CV
 - Tìm kiếm jobs
 - Apply vào jobs
@@ -44,6 +49,7 @@ Xây dựng platform tuyển dụng với AI matching tự động giữa CV ứ
 ## Luồng Chính
 
 ### Luồng 1: Candidate Upload CV
+
 ```
 1. Candidate đăng ký/đăng nhập
 2. Upload CV (PDF/DOCX)
@@ -58,6 +64,7 @@ Xây dựng platform tuyển dụng với AI matching tự động giữa CV ứ
 ```
 
 ### Luồng 2: Recruiter Post Job
+
 ```
 1. Recruiter đăng nhập
 2. Tạo job posting:
@@ -69,6 +76,7 @@ Xây dựng platform tuyển dụng với AI matching tự động giữa CV ứ
 ```
 
 ### Luồng 3: Matching & Application
+
 ```
 1. Candidate tìm job
 2. Click "Apply"
@@ -102,6 +110,7 @@ Xây dựng platform tuyển dụng với AI matching tự động giữa CV ứ
 ## Scalability Plan
 
 Thiết kế cho phép mở rộng sau:
+
 - Skills: JSONB → normalized tables
 - Storage: Local → Cloudflare R2
 - Matching: TF-IDF → Semantic embeddings

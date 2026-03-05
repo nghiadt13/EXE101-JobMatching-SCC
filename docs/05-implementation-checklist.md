@@ -5,6 +5,7 @@ Timeline: **1-2 tuần** (14 ngày)
 ## Week 1: Foundation (Ngày 1-7)
 
 ### Ngày 1-2: Project Setup
+
 - [ ] Tạo monorepo structure với pnpm workspaces
 - [ ] Init Next.js 15 app (App Router)
 - [ ] Init NestJS app
@@ -14,6 +15,7 @@ Timeline: **1-2 tuần** (14 ngày)
 - [ ] Test frontend-backend connection
 
 ### Ngày 3-4: Authentication & Database
+
 - [ ] Tạo Prisma schema (6 models)
 - [ ] Run migration
 - [ ] Tạo seed data
@@ -24,6 +26,7 @@ Timeline: **1-2 tuần** (14 ngày)
 - [ ] Test authentication flow
 
 ### Ngày 5: User Management
+
 - [ ] Create users CRUD API (Admin)
 - [ ] Create profile API
 - [ ] Create user list page (Admin)
@@ -31,6 +34,7 @@ Timeline: **1-2 tuần** (14 ngày)
 - [ ] Test RBAC (Admin, Recruiter, Candidate)
 
 ### Ngày 6-7: CV Management
+
 - [ ] Install pdf-parse, mammoth
 - [ ] Implement file upload API
 - [ ] Implement text extraction
@@ -43,6 +47,7 @@ Timeline: **1-2 tuần** (14 ngày)
 ## Week 2: Core Features (Ngày 8-14)
 
 ### Ngày 8-9: Job Management
+
 - [ ] Create jobs CRUD API
 - [ ] Implement job status transitions
 - [ ] Create job form (với rich editor)
@@ -51,6 +56,7 @@ Timeline: **1-2 tuần** (14 ngày)
 - [ ] Test job posting flow
 
 ### Ngày 10-11: Matching Algorithm
+
 - [ ] Install natural.js (TF-IDF)
 - [ ] Implement TF-IDF calculation
 - [ ] Implement skills matching
@@ -60,6 +66,7 @@ Timeline: **1-2 tuần** (14 ngày)
 - [ ] Optimize performance
 
 ### Ngày 12: Application Flow
+
 - [ ] Create applications API
 - [ ] Implement apply endpoint (với matching)
 - [ ] Implement status update API
@@ -69,6 +76,7 @@ Timeline: **1-2 tuần** (14 ngày)
 - [ ] Test application flow
 
 ### Ngày 13: Dashboard & UI
+
 - [ ] Create dashboard stats API
 - [ ] Create candidate dashboard
 - [ ] Create recruiter dashboard
@@ -79,6 +87,7 @@ Timeline: **1-2 tuần** (14 ngày)
 - [ ] Responsive design
 
 ### Ngày 14: Testing & Polish
+
 - [ ] Test toàn bộ flows
 - [ ] Fix bugs
 - [ ] Add demo data
@@ -89,18 +98,21 @@ Timeline: **1-2 tuần** (14 ngày)
 ## Bonus (Nếu Còn Thời Gian)
 
 ### Semantic Matching
+
 - [ ] Setup Gemini embeddings
 - [ ] Implement semantic score
 - [ ] Update final score formula
 - [ ] Test accuracy improvement
 
 ### UI Enhancements
+
 - [ ] Dark mode
 - [ ] Toast notifications
 - [ ] Better error messages
 - [ ] Animations
 
 ### Features
+
 - [ ] Search & filters
 - [ ] Pagination
 - [ ] Sort options
@@ -109,6 +121,7 @@ Timeline: **1-2 tuần** (14 ngày)
 ## Testing Checklist
 
 ### Authentication
+
 - [ ] Register với email/password
 - [ ] Login thành công
 - [ ] Logout
@@ -116,6 +129,7 @@ Timeline: **1-2 tuần** (14 ngày)
 - [ ] Role-based access
 
 ### CV Flow
+
 - [ ] Upload PDF CV
 - [ ] Upload DOCX CV
 - [ ] Parse thành công
@@ -124,6 +138,7 @@ Timeline: **1-2 tuần** (14 ngày)
 - [ ] Delete CV
 
 ### Job Flow
+
 - [ ] Create job (draft)
 - [ ] Edit job
 - [ ] Publish job
@@ -132,6 +147,7 @@ Timeline: **1-2 tuần** (14 ngày)
 - [ ] View job list
 
 ### Matching & Application
+
 - [ ] Apply vào job
 - [ ] Match score hiển thị đúng
 - [ ] Skills breakdown đúng
@@ -140,6 +156,7 @@ Timeline: **1-2 tuần** (14 ngày)
 - [ ] View application history
 
 ### Dashboard
+
 - [ ] Candidate dashboard stats đúng
 - [ ] Recruiter dashboard stats đúng
 - [ ] Admin dashboard stats đúng
@@ -147,6 +164,7 @@ Timeline: **1-2 tuần** (14 ngày)
 ## Demo Scenario
 
 ### Scenario 1: Candidate Journey
+
 1. Đăng ký account (Candidate)
 2. Upload CV (PDF)
 3. Review parsed data
@@ -155,6 +173,7 @@ Timeline: **1-2 tuần** (14 ngày)
 6. View application status
 
 ### Scenario 2: Recruiter Journey
+
 1. Đăng ký account (Recruiter)
 2. Create job posting
 3. Publish job
@@ -163,6 +182,7 @@ Timeline: **1-2 tuần** (14 ngày)
 6. Update application status
 
 ### Scenario 3: Admin
+
 1. Login as Admin
 2. View all users
 3. View all jobs

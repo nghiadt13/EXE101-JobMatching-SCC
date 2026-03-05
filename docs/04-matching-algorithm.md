@@ -5,6 +5,7 @@
 Tính điểm phù hợp (0-100%) giữa CV và Job Description.
 
 **Công thức:**
+
 ```
 Final Score = (TF-IDF Score × 0.7) + (Skills Score × 0.3)
 ```
@@ -14,10 +15,12 @@ Final Score = (TF-IDF Score × 0.7) + (Skills Score × 0.3)
 ### 1. TF-IDF Score
 
 **Input:**
+
 - CV text (full text từ parsed CV)
 - JD text (job description + requirements)
 
 **Process:**
+
 ```typescript
 import natural from 'natural';
 
@@ -43,14 +46,16 @@ function calculateTFIDF(cvText: string, jdText: string): number {
 ### 2. Skills Score
 
 **Input:**
+
 - CV skills: `["Python", "Django", "PostgreSQL", "Docker"]`
 - Job skills: `["Python", "Django", "PostgreSQL", "Kubernetes"]`
 
 **Process:**
+
 ```typescript
 function calculateSkillsScore(cvSkills: string[], jobSkills: string[]): number {
-  const cvSet = new Set(cvSkills.map(s => s.toLowerCase()));
-  const jobSet = new Set(jobSkills.map(s => s.toLowerCase()));
+  const cvSet = new Set(cvSkills.map((s) => s.toLowerCase()));
+  const jobSet = new Set(jobSkills.map((s) => s.toLowerCase()));
 
   let matchCount = 0;
   for (const skill of jobSet) {
@@ -64,6 +69,7 @@ function calculateSkillsScore(cvSkills: string[], jobSkills: string[]): number {
 ```
 
 **Example:**
+
 - Match: 3/4 = 0.75 (75%)
 
 ### 3. Final Score
@@ -82,7 +88,7 @@ function calculateMatchScore(cvId: string, jobId: string) {
   const skillsScore = calculateSkillsScore(cv.skills, job.skills);
 
   // 3. Weighted combination
-  const finalScore = (tfidfScore * 0.7) + (skillsScore * 0.3);
+  const finalScore = tfidfScore * 0.7 + skillsScore * 0.3;
 
   return {
     score: Math.round(finalScore * 100), // 0-100
@@ -90,8 +96,8 @@ function calculateMatchScore(cvId: string, jobId: string) {
     skillsScore,
     breakdown: {
       matchedSkills: getMatchedSkills(cv.skills, job.skills),
-      missingSkills: getMissingSkills(cv.skills, job.skills)
-    }
+      missingSkills: getMissingSkills(cv.skills, job.skills),
+    },
   };
 }
 ```
@@ -106,7 +112,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 async function calculateSemanticScore(cvText: string, jdText: string) {
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
   const model = genAI.getGenerativeModel({
-    model: "text-embedding-004"
+    model: 'text-embedding-004',
   });
 
   // Generate embeddings
@@ -116,19 +122,20 @@ async function calculateSemanticScore(cvText: string, jdText: string) {
   // Cosine similarity
   const score = cosineSimilarity(
     cvResult.embedding.values,
-    jdResult.embedding.values
+    jdResult.embedding.values,
   );
 
   return score; // 0.0 - 1.0
 }
 
 // Updated final score
-const finalScore = (tfidfScore * 0.4) + (skillsScore * 0.2) + (semanticScore * 0.4);
+const finalScore = tfidfScore * 0.4 + skillsScore * 0.2 + semanticScore * 0.4;
 ```
 
 ## UI Display
 
 ### Match Score Card
+
 ```
 ┌─────────────────────────────────────┐
 │ Nguyễn Văn A                        │
@@ -143,6 +150,7 @@ const finalScore = (tfidfScore * 0.4) + (skillsScore * 0.2) + (semanticScore * 0
 ```
 
 ### Ranking
+
 ```
 Top Candidates:
 
