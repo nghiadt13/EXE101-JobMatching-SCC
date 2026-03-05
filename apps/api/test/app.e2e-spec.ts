@@ -1258,6 +1258,28 @@ describe('Auth and User/Profile (e2e)', () => {
       .expect(404);
   });
 
+  it('rejects recruiter from apply endpoint', async () => {
+    await createRequest()
+      .post('/api/applications')
+      .set('Authorization', `Bearer ${recruiterToken}`)
+      .send({
+        jobId: 'job-1',
+        cvId: 'cv-1',
+      })
+      .expect(403);
+  });
+
+  it('rejects candidate apply to non-published job', async () => {
+    await createRequest()
+      .post('/api/applications')
+      .set('Authorization', `Bearer ${candidateToken}`)
+      .send({
+        jobId: 'job-2',
+        cvId: 'cv-1',
+      })
+      .expect(404);
+  });
+
   it('allows candidate to apply a published job with own cv', async () => {
     const response = await createRequest()
       .post('/api/applications')

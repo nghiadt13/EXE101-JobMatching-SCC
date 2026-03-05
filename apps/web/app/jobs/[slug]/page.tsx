@@ -31,6 +31,14 @@ export default async function JobDetailPage({ params, searchParams }: PageProps)
   const canApply =
     session?.user?.role === 'CANDIDATE' && Boolean(session.accessToken);
   const cvs = canApply ? await getMyCvs(session.accessToken as string) : null;
+  const errorMessage =
+    query.error === 'duplicate'
+      ? 'You already applied to this job.'
+      : query.error === 'missing'
+        ? 'Please select a CV before submitting your application.'
+        : query.error
+          ? 'Unable to submit application.'
+          : null;
 
   async function applyAction(formData: FormData) {
     'use server';
@@ -87,11 +95,9 @@ export default async function JobDetailPage({ params, searchParams }: PageProps)
             Application submitted successfully.
           </p>
         )}
-        {query.error && (
+        {errorMessage && (
           <p className="mt-4 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
-            {query.error === 'duplicate'
-              ? 'You already applied to this job.'
-              : 'Unable to submit application.'}
+            {errorMessage}
           </p>
         )}
 
@@ -109,6 +115,11 @@ export default async function JobDetailPage({ params, searchParams }: PageProps)
               Sign in
             </Link>{' '}
             as candidate to apply.
+          </p>
+        )}
+        {session?.user && session.user.role !== 'CANDIDATE' && (
+          <p className="mt-4 text-sm text-zinc-600">
+            Only candidate accounts can apply for jobs.
           </p>
         )}
       </section>
