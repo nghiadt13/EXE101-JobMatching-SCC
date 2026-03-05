@@ -1,0 +1,144 @@
+'use client';
+
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { signIn } from 'next-auth/react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { ApiError, registerUser } from '@/lib/api-client';
+import { getRoleDashboardPath } from '@/lib/auth-redirect';
+
+const registerSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters'),
+  email: z.email('Email is invalid'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+  role: z.enum(['CANDIDATE', 'RECRUITER']),
+});
+
+type RegisterFormValues = z.infer<typeof registerSchema>;
+
+export function RegisterForm() {
+  const router = useRouter();
+  const [submitError, setSubmitError] = useState('');
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<RegisterFormValues>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      password: '',
+      role: 'CANDIDATE',
+    },
+  });
+
+  const onSubmit = async (values: RegisterFormValues) => {
+    setSubmitError('');
+
+    try {
+      const registerResponse = await registerUser(values);
+      const signInResponse = await signIn('credentials', {
+        email: values.email,
+        password: values.password,
+        redirect: false,
+      });
+
+      if (!signInResponse || signInResponse.error) {
+        setSubmitError('Account created but sign in failed. Please sign in manually.');
+        return;
+      }
+
+      router.push(getRoleDashboardPath(registerResponse.user.role));
+      router.refresh();
+    } catch (error) {
+      if (error instanceof ApiError) {
+        setSubmitError(error.message);
+        return;
+      }
+
+      setSubmitError('Failed to create account');
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <div className="space-y-2">
+        <label htmlFor="name" className="text-sm font-medium text-zinc-700">
+          Name
+        </label>
+        <input
+          id="name"
+          type="text"
+          autoComplete="name"
+          {...register('name')}
+          className="h-11 w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm outline-none ring-zinc-300 transition focus:ring-2"
+        />
+        {errors.name && <p className="text-sm text-red-600">{errors.name.message}</p>}
+      </div>
+
+      <div className="space-y-2">
+        <label htmlFor="email" className="text-sm font-medium text-zinc-700">
+          Email
+        </label>
+        <input
+          id="email"
+          type="email"
+          autoComplete="email"
+          {...register('email')}
+          className="h-11 w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm outline-none ring-zinc-300 transition focus:ring-2"
+        />
+        {errors.email && <p className="text-sm text-red-600">{errors.email.message}</p>}
+      </div>
+
+      <div className="space-y-2">
+        <label htmlFor="password" className="text-sm font-medium text-zinc-700">
+          Password
+        </label>
+        <input
+          id="password"
+          type="password"
+          autoComplete="new-password"
+          {...register('password')}
+          className="h-11 w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm outline-none ring-zinc-300 transition focus:ring-2"
+        />
+        {errors.password && <p className="text-sm text-red-600">{errors.password.message}</p>}
+      </div>
+
+      <div className="space-y-2">
+        <label htmlFor="role" className="text-sm font-medium text-zinc-700">
+          Role
+        </label>
+        <select
+          id="role"
+          {...register('role')}
+          className="h-11 w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm outline-none ring-zinc-300 transition focus:ring-2"
+        >
+          <option value="CANDIDATE">Candidate</option>
+          <option value="RECRUITER">Recruiter</option>
+        </select>
+        {errors.role && <p className="text-sm text-red-600">{errors.role.message}</p>}
+      </div>
+
+      {submitError && <p className="text-sm text-red-600">{submitError}</p>}
+
+      <button
+        type="submit"
+        disabled={isSubmitting}
+        className="inline-flex h-11 w-full items-center justify-center rounded-lg bg-zinc-900 px-4 text-sm font-medium text-white transition hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {isSubmitting ? 'Creating account...' : 'Create account'}
+      </button>
+
+      <p className="text-sm text-zinc-600">
+        Already have an account?{' '}
+        <Link href="/login" className="font-medium text-zinc-900 underline">
+          Sign in
+        </Link>
+      </p>
+    </form>
+  );
+}

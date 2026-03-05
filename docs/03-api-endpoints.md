@@ -20,7 +20,9 @@ Request:
 Response:
 {
   "user": { "id", "email", "name", "role" },
-  "token": "jwt_token"
+  "token": "jwt_token",
+  "accessToken": "jwt_token",
+  "expiresIn": 604800
 }
 ```
 
@@ -38,7 +40,23 @@ Request:
 Response:
 {
   "user": { "id", "email", "name", "role" },
-  "token": "jwt_token"
+  "token": "jwt_token",
+  "accessToken": "jwt_token",
+  "expiresIn": 604800
+}
+```
+
+### GET /auth/me
+
+Get authenticated user profile from bearer token.
+
+```json
+Response:
+{
+  "id": "uuid",
+  "email": "user@example.com",
+  "name": "John Doe",
+  "role": "CANDIDATE"
 }
 ```
 

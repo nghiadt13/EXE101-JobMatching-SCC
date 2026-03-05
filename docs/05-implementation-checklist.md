@@ -19,11 +19,11 @@ Timeline: **1-2 tuần** (14 ngày)
 - [ ] Tạo Prisma schema (6 models)
 - [ ] Run migration
 - [ ] Tạo seed data
-- [ ] Setup NextAuth.js v5
-- [ ] Implement register/login API
-- [ ] Implement JWT strategy
-- [ ] Create login/register pages
-- [ ] Test authentication flow
+- [x] Setup NextAuth.js v5
+- [x] Implement register/login API
+- [x] Implement JWT strategy
+- [x] Create login/register pages
+- [x] Test authentication flow
 
 ### Ngày 5: User Management
 
@@ -122,11 +122,11 @@ Timeline: **1-2 tuần** (14 ngày)
 
 ### Authentication
 
-- [ ] Register với email/password
-- [ ] Login thành công
-- [ ] Logout
-- [ ] Protected routes redirect
-- [ ] Role-based access
+- [x] Register với email/password
+- [x] Login thành công
+- [x] Logout
+- [x] Protected routes redirect
+- [x] Role-based access
 
 ### CV Flow
 
