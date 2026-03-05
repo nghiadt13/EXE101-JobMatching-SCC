@@ -458,6 +458,9 @@ describe('Auth and User/Profile (e2e)', () => {
             if (!found) {
               return Promise.resolve(null);
             }
+            const foundCandidate = candidates.find(
+              (candidate) => candidate.id === found.candidateId,
+            );
             return Promise.resolve({
               id: found.id,
               fileName: found.fileName,
@@ -469,6 +472,9 @@ describe('Auth and User/Profile (e2e)', () => {
               createdAt: found.createdAt,
               updatedAt: found.updatedAt,
               filePath: found.filePath,
+              candidate: foundCandidate
+                ? { userId: foundCandidate.userId }
+                : undefined,
             });
           },
         ),
@@ -922,6 +928,48 @@ describe('Auth and User/Profile (e2e)', () => {
       .post('/api/jobs/job-2/close')
       .set('Authorization', `Bearer ${recruiterToken}`)
       .expect(400);
+  });
+
+  it('allows candidate to calculate matching for own cv and published job', async () => {
+    const response = await createRequest()
+      .post('/api/matching/calculate')
+      .set('Authorization', `Bearer ${candidateToken}`)
+      .send({
+        cvId: 'cv-1',
+        jobId: 'job-1',
+      })
+      .expect(201);
+
+    const body = response.body as {
+      score: number;
+      tfidfScore: number;
+      skillsScore: number;
+      breakdown: { matchedSkills: string[]; missingSkills: string[] };
+    };
+    expect(body.score).toBeGreaterThanOrEqual(0);
+    expect(body.score).toBeLessThanOrEqual(100);
+    expect(body.breakdown.matchedSkills).toContain('TypeScript');
+  });
+
+  it('rejects invalid matching payload', async () => {
+    await createRequest()
+      .post('/api/matching/calculate')
+      .set('Authorization', `Bearer ${candidateToken}`)
+      .send({
+        cvId: 'cv-1',
+      })
+      .expect(400);
+  });
+
+  it('hides non-visible job from candidate matching', async () => {
+    await createRequest()
+      .post('/api/matching/calculate')
+      .set('Authorization', `Bearer ${candidateToken}`)
+      .send({
+        cvId: 'cv-1',
+        jobId: 'job-2',
+      })
+      .expect(404);
   });
 
   async function loginAndGetToken(email: string): Promise<string> {

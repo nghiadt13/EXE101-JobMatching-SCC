@@ -312,7 +312,11 @@ Update application status
 
 ### POST /matching/calculate
 
-Calculate match score (internal use)
+Calculate match score (authenticated internal use)
+
+- `CANDIDATE`: chỉ tính được với CV của chính mình + job `PUBLISHED`
+- `RECRUITER`: tính được với mọi CV active + job `PUBLISHED` hoặc job own
+- `ADMIN`: tính được với mọi CV/Job active
 
 ```json
 {
@@ -331,6 +335,12 @@ Response:
   }
 }
 ```
+
+### Matching Error Codes
+
+- `400`: payload invalid (`cvId`/`jobId` thiếu hoặc rỗng)
+- `401`: chưa đăng nhập
+- `404`: CV/Job không tồn tại hoặc không visible với actor hiện tại
 
 ## Dashboard
 

@@ -57,13 +57,13 @@ Timeline: **1-2 tuần** (14 ngày)
 
 ### Ngày 10-11: Matching Algorithm
 
-- [ ] Install natural.js (TF-IDF)
-- [ ] Implement TF-IDF calculation
-- [ ] Implement skills matching
-- [ ] Implement final score calculation
-- [ ] Create matching service
-- [ ] Test matching với sample data
-- [ ] Optimize performance
+- [x] Install natural.js (TF-IDF)
+- [x] Implement TF-IDF calculation
+- [x] Implement skills matching
+- [x] Implement final score calculation
+- [x] Create matching service
+- [x] Test matching với sample data
+- [x] Optimize performance
 
 ### Ngày 12: Application Flow
 
@@ -149,8 +149,8 @@ Timeline: **1-2 tuần** (14 ngày)
 ### Matching & Application
 
 - [ ] Apply vào job
-- [ ] Match score hiển thị đúng
-- [ ] Skills breakdown đúng
+- [x] Match score hiển thị đúng
+- [x] Skills breakdown đúng
 - [ ] Ranking candidates
 - [ ] Update application status
 - [ ] View application history
