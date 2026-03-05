@@ -35,14 +35,14 @@ Timeline: **1-2 tuần** (14 ngày)
 
 ### Ngày 6-7: CV Management
 
-- [ ] Install pdf-parse, mammoth
-- [ ] Implement file upload API
-- [ ] Implement text extraction
-- [ ] Setup Gemini API client
-- [ ] Implement CV parsing service
-- [ ] Create CV upload page
-- [ ] Create CV list page
-- [ ] Test CV upload + parsing
+- [x] Install pdf-parse, mammoth
+- [x] Implement file upload API
+- [x] Implement text extraction
+- [x] Setup Gemini API client
+- [x] Implement CV parsing service
+- [x] Create CV upload page
+- [x] Create CV list page
+- [x] Test CV upload + parsing
 
 ## Week 2: Core Features (Ngày 8-14)
 

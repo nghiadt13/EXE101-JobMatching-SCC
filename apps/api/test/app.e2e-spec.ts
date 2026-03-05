@@ -26,6 +26,21 @@ type MockCandidate = {
   bio: string | null;
 };
 
+type MockCv = {
+  id: string;
+  candidateId: string;
+  fileName: string;
+  filePath: string;
+  fileSize: number;
+  mimeType: string;
+  parsedData: Record<string, unknown>;
+  skills: string[];
+  isPrimary: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
+};
+
 describe('Auth and User/Profile (e2e)', () => {
   let app: INestApplication;
   let users: MockUser[];
@@ -34,6 +49,7 @@ describe('Auth and User/Profile (e2e)', () => {
   let adminToken = '';
   let recruiterToken = '';
   let candidateToken = '';
+  let cvs: MockCv[];
 
   beforeAll(async () => {
     process.env.JWT_SECRET = 'test-jwt-secret';
@@ -84,6 +100,22 @@ describe('Auth and User/Profile (e2e)', () => {
         phone: '0909123123',
         location: { city: 'HCM', country: 'VN' },
         bio: 'Candidate bio',
+      },
+    ];
+    cvs = [
+      {
+        id: 'cv-1',
+        candidateId: 'cand-1',
+        fileName: 'cv.pdf',
+        filePath: 'cand-1/cv.pdf',
+        fileSize: 12000,
+        mimeType: 'application/pdf',
+        parsedData: { skills: ['TypeScript'], summary: 'seeded summary' },
+        skills: ['TypeScript'],
+        isPrimary: true,
+        createdAt: now,
+        updatedAt: now,
+        deletedAt: null,
       },
     ];
 
@@ -262,6 +294,26 @@ describe('Auth and User/Profile (e2e)', () => {
         ),
       },
       candidate: {
+        findFirst: jest.fn(
+          ({
+            where,
+            select,
+          }: {
+            where: { userId?: string; user?: { deletedAt?: null } };
+            select?: Record<string, unknown>;
+          }) => {
+            const found = candidates.find((item) =>
+              where.userId ? item.userId === where.userId : true,
+            );
+            if (!found) {
+              return Promise.resolve(null);
+            }
+            if (select && 'id' in select) {
+              return Promise.resolve({ id: found.id });
+            }
+            return Promise.resolve(found);
+          },
+        ),
         update: jest.fn(
           ({
             where,
@@ -279,6 +331,102 @@ describe('Auth and User/Profile (e2e)', () => {
           },
         ),
       },
+      cV: {
+        count: jest.fn(
+          ({
+            where,
+          }: {
+            where?: { candidateId?: string; deletedAt?: null };
+          }) => {
+            let filtered = [...cvs];
+            if (where?.candidateId) {
+              filtered = filtered.filter(
+                (item) => item.candidateId === where.candidateId,
+              );
+            }
+            if (where?.deletedAt === null) {
+              filtered = filtered.filter((item) => item.deletedAt === null);
+            }
+            return Promise.resolve(filtered.length);
+          },
+        ),
+        findMany: jest.fn(
+          ({
+            where,
+          }: {
+            where?: { candidateId?: string; deletedAt?: null };
+          }) => {
+            let filtered = [...cvs];
+            if (where?.candidateId) {
+              filtered = filtered.filter(
+                (item) => item.candidateId === where.candidateId,
+              );
+            }
+            if (where?.deletedAt === null) {
+              filtered = filtered.filter((item) => item.deletedAt === null);
+            }
+
+            return Promise.resolve(
+              filtered.map((item) => ({
+                id: item.id,
+                fileName: item.fileName,
+                fileSize: item.fileSize,
+                mimeType: item.mimeType,
+                parsedData: item.parsedData,
+                skills: item.skills,
+                isPrimary: item.isPrimary,
+                createdAt: item.createdAt,
+                updatedAt: item.updatedAt,
+                filePath: item.filePath,
+              })),
+            );
+          },
+        ),
+        findFirst: jest.fn(
+          ({
+            where,
+          }: {
+            where?: { id?: string; candidateId?: string; deletedAt?: null };
+          }) => {
+            const found = cvs.find((item) => {
+              const byId = where?.id ? item.id === where.id : true;
+              const byCandidate = where?.candidateId
+                ? item.candidateId === where.candidateId
+                : true;
+              const byDeleted =
+                where?.deletedAt === null ? item.deletedAt === null : true;
+              return byId && byCandidate && byDeleted;
+            });
+            if (!found) {
+              return Promise.resolve(null);
+            }
+            return Promise.resolve({
+              id: found.id,
+              fileName: found.fileName,
+              fileSize: found.fileSize,
+              mimeType: found.mimeType,
+              parsedData: found.parsedData,
+              skills: found.skills,
+              isPrimary: found.isPrimary,
+              createdAt: found.createdAt,
+              updatedAt: found.updatedAt,
+              filePath: found.filePath,
+            });
+          },
+        ),
+        create: jest.fn(),
+        update: jest.fn(),
+        updateMany: jest.fn(),
+      },
+      $transaction: jest.fn((callback: (tx: unknown) => unknown) =>
+        callback({
+          cV: {
+            update: jest.fn(),
+            findFirst: jest.fn(),
+            updateMany: jest.fn(),
+          },
+        }),
+      ),
     };
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -442,6 +590,23 @@ describe('Auth and User/Profile (e2e)', () => {
     };
     expect(body.name).toBe('Candidate Updated');
     expect(body.candidate.phone).toBe('0911111111');
+  });
+
+  it('allows candidate to list own cvs', async () => {
+    const response = await createRequest()
+      .get('/api/cvs')
+      .set('Authorization', `Bearer ${candidateToken}`)
+      .expect(200);
+
+    const body = response.body as { items: Array<{ id: string }> };
+    expect(body.items.length).toBeGreaterThan(0);
+  });
+
+  it('rejects recruiter from cv endpoints', async () => {
+    await createRequest()
+      .get('/api/cvs')
+      .set('Authorization', `Bearer ${recruiterToken}`)
+      .expect(403);
   });
 
   async function loginAndGetToken(email: string): Promise<string> {

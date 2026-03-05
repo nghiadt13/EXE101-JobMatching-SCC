@@ -141,22 +141,38 @@ Upload CV file
 ```
 Content-Type: multipart/form-data
 File: cv.pdf hoặc cv.docx
+Max size: 5MB
+Allowed mime: application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document
+Limit: tối đa 10 CV active / candidate
 
 Response:
 {
   "id": "uuid",
   "fileName": "cv.pdf",
+  "fileSize": 120000,
+  "mimeType": "application/pdf",
+  "isPrimary": true,
+  "skills": ["Python", "Django"],
   "parsedData": {
     "skills": ["Python", "Django"],
     "experience": [...],
-    "education": [...]
+    "education": [...],
+    "contact": {},
+    "summary": "..."
   }
 }
 ```
 
 ### GET /cvs
 
-List CVs của candidate hiện tại
+List CVs của candidate hiện tại với pagination:
+
+```json
+{
+  "items": [{ "id", "fileName", "fileSize", "mimeType", "skills", "isPrimary", "createdAt", "updatedAt" }],
+  "pagination": { "page": 1, "limit": 50, "totalItems": 2, "totalPages": 1 }
+}
+```
 
 ### GET /cvs/:id
 
@@ -166,6 +182,16 @@ Get CV detail
 
 Update parsed data (sau khi review)
 
+```json
+Request:
+{
+  "skills": ["TypeScript", "NestJS"],
+  "parsedData": {
+    "summary": "Updated summary"
+  }
+}
+```
+
 ### DELETE /cvs/:id
 
 Soft delete CV
@@ -173,6 +199,15 @@ Soft delete CV
 ### POST /cvs/:id/set-primary
 
 Đặt CV làm primary
+
+### CV Error Codes
+
+- `400`: thiếu file, vượt limit active CV, payload invalid
+- `401`: chưa đăng nhập
+- `403`: role không phải candidate
+- `404`: CV không tồn tại hoặc không thuộc candidate hiện tại
+- `413`: file vượt quá 5MB
+- `415`: sai định dạng file
 
 ## Jobs
 
