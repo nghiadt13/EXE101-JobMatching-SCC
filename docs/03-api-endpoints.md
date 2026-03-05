@@ -66,6 +66,14 @@ Response:
 
 List users với pagination
 
+```json
+Response:
+{
+  "items": [{ "id", "email", "name", "role", "avatar", "createdAt", "updatedAt" }],
+  "pagination": { "page": 1, "limit": 20, "totalItems": 10, "totalPages": 1 }
+}
+```
+
 ### GET /users/:id
 
 Get user by ID
@@ -73,6 +81,15 @@ Get user by ID
 ### PATCH /users/:id
 
 Update user
+
+```json
+Request:
+{
+  "name": "Updated Name",
+  "role": "RECRUITER",
+  "avatar": "https://..."
+}
+```
 
 ### DELETE /users/:id
 
@@ -84,9 +101,36 @@ Soft delete user
 
 Get current user profile
 
+```json
+Response:
+{
+  "id": "uuid",
+  "email": "candidate@example.com",
+  "name": "Candidate",
+  "role": "CANDIDATE",
+  "avatar": null,
+  "candidate": {
+    "phone": "0909...",
+    "location": { "city": "Ho Chi Minh" },
+    "bio": "..."
+  }
+}
+```
+
 ### PATCH /profile
 
 Update current user profile
+
+```json
+Request:
+{
+  "name": "Updated Name",
+  "avatar": "https://...",
+  "phone": "0909...",
+  "location": { "city": "Ho Chi Minh" },
+  "bio": "Updated bio"
+}
+```
 
 ## CVs (Candidate only)
 

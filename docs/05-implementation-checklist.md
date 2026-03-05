@@ -27,11 +27,11 @@ Timeline: **1-2 tuần** (14 ngày)
 
 ### Ngày 5: User Management
 
-- [ ] Create users CRUD API (Admin)
-- [ ] Create profile API
-- [ ] Create user list page (Admin)
-- [ ] Create profile page
-- [ ] Test RBAC (Admin, Recruiter, Candidate)
+- [x] Create users CRUD API (Admin)
+- [x] Create profile API
+- [x] Create user list page (Admin)
+- [x] Create profile page
+- [x] Test RBAC (Admin, Recruiter, Candidate)
 
 ### Ngày 6-7: CV Management
 

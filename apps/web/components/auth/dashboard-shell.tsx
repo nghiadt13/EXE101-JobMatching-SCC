@@ -1,12 +1,14 @@
+import type { ReactNode } from 'react';
 import { SignOutButton } from './sign-out-button';
 
 type DashboardShellProps = {
   title: string;
   description: string;
   email?: string | null;
+  children?: ReactNode;
 };
 
-export function DashboardShell({ title, description, email }: DashboardShellProps) {
+export function DashboardShell({ title, description, email, children }: DashboardShellProps) {
   return (
     <main className="mx-auto flex min-h-screen max-w-4xl flex-col px-6 py-12">
       <header className="mb-8 flex items-center justify-between gap-4">
@@ -21,6 +23,7 @@ export function DashboardShell({ title, description, email }: DashboardShellProp
         <p className="text-sm text-zinc-500">Signed in as</p>
         <p className="text-lg font-medium text-zinc-900">{email ?? 'Unknown user'}</p>
       </section>
+      {children ? <section className="mt-6">{children}</section> : null}
     </main>
   );
 }
