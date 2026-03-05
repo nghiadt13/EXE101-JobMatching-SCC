@@ -700,31 +700,33 @@ describe('Auth and User/Profile (e2e)', () => {
       application: {
         count: jest.fn(
           ({ where }: { where?: Record<string, unknown> } = {}) => {
-          let filtered = [...applications];
-          if (typeof where?.['candidateId'] === 'string') {
-            filtered = filtered.filter(
-              (item) => item.candidateId === where['candidateId'],
-            );
-          }
-          if (typeof where?.['jobId'] === 'string') {
-            filtered = filtered.filter((item) => item.jobId === where['jobId']);
-          }
-          if (typeof where?.['status'] === 'string') {
-            filtered = filtered.filter(
-              (item) => item.status === where['status'],
-            );
-          }
-          if (where?.['job'] && typeof where['job'] === 'object') {
-            const recruiterId = (where['job'] as { recruiterId?: string })
-              .recruiterId;
-            if (recruiterId) {
-              filtered = filtered.filter((item) => {
-                const job = jobs.find((entry) => entry.id === item.jobId);
-                return job?.recruiterId === recruiterId;
-              });
+            let filtered = [...applications];
+            if (typeof where?.['candidateId'] === 'string') {
+              filtered = filtered.filter(
+                (item) => item.candidateId === where['candidateId'],
+              );
             }
-          }
-          return Promise.resolve(filtered.length);
+            if (typeof where?.['jobId'] === 'string') {
+              filtered = filtered.filter(
+                (item) => item.jobId === where['jobId'],
+              );
+            }
+            if (typeof where?.['status'] === 'string') {
+              filtered = filtered.filter(
+                (item) => item.status === where['status'],
+              );
+            }
+            if (where?.['job'] && typeof where['job'] === 'object') {
+              const recruiterId = (where['job'] as { recruiterId?: string })
+                .recruiterId;
+              if (recruiterId) {
+                filtered = filtered.filter((item) => {
+                  const job = jobs.find((entry) => entry.id === item.jobId);
+                  return job?.recruiterId === recruiterId;
+                });
+              }
+            }
+            return Promise.resolve(filtered.length);
           },
         ),
         findMany: jest.fn(

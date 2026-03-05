@@ -88,11 +88,11 @@ Timeline: **1-2 tuần** (14 ngày)
 
 ### Ngày 14: Testing & Polish
 
-- [ ] Test toàn bộ flows
-- [ ] Fix bugs
-- [ ] Add demo data
-- [ ] Write README
-- [ ] Prepare demo script
+- [x] Test toàn bộ flows
+- [x] Fix bugs
+- [x] Add demo data
+- [x] Write README
+- [x] Prepare demo script
 - [ ] Test demo scenario
 
 ## Bonus (Nếu Còn Thời Gian)
@@ -191,9 +191,9 @@ Timeline: **1-2 tuần** (14 ngày)
 
 ## Success Criteria
 
-- [ ] Tất cả core features hoạt động
+- [x] Tất cả core features hoạt động
 - [ ] Matching algorithm cho kết quả hợp lý
-- [ ] UI responsive và user-friendly
-- [ ] Không có critical bugs
+- [x] UI responsive và user-friendly
+- [x] Không có critical bugs
 - [ ] Demo flow mượt mà
-- [ ] Code clean và có comments
+- [x] Code clean và có comments
