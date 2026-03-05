@@ -1,0 +1,148 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  ADMIN
+  RECRUITER
+  CANDIDATE
+}
+
+enum JobStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+  ARCHIVED
+}
+
+enum ApplicationStatus {
+  APPLIED
+  REVIEWING
+  INTERVIEW
+  OFFER
+  REJECTED
+  WITHDRAWN
+}
+
+model User {
+  id        String    @id @default(uuid())
+  email     String    @unique
+  password  String
+  name      String
+  role      UserRole  @default(CANDIDATE)
+  avatar    String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  candidate Candidate?
+  jobs      Job[]
+
+  @@index([email])
+  @@index([role])
+  @@index([deletedAt])
+}
+
+model Candidate {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  phone     String?
+  location  Json?
+  bio       String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cvs          CV[]
+  applications Application[]
+
+  @@index([userId])
+}
+
+model CV {
+  id          String    @id @default(uuid())
+  candidateId String
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  fileName    String
+  filePath    String
+  fileSize    Int
+  mimeType    String
+  parsedData  Json
+  skills      Json
+  isPrimary   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  applications Application[]
+
+  @@index([candidateId])
+  @@index([isPrimary])
+  @@index([deletedAt])
+}
+
+model Job {
+  id             String    @id @default(uuid())
+  recruiterId    String
+  recruiter      User      @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
+  title          String
+  slug           String    @unique
+  description    String    @db.Text
+  skills         Json
+  location       Json?
+  salaryMin      Int?
+  salaryMax      Int?
+  employmentType String
+  status         JobStatus @default(DRAFT)
+  publishedAt    DateTime?
+  closedAt       DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  applications Application[]
+
+  @@index([recruiterId])
+  @@index([status])
+  @@index([publishedAt])
+  @@index([slug])
+  @@index([deletedAt])
+}
+
+model Application {
+  id          String            @id @default(uuid())
+  jobId       String
+  job         Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  candidateId String
+  candidate   Candidate         @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  cvId        String
+  cv          CV                @relation(fields: [cvId], references: [id], onDelete: Restrict)
+  matchScore  Float
+  tfidfScore  Float?
+  skillsScore Float?
+  status      ApplicationStatus @default(APPLIED)
+  notes       String?           @db.Text
+  appliedAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@unique([jobId, candidateId])
+  @@index([jobId])
+  @@index([candidateId])
+  @@index([cvId])
+  @@index([matchScore])
+  @@index([status])
+}
+
+model Skill {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  category  String
+  createdAt DateTime @default(now())
+
+  @@index([name])
+  @@index([category])
+}
