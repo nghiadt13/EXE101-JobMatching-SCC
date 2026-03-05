@@ -31,6 +31,12 @@ export default async function RecruiterDashboardPage() {
         >
           My profile
         </Link>
+        <Link
+          href="/dashboard/recruiter/applications"
+          className="inline-flex h-10 items-center justify-center rounded-lg border border-zinc-300 px-4 text-sm font-medium text-zinc-800 hover:bg-zinc-100"
+        >
+          Review applications
+        </Link>
       </div>
     </DashboardShell>
   );

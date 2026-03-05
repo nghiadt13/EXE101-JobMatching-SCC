@@ -1,6 +1,6 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { JobStatus, UserRole } from '@prisma/client';
+import { ApplicationStatus, JobStatus, UserRole } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
@@ -60,6 +60,20 @@ type MockJob = {
   deletedAt: Date | null;
 };
 
+type MockApplication = {
+  id: string;
+  jobId: string;
+  candidateId: string;
+  cvId: string;
+  matchScore: number;
+  tfidfScore: number | null;
+  skillsScore: number | null;
+  status: ApplicationStatus;
+  notes: string | null;
+  appliedAt: Date;
+  updatedAt: Date;
+};
+
 describe('Auth and User/Profile (e2e)', () => {
   let app: INestApplication;
   let users: MockUser[];
@@ -70,6 +84,7 @@ describe('Auth and User/Profile (e2e)', () => {
   let candidateToken = '';
   let cvs: MockCv[];
   let jobs: MockJob[];
+  let applications: MockApplication[];
 
   beforeAll(async () => {
     process.env.JWT_SECRET = 'test-jwt-secret';
@@ -176,6 +191,7 @@ describe('Auth and User/Profile (e2e)', () => {
         deletedAt: null,
       },
     ];
+    applications = [];
 
     const prismaMock = {
       user: {
@@ -681,6 +697,265 @@ describe('Auth and User/Profile (e2e)', () => {
           },
         ),
       },
+      application: {
+        count: jest.fn(({ where }: { where?: Record<string, unknown> }) => {
+          let filtered = [...applications];
+          if (typeof where?.['candidateId'] === 'string') {
+            filtered = filtered.filter(
+              (item) => item.candidateId === where['candidateId'],
+            );
+          }
+          if (typeof where?.['jobId'] === 'string') {
+            filtered = filtered.filter((item) => item.jobId === where['jobId']);
+          }
+          if (typeof where?.['status'] === 'string') {
+            filtered = filtered.filter(
+              (item) => item.status === where['status'],
+            );
+          }
+          if (where?.['job'] && typeof where['job'] === 'object') {
+            const recruiterId = (where['job'] as { recruiterId?: string })
+              .recruiterId;
+            if (recruiterId) {
+              filtered = filtered.filter((item) => {
+                const job = jobs.find((entry) => entry.id === item.jobId);
+                return job?.recruiterId === recruiterId;
+              });
+            }
+          }
+          return Promise.resolve(filtered.length);
+        }),
+        findMany: jest.fn(
+          ({
+            where,
+            skip,
+            take,
+          }: {
+            where?: Record<string, unknown>;
+            skip?: number;
+            take?: number;
+          }) => {
+            let filtered = [...applications];
+            if (typeof where?.['candidateId'] === 'string') {
+              filtered = filtered.filter(
+                (item) => item.candidateId === where['candidateId'],
+              );
+            }
+            if (typeof where?.['jobId'] === 'string') {
+              filtered = filtered.filter(
+                (item) => item.jobId === where['jobId'],
+              );
+            }
+            if (typeof where?.['status'] === 'string') {
+              filtered = filtered.filter(
+                (item) => item.status === where['status'],
+              );
+            }
+            if (where?.['job'] && typeof where['job'] === 'object') {
+              const recruiterId = (where['job'] as { recruiterId?: string })
+                .recruiterId;
+              if (recruiterId) {
+                filtered = filtered.filter((item) => {
+                  const job = jobs.find((entry) => entry.id === item.jobId);
+                  return job?.recruiterId === recruiterId;
+                });
+              }
+            }
+            const start = skip ?? 0;
+            const end = take ? start + take : undefined;
+            const items = filtered.slice(start, end).map((item) => {
+              const job = jobs.find((entry) => entry.id === item.jobId);
+              const candidate = candidates.find(
+                (entry) => entry.id === item.candidateId,
+              );
+              const user = users.find(
+                (entry) => entry.id === candidate?.userId,
+              );
+              const cv = cvs.find((entry) => entry.id === item.cvId);
+              return {
+                ...item,
+                job: {
+                  id: job?.id ?? item.jobId,
+                  title: job?.title ?? 'Unknown',
+                  slug: job?.slug ?? 'unknown',
+                },
+                candidate: {
+                  id: candidate?.id ?? item.candidateId,
+                  user: {
+                    name: user?.name ?? 'Unknown',
+                    email: user?.email ?? 'unknown@example.com',
+                  },
+                },
+                cv: {
+                  id: cv?.id ?? item.cvId,
+                  fileName: cv?.fileName ?? 'unknown.pdf',
+                },
+              };
+            });
+            return Promise.resolve(items);
+          },
+        ),
+        findFirst: jest.fn(({ where }: { where?: Record<string, unknown> }) => {
+          const found = applications.find((item) => {
+            const byId =
+              typeof where?.['id'] === 'string'
+                ? item.id === where['id']
+                : true;
+            const byCandidate =
+              typeof where?.['candidateId'] === 'string'
+                ? item.candidateId === where['candidateId']
+                : true;
+            const byJob =
+              typeof where?.['jobId'] === 'string'
+                ? item.jobId === where['jobId']
+                : true;
+            const byStatus =
+              typeof where?.['status'] === 'string'
+                ? item.status === where['status']
+                : true;
+            const byRecruiter =
+              where?.['job'] && typeof where['job'] === 'object'
+                ? (() => {
+                    const recruiterId = (
+                      where['job'] as { recruiterId?: string }
+                    ).recruiterId;
+                    if (!recruiterId) {
+                      return true;
+                    }
+                    const job = jobs.find((entry) => entry.id === item.jobId);
+                    return job?.recruiterId === recruiterId;
+                  })()
+                : true;
+            return byId && byCandidate && byJob && byStatus && byRecruiter;
+          });
+          if (!found) {
+            return Promise.resolve(null);
+          }
+
+          const job = jobs.find((entry) => entry.id === found.jobId);
+          const candidate = candidates.find(
+            (entry) => entry.id === found.candidateId,
+          );
+          const user = users.find((entry) => entry.id === candidate?.userId);
+          const cv = cvs.find((entry) => entry.id === found.cvId);
+          return Promise.resolve({
+            ...found,
+            job: {
+              id: job?.id ?? found.jobId,
+              title: job?.title ?? 'Unknown',
+              slug: job?.slug ?? 'unknown',
+            },
+            candidate: {
+              id: candidate?.id ?? found.candidateId,
+              user: {
+                name: user?.name ?? 'Unknown',
+                email: user?.email ?? 'unknown@example.com',
+              },
+            },
+            cv: {
+              id: cv?.id ?? found.cvId,
+              fileName: cv?.fileName ?? 'unknown.pdf',
+            },
+          });
+        }),
+        create: jest.fn(({ data }: { data: Record<string, unknown> }) => {
+          const exists = applications.some(
+            (item) =>
+              item.jobId === data.jobId &&
+              item.candidateId === data.candidateId,
+          );
+          if (exists) {
+            const duplicateError = Object.assign(
+              new Error('Unique constraint violation'),
+              { code: 'P2002' },
+            );
+            return Promise.reject(duplicateError);
+          }
+          const created: MockApplication = {
+            id: `app-${applications.length + 1}`,
+            jobId: String(data.jobId),
+            candidateId: String(data.candidateId),
+            cvId: String(data.cvId),
+            matchScore: Number(data.matchScore ?? 0),
+            tfidfScore: Number(data.tfidfScore ?? 0),
+            skillsScore: Number(data.skillsScore ?? 0),
+            status: ApplicationStatus.APPLIED,
+            notes: null,
+            appliedAt: new Date(),
+            updatedAt: new Date(),
+          };
+          applications.push(created);
+          const job = jobs.find((entry) => entry.id === created.jobId);
+          const candidate = candidates.find(
+            (entry) => entry.id === created.candidateId,
+          );
+          const user = users.find((entry) => entry.id === candidate?.userId);
+          const cv = cvs.find((entry) => entry.id === created.cvId);
+          return Promise.resolve({
+            ...created,
+            job: {
+              id: job?.id ?? created.jobId,
+              title: job?.title ?? 'Unknown',
+              slug: job?.slug ?? 'unknown',
+            },
+            candidate: {
+              id: candidate?.id ?? created.candidateId,
+              user: {
+                name: user?.name ?? 'Unknown',
+                email: user?.email ?? 'unknown@example.com',
+              },
+            },
+            cv: {
+              id: cv?.id ?? created.cvId,
+              fileName: cv?.fileName ?? 'unknown.pdf',
+            },
+          });
+        }),
+        update: jest.fn(
+          ({
+            where,
+            data,
+          }: {
+            where: { id: string };
+            data: Record<string, unknown>;
+          }) => {
+            const index = applications.findIndex(
+              (item) => item.id === where.id,
+            );
+            const updated: MockApplication = {
+              ...applications[index],
+              ...data,
+              updatedAt: new Date(),
+            };
+            applications[index] = updated;
+            const job = jobs.find((entry) => entry.id === updated.jobId);
+            const candidate = candidates.find(
+              (entry) => entry.id === updated.candidateId,
+            );
+            const user = users.find((entry) => entry.id === candidate?.userId);
+            const cv = cvs.find((entry) => entry.id === updated.cvId);
+            return Promise.resolve({
+              ...updated,
+              job: {
+                id: job?.id ?? updated.jobId,
+                title: job?.title ?? 'Unknown',
+                slug: job?.slug ?? 'unknown',
+              },
+              candidate: {
+                id: candidate?.id ?? updated.candidateId,
+                user: {
+                  name: user?.name ?? 'Unknown',
+                  email: user?.email ?? 'unknown@example.com',
+                },
+              },
+              cv: {
+                id: cv?.id ?? updated.cvId,
+                fileName: cv?.fileName ?? 'unknown.pdf',
+              },
+            });
+          },
+        ),
+      },
       $transaction: jest.fn((callback: (tx: unknown) => unknown) =>
         callback({
           cV: {
@@ -692,6 +967,13 @@ describe('Auth and User/Profile (e2e)', () => {
             update: jest.fn(),
             findFirst: jest.fn(),
             updateMany: jest.fn(),
+          },
+          application: {
+            create: jest.fn(),
+            findFirst: jest.fn(),
+            findMany: jest.fn(),
+            count: jest.fn(),
+            update: jest.fn(),
           },
         }),
       ),
@@ -970,6 +1252,78 @@ describe('Auth and User/Profile (e2e)', () => {
         jobId: 'job-2',
       })
       .expect(404);
+  });
+
+  it('allows candidate to apply a published job with own cv', async () => {
+    const response = await createRequest()
+      .post('/api/applications')
+      .set('Authorization', `Bearer ${candidateToken}`)
+      .send({
+        jobId: 'job-1',
+        cvId: 'cv-1',
+      })
+      .expect(201);
+
+    const body = response.body as { status: string; matchScore: number };
+    expect(body.status).toBe('APPLIED');
+    expect(body.matchScore).toBeGreaterThanOrEqual(0);
+  });
+
+  it('rejects duplicate apply for same job and candidate', async () => {
+    await createRequest()
+      .post('/api/applications')
+      .set('Authorization', `Bearer ${candidateToken}`)
+      .send({
+        jobId: 'job-1',
+        cvId: 'cv-1',
+      })
+      .expect(409);
+  });
+
+  it('allows candidate to list own applications', async () => {
+    const response = await createRequest()
+      .get('/api/applications')
+      .set('Authorization', `Bearer ${candidateToken}`)
+      .expect(200);
+
+    const body = response.body as { items: Array<{ candidateId: string }> };
+    expect(body.items.length).toBeGreaterThan(0);
+    expect(body.items.every((item) => item.candidateId === 'cand-1')).toBe(
+      true,
+    );
+  });
+
+  it('allows recruiter to list applications on own jobs', async () => {
+    const response = await createRequest()
+      .get('/api/applications')
+      .set('Authorization', `Bearer ${recruiterToken}`)
+      .expect(200);
+
+    const body = response.body as { items: Array<{ jobId: string }> };
+    expect(body.items.some((item) => item.jobId === 'job-1')).toBe(true);
+  });
+
+  it('allows recruiter to update application status with valid transition', async () => {
+    const response = await createRequest()
+      .patch('/api/applications/app-1/status')
+      .set('Authorization', `Bearer ${recruiterToken}`)
+      .send({
+        status: 'REVIEWING',
+      })
+      .expect(200);
+
+    const body = response.body as { status: string };
+    expect(body.status).toBe('REVIEWING');
+  });
+
+  it('blocks invalid recruiter status transition', async () => {
+    await createRequest()
+      .patch('/api/applications/app-1/status')
+      .set('Authorization', `Bearer ${recruiterToken}`)
+      .send({
+        status: 'APPLIED',
+      })
+      .expect(400);
   });
 
   async function loginAndGetToken(email: string): Promise<string> {

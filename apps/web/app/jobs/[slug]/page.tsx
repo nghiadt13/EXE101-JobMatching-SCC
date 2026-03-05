@@ -1,14 +1,22 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { notFound } from 'next/navigation';
+import { auth } from '@/auth';
+import { CandidateApplyForm } from '@/components/applications/candidate-apply-form';
+import { createApplication } from '@/lib/applications-client';
 import { ApiError } from '@/lib/api-client';
+import { getMyCvs } from '@/lib/cv-client';
 import { getJobDetail } from '@/lib/jobs-client';
 
 type PageProps = {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ applied?: string; error?: string }>;
 };
 
-export default async function JobDetailPage({ params }: PageProps) {
+export default async function JobDetailPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
+  const query = await searchParams;
+  const session = await auth();
 
   let job;
   try {
@@ -18,6 +26,35 @@ export default async function JobDetailPage({ params }: PageProps) {
       notFound();
     }
     throw error;
+  }
+
+  const canApply =
+    session?.user?.role === 'CANDIDATE' && Boolean(session.accessToken);
+  const cvs = canApply ? await getMyCvs(session.accessToken as string) : null;
+
+  async function applyAction(formData: FormData) {
+    'use server';
+    const currentSession = await auth();
+    if (!currentSession?.user || !currentSession.accessToken) {
+      redirect(`/login?callbackUrl=${encodeURIComponent(`/jobs/${slug}`)}`);
+    }
+    if (currentSession.user.role !== 'CANDIDATE') {
+      redirect('/dashboard');
+    }
+    const cvId = String(formData.get('cvId') ?? '').trim();
+    const jobId = String(formData.get('jobId') ?? '').trim();
+    if (!cvId || !jobId) {
+      redirect(`/jobs/${slug}?error=missing`);
+    }
+    try {
+      await createApplication(currentSession.accessToken, { cvId, jobId });
+      redirect(`/jobs/${slug}?applied=1`);
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 409) {
+        redirect(`/jobs/${slug}?error=duplicate`);
+      }
+      redirect(`/jobs/${slug}?error=failed`);
+    }
   }
 
   return (
@@ -43,6 +80,36 @@ export default async function JobDetailPage({ params }: PageProps) {
               </span>
             ))}
           </div>
+        )}
+
+        {query.applied === '1' && (
+          <p className="mt-4 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+            Application submitted successfully.
+          </p>
+        )}
+        {query.error && (
+          <p className="mt-4 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {query.error === 'duplicate'
+              ? 'You already applied to this job.'
+              : 'Unable to submit application.'}
+          </p>
+        )}
+
+        {canApply && cvs && cvs.items.length > 0 ? (
+          <CandidateApplyForm jobId={job.id} cvs={cvs.items} action={applyAction} />
+        ) : null}
+        {canApply && cvs && cvs.items.length === 0 ? (
+          <p className="mt-4 text-sm text-zinc-600">
+            Please upload a CV first in your dashboard before applying.
+          </p>
+        ) : null}
+        {!session?.user && (
+          <p className="mt-4 text-sm text-zinc-600">
+            <Link href={`/login?callbackUrl=${encodeURIComponent(`/jobs/${slug}`)}`} className="underline">
+              Sign in
+            </Link>{' '}
+            as candidate to apply.
+          </p>
         )}
       </section>
     </main>

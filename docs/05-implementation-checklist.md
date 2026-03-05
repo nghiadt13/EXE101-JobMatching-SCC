@@ -67,13 +67,13 @@ Timeline: **1-2 tuần** (14 ngày)
 
 ### Ngày 12: Application Flow
 
-- [ ] Create applications API
-- [ ] Implement apply endpoint (với matching)
-- [ ] Implement status update API
-- [ ] Create apply button/modal
-- [ ] Create applications list (Candidate)
-- [ ] Create applications list (Recruiter)
-- [ ] Test application flow
+- [x] Create applications API
+- [x] Implement apply endpoint (với matching)
+- [x] Implement status update API
+- [x] Create apply button/modal
+- [x] Create applications list (Candidate)
+- [x] Create applications list (Recruiter)
+- [x] Test application flow
 
 ### Ngày 13: Dashboard & UI
 
@@ -148,12 +148,12 @@ Timeline: **1-2 tuần** (14 ngày)
 
 ### Matching & Application
 
-- [ ] Apply vào job
+- [x] Apply vào job
 - [x] Match score hiển thị đúng
 - [x] Skills breakdown đúng
 - [ ] Ranking candidates
-- [ ] Update application status
-- [ ] View application history
+- [x] Update application status
+- [x] View application history
 
 ### Dashboard
 

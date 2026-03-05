@@ -31,6 +31,12 @@ export default async function CandidateDashboardPage() {
         >
           Manage CVs
         </Link>
+        <Link
+          href="/dashboard/candidate/applications"
+          className="inline-flex h-10 items-center justify-center rounded-lg border border-zinc-300 px-4 text-sm font-medium text-zinc-800 hover:bg-zinc-100"
+        >
+          My applications
+        </Link>
       </div>
     </DashboardShell>
   );

@@ -281,21 +281,26 @@ Apply vào job
 Response:
 {
   "id": "uuid",
-  "matchScore": 78.5,
-  "breakdown": {
-    "tfidfScore": 0.72,
-    "skillsScore": 0.85
-  }
+  "jobId": "uuid",
+  "candidateId": "uuid",
+  "cvId": "uuid",
+  "matchScore": 78,
+  "tfidfScore": 0.72,
+  "skillsScore": 0.85,
+  "status": "APPLIED"
 }
 ```
 
 ### GET /applications (Candidate: own, Recruiter: own jobs)
 
-List applications với filters
+List applications với filters `page`, `limit`, `status`, `jobId`
+
+- Candidate: chỉ thấy own applications
+- Recruiter: chỉ thấy applications thuộc own jobs
 
 ### GET /applications/:id
 
-Get application detail
+Get application detail với same visibility rules như list
 
 ### PATCH /applications/:id/status (Recruiter only)
 
@@ -307,6 +312,21 @@ Update application status
   "notes": "Schedule interview next week"
 }
 ```
+
+Allowed transitions (MVP):
+
+- `APPLIED -> REVIEWING|REJECTED`
+- `REVIEWING -> INTERVIEW|REJECTED`
+- `INTERVIEW -> OFFER|REJECTED`
+- `OFFER -> REJECTED`
+
+### Applications Error Codes
+
+- `400`: payload invalid hoặc status transition invalid
+- `401`: chưa đăng nhập
+- `403`: sai role cho endpoint
+- `404`: application/cv/job không tồn tại hoặc không visible
+- `409`: candidate apply trùng job đã apply
 
 ## Matching
 
