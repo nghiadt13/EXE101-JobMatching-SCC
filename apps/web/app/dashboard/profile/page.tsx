@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import { ProfileForm } from '@/components/profile/profile-form';
+import { ApiError } from '@/lib/api-client';
 import { getRoleDashboardPath } from '@/lib/auth-redirect';
 import { getMyProfile, updateMyProfile } from '@/lib/profile-client';
 
@@ -25,17 +26,32 @@ export default async function ProfilePage() {
     const bio = String(formData.get('bio') ?? '').trim();
     const city = String(formData.get('locationCity') ?? '').trim();
 
-    await updateMyProfile(currentSession.accessToken, {
-      ...(name ? { name } : {}),
-      ...(avatar ? { avatar } : {}),
-      ...(phone ? { phone } : {}),
-      ...(bio ? { bio } : {}),
-      ...(city ? { location: { city } } : {}),
-    });
+    try {
+      await updateMyProfile(currentSession.accessToken, {
+        ...(name ? { name } : {}),
+        ...(avatar ? { avatar } : {}),
+        ...(phone ? { phone } : {}),
+        ...(bio ? { bio } : {}),
+        ...(city ? { location: { city } } : {}),
+      });
+    } catch (error) {
+      if (error instanceof ApiError && (error.status === 401 || error.status === 404)) {
+        redirect('/login');
+      }
+      throw error;
+    }
     revalidatePath('/dashboard/profile');
   }
 
-  const profile = await getMyProfile(session.accessToken);
+  let profile: Awaited<ReturnType<typeof getMyProfile>>;
+  try {
+    profile = await getMyProfile(session.accessToken);
+  } catch (error) {
+    if (error instanceof ApiError && (error.status === 401 || error.status === 404)) {
+      redirect('/login');
+    }
+    throw error;
+  }
 
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col px-6 py-12">
