@@ -12,7 +12,7 @@ export class UpdateCvDto {
   @IsArray()
   @ArrayMaxSize(100)
   @IsString({ each: true })
-  @MaxLength(100, { each: true })
+  @MaxLength(500, { each: true })
   skills?: string[];
 
   @IsOptional()

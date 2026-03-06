@@ -94,7 +94,7 @@ export class AiNormalizationService {
     return [
       'You are an expert IT Recruiter AI.',
       'Analyze the following raw text extracted from a ' + (domain === 'cv' ? 'candidate CV' : 'Job Description') + '.',
-      'CRITICAL INSTRUCTION: Read the ENTIRE document from start to finish. Extract ALL technical skills, tools, frameworks, and programming languages you can find into the "skills" array. DO NOT summarize or omit any technical keywords.',
+      'CRITICAL INSTRUCTION: Read the ENTIRE document from start to finish. Extract ALL technical skills, tools, frameworks, and programming languages you can find into the "skills" array. Group related granular skills under a parent category string, e.g., "AWS: EC2, S3, Lambda" or "Networking: OSI Model, Layer 3, IP" instead of separating them into individual elements. DO NOT summarize or omit any technical keywords.',
       'For Experience and Education: Connect the dates, company/school names, and job titles even if they appear on separate or disjointed lines in the raw text.',
       '',
       'Return STRICT JSON ONLY. No markdown formatted blocks (e.g. no ```json), no explanations, no preamble.',

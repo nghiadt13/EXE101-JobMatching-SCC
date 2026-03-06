@@ -98,7 +98,7 @@ export default async function CandidateCvsPage({ searchParams }: PageProps) {
     }
 
     const skills = String(formData.get('skills') ?? '')
-      .split(',')
+      .split('\n')
       .map((item) => item.trim())
       .filter(Boolean);
     const summary = String(formData.get('summary') ?? '').trim();

@@ -17,14 +17,32 @@ export function ExpandableChips({ title, items }: { title: string; items: string
         {title}
       </p>
       <div className="mt-2 flex flex-wrap gap-2">
-        {displayItems.map((item) => (
-          <span
-            key={`${title}-${item}`}
-            className="rounded-full bg-zinc-100 px-2 py-1 text-xs text-zinc-700"
-          >
-            {item}
-          </span>
-        ))}
+        {displayItems.map((item) => {
+          const parts = item.split(':');
+          if (parts.length > 1) {
+            return (
+              <div
+                key={`${title}-${item}`}
+                className="flex w-full flex-col sm:flex-row overflow-hidden rounded-md border border-zinc-200 bg-white text-xs text-zinc-700"
+              >
+                <div className="flex w-full sm:w-48 lg:w-56 flex-shrink-0 items-center bg-zinc-50 px-3 py-2 font-medium border-b sm:border-b-0 sm:border-r border-zinc-200">
+                  {parts[0].trim()}
+                </div>
+                <div className="flex-1 px-3 py-2 leading-relaxed">
+                  {parts.slice(1).join(':').trim()}
+                </div>
+              </div>
+            );
+          }
+          return (
+            <span
+              key={`${title}-${item}`}
+              className="rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs text-zinc-700"
+            >
+              {item}
+            </span>
+          );
+        })}
         {isLong && (
           <button
             type="button"

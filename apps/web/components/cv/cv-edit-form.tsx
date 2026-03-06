@@ -21,12 +21,12 @@ export function CvEditForm({ cv, updateAction }: CvEditFormProps) {
       <input type="hidden" name="cvId" value={cv.id} />
       <label className="block space-y-1">
         <span className="text-xs font-medium uppercase tracking-[0.08em] text-zinc-600">
-          Skills (comma separated)
+          Skills (one per line)
         </span>
-        <input
+        <textarea
           name="skills"
-          defaultValue={(cv.normalizedProfile?.skills ?? cv.skills).join(', ')}
-          className="h-9 w-full rounded-md border border-zinc-300 px-2 text-sm"
+          defaultValue={(cv.normalizedProfile?.skills ?? cv.skills).join('\n')}
+          className="min-h-24 w-full rounded-md border border-zinc-300 px-2 py-2 text-sm leading-relaxed"
         />
       </label>
       <label className="block space-y-1">
