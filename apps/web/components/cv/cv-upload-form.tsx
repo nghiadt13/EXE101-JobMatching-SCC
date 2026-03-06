@@ -1,11 +1,25 @@
+'use client';
+
+import { toast } from 'sonner';
+
 type CvUploadFormProps = {
   uploadAction: (formData: FormData) => Promise<void>;
 };
 
 export function CvUploadForm({ uploadAction }: CvUploadFormProps) {
+  const handleAction = async (formData: FormData) => {
+    const file = formData.get('file') as File;
+    if (file && file.size > 5 * 1024 * 1024) {
+      toast.error('CV file size must be less than 5MB');
+      return;
+    }
+    
+    return uploadAction(formData);
+  };
+
   return (
     <form
-      action={uploadAction}
+      action={handleAction}
       className="space-y-3 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm"
     >
       <div>

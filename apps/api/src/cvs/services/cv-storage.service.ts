@@ -35,8 +35,9 @@ export class CvStorageService {
   }
 
   private toSafeAbsolutePath(relativePath: string): string {
-    const absolutePath = resolve(this.uploadRoot, relativePath);
-    if (!absolutePath.startsWith(this.uploadRoot)) {
+    const cleanPath = relativePath.replace(/^[\/\\]+/, '');
+    const absolutePath = resolve(this.uploadRoot, cleanPath);
+    if (!absolutePath.toLowerCase().startsWith(this.uploadRoot.toLowerCase())) {
       throw new InternalServerErrorException('Invalid stored CV path');
     }
     return absolutePath;

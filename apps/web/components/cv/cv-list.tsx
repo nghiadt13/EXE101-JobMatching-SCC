@@ -1,5 +1,6 @@
 import { CvItem } from '@/lib/cv-client';
 import { CvEditForm } from './cv-edit-form';
+import { ExpandableSummary } from './expandable-summary';
 
 type CvListProps = {
   items: CvItem[];
@@ -146,9 +147,9 @@ export function CvList({
 
             {/* Summary */}
             {(cv.normalizedProfile?.summary ?? cv.parsedData.summary) && (
-              <p className="mt-3 line-clamp-2 max-w-3xl text-sm text-zinc-600">
-                {cv.normalizedProfile?.summary ?? String(cv.parsedData.summary)}
-              </p>
+              <ExpandableSummary
+                text={cv.normalizedProfile?.summary ?? String(cv.parsedData.summary)}
+              />
             )}
 
             {/* Skills Section */}
