@@ -10,9 +10,11 @@ export function CvEditForm({ cv, updateAction }: CvEditFormProps) {
     cv.normalizedProfile?.summary ??
     (typeof cv.parsedData.summary === 'string' ? cv.parsedData.summary : '');
   const languages =
-    (Array.isArray(cv.parsedData.languages)
-      ? cv.parsedData.languages.filter((item): item is string => typeof item === 'string')
-      : cv.normalizedProfile?.languages) ?? [];
+    cv.normalizedProfile?.languages?.length
+      ? cv.normalizedProfile.languages
+      : (Array.isArray(cv.parsedData.languages)
+          ? cv.parsedData.languages.filter((item): item is string => typeof item === 'string')
+          : []);
 
   return (
     <form action={updateAction} className="space-y-2 rounded-lg border border-zinc-200 p-3">

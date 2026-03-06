@@ -196,6 +196,19 @@ export class CvsService {
       }
     }
 
+    // Sync languages → normalizedProfile.languages
+    if (Array.isArray(mergedParsedData['languages'])) {
+      const normalizedProfile = this.asRecord(
+        mergedParsedData['normalizedProfile'],
+      );
+      if (Object.keys(normalizedProfile).length > 0) {
+        mergedParsedData['normalizedProfile'] = {
+          ...normalizedProfile,
+          languages: mergedParsedData['languages'],
+        };
+      }
+    }
+
     const updated = await this.prisma.cV.update({
       where: { id: cvId },
       data: {

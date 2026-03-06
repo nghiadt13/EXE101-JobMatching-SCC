@@ -26,6 +26,7 @@ export type CvItem = {
     }>;
     experience: Array<Record<string, unknown>>;
     education: Array<Record<string, unknown>>;
+    location?: { city: string; country: string };
   } | null;
   parsedData: {
     skills: string[];

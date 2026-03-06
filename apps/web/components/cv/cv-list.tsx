@@ -100,39 +100,38 @@ export function CvList({
 
   return (
     <section className="space-y-4">
-      {items.map((cv) => (
-        <article key={cv.id} className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="font-medium text-zinc-900">{cv.fileName}</p>
-              <p className="text-sm text-zinc-500">
-                {(cv.fileSize / 1024).toFixed(1)} KB - {new Date(cv.createdAt).toLocaleString()}
-              </p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {cv.isPrimary ? (
-                  <span className="rounded-full bg-zinc-900 px-2 py-1 text-xs font-medium text-white">
-                    Primary CV
-                  </span>
-                ) : null}
-                <span className="rounded-full bg-amber-100 px-2 py-1 text-xs font-medium text-amber-700">
-                  {parseStatusLabel[cv.parseStatus]}
-                </span>
-                {(cv.normalizedProfile?.skills ?? cv.skills).slice(0, 6).map((skill) => (
-                  <span
-                    key={`${cv.id}-${skill}`}
-                    className="rounded-full bg-zinc-100 px-2 py-1 text-xs text-zinc-700"
-                  >
-                    {skill}
-                  </span>
-                ))}
-              </div>
-              {(cv.normalizedProfile?.summary ?? cv.parsedData.summary) ? (
-                <p className="mt-2 line-clamp-2 max-w-3xl text-sm text-zinc-600">
-                  {cv.normalizedProfile?.summary ?? String(cv.parsedData.summary)}
+      {items.map((cv) => {
+        const location = cv.normalizedProfile?.location;
+        const locationStr = location
+          ? [location.city, location.country].filter(Boolean).join(', ')
+          : null;
+
+        return (
+          <article key={cv.id} className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+            {/* Header */}
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="flex-1">
+                <p className="font-medium text-zinc-900">{cv.fileName}</p>
+                {cv.normalizedProfile?.title && (
+                  <p className="mt-0.5 text-sm font-medium text-zinc-700">
+                    {cv.normalizedProfile.title}
+                    {locationStr && <span className="text-zinc-500"> • {locationStr}</span>}
+                  </p>
+                )}
+                <p className="mt-1 text-sm text-zinc-500">
+                  {(cv.fileSize / 1024).toFixed(1)} KB • {new Date(cv.createdAt).toLocaleString()}
                 </p>
-              ) : null}
-            </div>
-            <div className="flex gap-2">
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {cv.isPrimary && (
+                    <span className="rounded-full bg-zinc-900 px-2 py-1 text-xs font-medium text-white">
+                      Primary CV
+                    </span>
+                  )}
+                  <span className="rounded-full bg-amber-100 px-2 py-1 text-xs font-medium text-amber-700">
+                    {parseStatusLabel[cv.parseStatus]}
+                  </span>
+                </div>
+              </div>
               <form action={setPrimaryAction}>
                 <input type="hidden" name="cvId" value={cv.id} />
                 <button
@@ -143,70 +142,109 @@ export function CvList({
                   Set primary
                 </button>
               </form>
-              <form action={deleteAction}>
-                <input type="hidden" name="cvId" value={cv.id} />
-                <button
-                  type="submit"
-                  className="h-9 rounded-lg border border-red-200 px-3 text-sm font-medium text-red-700 hover:bg-red-50"
-                >
-                  Delete
-                </button>
-              </form>
             </div>
-          </div>
 
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
-            <ChipsSection
-              title="Languages"
-              items={preferStringArray(
-                toStringArray(cv.parsedData.languages),
-                cv.normalizedProfile?.languages ?? [],
-              )}
-            />
-            <ChipsSection
-              title="Certifications"
-              items={preferStringArray(
-                cv.normalizedProfile?.certifications ?? [],
-                toStringArray(cv.parsedData.certifications),
-              )}
-            />
-            <ObjectSection
-              title="Experience"
-              rows={preferRecordArray(
-                cv.normalizedProfile?.experience ?? [],
-                toRecordArray(cv.parsedData.experience),
-              )}
-              pickTitle={(row) => String(row.role ?? '')}
-              pickSubtitle={(row) => String(row.company ?? '')}
-            />
-            <ObjectSection
-              title="Education"
-              rows={preferRecordArray(
-                cv.normalizedProfile?.education ?? [],
-                toRecordArray(cv.parsedData.education),
-              )}
-              pickTitle={(row) => String(row.degree ?? row.school ?? '')}
-              pickSubtitle={(row) => String(row.school ?? row.field ?? '')}
-            />
-            <ObjectSection
-              title="Projects"
-              rows={preferRecordArray(
-                (cv.normalizedProfile?.projects ?? []).map((project) => ({
-                  name: project.name,
-                  description: project.description,
-                })),
-                toRecordArray(cv.parsedData.projects),
-              )}
-              pickTitle={(row) => String(row.name ?? '')}
-              pickSubtitle={(row) => String(row.description ?? '')}
-            />
-          </div>
+            {/* Summary */}
+            {(cv.normalizedProfile?.summary ?? cv.parsedData.summary) && (
+              <p className="mt-3 line-clamp-2 max-w-3xl text-sm text-zinc-600">
+                {cv.normalizedProfile?.summary ?? String(cv.parsedData.summary)}
+              </p>
+            )}
 
-          <div className="mt-4">
-            <CvEditForm cv={cv} updateAction={updateAction} />
-          </div>
-        </article>
-      ))}
+            {/* Skills Section */}
+            <div className="mt-4">
+              <ChipsSection
+                title="Skills"
+                items={preferStringArray(
+                  cv.normalizedProfile?.skills ?? [],
+                  cv.skills,
+                )}
+              />
+            </div>
+
+            {/* Details Grid */}
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <ChipsSection
+                title="Languages"
+                items={preferStringArray(
+                  cv.normalizedProfile?.languages ?? [],
+                  toStringArray(cv.parsedData.languages),
+                )}
+              />
+              <ChipsSection
+                title="Certifications"
+                items={preferStringArray(
+                  cv.normalizedProfile?.certifications ?? [],
+                  toStringArray(cv.parsedData.certifications),
+                )}
+              />
+              <ObjectSection
+                title="Experience"
+                rows={preferRecordArray(
+                  cv.normalizedProfile?.experience ?? [],
+                  toRecordArray(cv.parsedData.experience),
+                )}
+                pickTitle={(row) => String(row.role ?? '')}
+                pickSubtitle={(row) => {
+                  const parts = [String(row.company ?? '')];
+                  if (row.startDate || row.endDate) {
+                    parts.push(`${row.startDate ?? '?'} - ${row.endDate ?? 'Present'}`);
+                  }
+                  return parts.filter(Boolean).join(' • ');
+                }}
+              />
+              <ObjectSection
+                title="Education"
+                rows={preferRecordArray(
+                  cv.normalizedProfile?.education ?? [],
+                  toRecordArray(cv.parsedData.education),
+                )}
+                pickTitle={(row) => String(row.degree ?? row.school ?? '')}
+                pickSubtitle={(row) => {
+                  const parts = [String(row.school ?? row.field ?? '')];
+                  if (row.startDate || row.endDate) {
+                    parts.push(`${row.startDate ?? '?'} - ${row.endDate ?? 'Present'}`);
+                  }
+                  return parts.filter(Boolean).join(' • ');
+                }}
+              />
+              <ObjectSection
+                title="Projects"
+                rows={preferRecordArray(
+                  (cv.normalizedProfile?.projects ?? []).map((project) => ({
+                    name: project.name,
+                    description: project.description,
+                  })),
+                  toRecordArray(cv.parsedData.projects),
+                )}
+                pickTitle={(row) => String(row.name ?? '')}
+                pickSubtitle={(row) => String(row.description ?? '')}
+              />
+            </div>
+
+            {/* Collapsible Edit Form */}
+            <details className="mt-4">
+              <summary className="cursor-pointer text-sm font-medium text-zinc-600 hover:text-zinc-900">
+                Edit parsed data ▾
+              </summary>
+              <div className="mt-2">
+                <CvEditForm cv={cv} updateAction={updateAction} />
+              </div>
+            </details>
+
+            {/* Delete Button */}
+            <form action={deleteAction} className="mt-3">
+              <input type="hidden" name="cvId" value={cv.id} />
+              <button
+                type="submit"
+                className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50"
+              >
+                Delete
+              </button>
+            </form>
+          </article>
+        );
+      })}
     </section>
   );
 }
