@@ -8,6 +8,76 @@ type CvListProps = {
   updateAction: (formData: FormData) => Promise<void>;
 };
 
+function toStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is string => typeof item === 'string')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function toRecordArray(value: unknown): Array<Record<string, unknown>> {
+  if (!Array.isArray(value)) return [];
+  return value.filter(
+    (item): item is Record<string, unknown> =>
+      !!item && typeof item === 'object' && !Array.isArray(item),
+  );
+}
+
+function preferStringArray(primary: string[], fallback: string[]): string[] {
+  return primary.length ? primary : fallback;
+}
+
+function preferRecordArray(
+  primary: Array<Record<string, unknown>>,
+  fallback: Array<Record<string, unknown>>,
+): Array<Record<string, unknown>> {
+  return primary.length ? primary : fallback;
+}
+
+function ChipsSection({ title, items }: { title: string; items: string[] }) {
+  if (!items.length) return null;
+  return (
+    <div>
+      <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">{title}</p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {items.slice(0, 12).map((item) => (
+          <span key={`${title}-${item}`} className="rounded-full bg-zinc-100 px-2 py-1 text-xs text-zinc-700">
+            {item}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ObjectSection({
+  title,
+  rows,
+  pickTitle,
+  pickSubtitle,
+}: {
+  title: string;
+  rows: Array<Record<string, unknown>>;
+  pickTitle: (row: Record<string, unknown>) => string;
+  pickSubtitle: (row: Record<string, unknown>) => string;
+}) {
+  if (!rows.length) return null;
+  return (
+    <div>
+      <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">{title}</p>
+      <div className="mt-2 space-y-2">
+        {rows.slice(0, 4).map((row, index) => (
+          <div key={`${title}-${index}`} className="rounded-md border border-zinc-200 bg-zinc-50 p-2 text-xs">
+            <p className="font-medium text-zinc-800">{pickTitle(row) || 'N/A'}</p>
+            <p className="text-zinc-600">{pickSubtitle(row)}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function CvList({
   items,
   setPrimaryAction,
@@ -47,7 +117,7 @@ export function CvList({
                 <span className="rounded-full bg-amber-100 px-2 py-1 text-xs font-medium text-amber-700">
                   {parseStatusLabel[cv.parseStatus]}
                 </span>
-                {cv.skills.slice(0, 6).map((skill) => (
+                {(cv.normalizedProfile?.skills ?? cv.skills).slice(0, 6).map((skill) => (
                   <span
                     key={`${cv.id}-${skill}`}
                     className="rounded-full bg-zinc-100 px-2 py-1 text-xs text-zinc-700"
@@ -83,6 +153,53 @@ export function CvList({
                 </button>
               </form>
             </div>
+          </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            <ChipsSection
+              title="Languages"
+              items={preferStringArray(
+                toStringArray(cv.parsedData.languages),
+                cv.normalizedProfile?.languages ?? [],
+              )}
+            />
+            <ChipsSection
+              title="Certifications"
+              items={preferStringArray(
+                cv.normalizedProfile?.certifications ?? [],
+                toStringArray(cv.parsedData.certifications),
+              )}
+            />
+            <ObjectSection
+              title="Experience"
+              rows={preferRecordArray(
+                cv.normalizedProfile?.experience ?? [],
+                toRecordArray(cv.parsedData.experience),
+              )}
+              pickTitle={(row) => String(row.role ?? '')}
+              pickSubtitle={(row) => String(row.company ?? '')}
+            />
+            <ObjectSection
+              title="Education"
+              rows={preferRecordArray(
+                cv.normalizedProfile?.education ?? [],
+                toRecordArray(cv.parsedData.education),
+              )}
+              pickTitle={(row) => String(row.degree ?? row.school ?? '')}
+              pickSubtitle={(row) => String(row.school ?? row.field ?? '')}
+            />
+            <ObjectSection
+              title="Projects"
+              rows={preferRecordArray(
+                (cv.normalizedProfile?.projects ?? []).map((project) => ({
+                  name: project.name,
+                  description: project.description,
+                })),
+                toRecordArray(cv.parsedData.projects),
+              )}
+              pickTitle={(row) => String(row.name ?? '')}
+              pickSubtitle={(row) => String(row.description ?? '')}
+            />
           </div>
 
           <div className="mt-4">

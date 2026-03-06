@@ -17,6 +17,13 @@ export type CvItem = {
     title: string;
     summary: string;
     skills: string[];
+    certifications: string[];
+    languages: string[];
+    projects: Array<{
+      name: string;
+      description: string;
+      tech: string[];
+    }>;
     experience: Array<Record<string, unknown>>;
     education: Array<Record<string, unknown>>;
   } | null;

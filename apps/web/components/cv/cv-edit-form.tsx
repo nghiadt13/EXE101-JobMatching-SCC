@@ -9,6 +9,10 @@ export function CvEditForm({ cv, updateAction }: CvEditFormProps) {
   const summary =
     cv.normalizedProfile?.summary ??
     (typeof cv.parsedData.summary === 'string' ? cv.parsedData.summary : '');
+  const languages =
+    (Array.isArray(cv.parsedData.languages)
+      ? cv.parsedData.languages.filter((item): item is string => typeof item === 'string')
+      : cv.normalizedProfile?.languages) ?? [];
 
   return (
     <form action={updateAction} className="space-y-2 rounded-lg border border-zinc-200 p-3">
@@ -31,6 +35,16 @@ export function CvEditForm({ cv, updateAction }: CvEditFormProps) {
           name="summary"
           defaultValue={summary}
           className="min-h-20 w-full rounded-md border border-zinc-300 px-2 py-2 text-sm"
+        />
+      </label>
+      <label className="block space-y-1">
+        <span className="text-xs font-medium uppercase tracking-[0.08em] text-zinc-600">
+          Languages (comma/new line)
+        </span>
+        <textarea
+          name="languages"
+          defaultValue={languages.join(', ')}
+          className="min-h-16 w-full rounded-md border border-zinc-300 px-2 py-2 text-sm"
         />
       </label>
       <button

@@ -102,11 +102,16 @@ export default async function CandidateCvsPage({ searchParams }: PageProps) {
       .map((item) => item.trim())
       .filter(Boolean);
     const summary = String(formData.get('summary') ?? '').trim();
+    const languages = String(formData.get('languages') ?? '')
+      .split(/[\n,]/g)
+      .map((item) => item.trim())
+      .filter(Boolean);
 
     await updateCv(currentSession.accessToken, cvId, {
       skills,
       parsedData: {
         summary,
+        languages,
       },
     });
     revalidatePath('/dashboard/candidate/cvs');

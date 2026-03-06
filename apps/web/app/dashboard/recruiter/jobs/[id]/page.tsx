@@ -95,6 +95,26 @@ export default async function RecruiterJobDetailPage({ params }: PageProps) {
             ))}
           </div>
         ) : null}
+        {job.normalizedProfile?.jobMeta?.requirements?.length ? (
+          <div className="mt-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">Requirements</p>
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-zinc-700">
+              {job.normalizedProfile.jobMeta.requirements.slice(0, 8).map((item) => (
+                <li key={`${job.id}-req-${item}`}>{item}</li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+        {job.normalizedProfile?.jobMeta?.benefits?.length ? (
+          <div className="mt-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">Benefits</p>
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-zinc-700">
+              {job.normalizedProfile.jobMeta.benefits.slice(0, 8).map((item) => (
+                <li key={`${job.id}-benefit-${item}`}>{item}</li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
       </section>
     </main>
   );

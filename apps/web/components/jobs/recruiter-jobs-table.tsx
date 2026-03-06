@@ -52,6 +52,15 @@ export function RecruiterJobsTable({
                     {job.normalizedProfile.summary}
                   </p>
                 ) : null}
+                {job.normalizedProfile?.jobMeta?.requirements?.length ? (
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {job.normalizedProfile.jobMeta.requirements.slice(0, 3).map((item) => (
+                      <span key={`${job.id}-req-${item}`} className="rounded bg-blue-50 px-2 py-1 text-[10px] text-blue-700">
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
               </td>
               <td className="px-4 py-3">
                 <span className="mr-2 rounded-full bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-700">
