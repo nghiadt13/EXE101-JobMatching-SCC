@@ -4,7 +4,7 @@ import {
   UnsupportedMediaTypeException,
 } from '@nestjs/common';
 import mammoth from 'mammoth';
-import pdfParse from 'pdf-parse';
+import { PDFParse } from 'pdf-parse';
 import { extname } from 'node:path';
 import { CV_ALLOWED_EXTENSIONS, CV_ALLOWED_MIME_TYPES } from '../cvs.constants';
 
@@ -16,11 +16,13 @@ export class CvTextExtractorService {
     let text = '';
     try {
       if (file.mimetype === 'application/pdf') {
-        const parsePdf = pdfParse as unknown as (
-          buffer: Buffer,
-        ) => Promise<{ text?: string }>;
-        const parsed = await parsePdf(file.buffer);
-        text = typeof parsed.text === 'string' ? parsed.text : '';
+        const parser = new PDFParse({ data: new Uint8Array(file.buffer) });
+        try {
+          const parsed = await parser.getText();
+          text = parsed.text;
+        } finally {
+          await parser.destroy();
+        }
       } else {
         const parsed = await mammoth.extractRawText({ buffer: file.buffer });
         text = parsed.value;

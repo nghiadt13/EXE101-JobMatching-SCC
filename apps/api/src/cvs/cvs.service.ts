@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
   PayloadTooLargeException,
 } from '@nestjs/common';
@@ -21,6 +22,10 @@ import { CvParsingNormalizerService } from './services/cv-parsing-normalizer.ser
 
 @Injectable()
 export class CvsService {
+  private readonly logger = new Logger(CvsService.name);
+  private readonly parseFallbackSummary =
+    'CV uploaded successfully, but auto-parsing could not read the content. Please update summary and skills manually.';
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly cvStorageService: CvStorageService,
@@ -46,15 +51,7 @@ export class CvsService {
       throw new BadRequestException('CV limit reached for candidate');
     }
 
-    const text = (await this.cvTextExtractorService.extract(file)).slice(
-      0,
-      CV_MAX_TEXT_CHARS,
-    );
-    const aiPayload = await this.cvAiParserService.parse(text);
-    const normalized = this.cvParsingNormalizerService.normalize(
-      aiPayload,
-      text,
-    );
+    const normalized = await this.buildNormalizedCvData(file);
 
     const storedPath = await this.cvStorageService.save(candidate.id, file);
     try {
@@ -75,6 +72,33 @@ export class CvsService {
     } catch (error) {
       await this.cvStorageService.remove(storedPath);
       throw error;
+    }
+  }
+
+  private async buildNormalizedCvData(file: Express.Multer.File) {
+    try {
+      const text = (await this.cvTextExtractorService.extract(file)).slice(
+        0,
+        CV_MAX_TEXT_CHARS,
+      );
+      const aiPayload = await this.cvAiParserService.parse(text);
+      return this.cvParsingNormalizerService.normalize(aiPayload, text);
+    } catch (error) {
+      this.logger.warn(
+        `CV parse fallback used for "${file.originalname}": ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
+      );
+      return this.cvParsingNormalizerService.normalize(
+        {
+          skills: [],
+          summary: this.parseFallbackSummary,
+          experience: [],
+          education: [],
+          contact: {},
+        },
+        this.parseFallbackSummary,
+      );
     }
   }
 
