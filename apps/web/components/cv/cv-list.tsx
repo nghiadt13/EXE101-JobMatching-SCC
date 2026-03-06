@@ -37,7 +37,14 @@ function preferRecordArray(
   return primary.length ? primary : fallback;
 }
 
-
+function formatMonthYear(dateString: unknown): string | null {
+  if (typeof dateString !== 'string' || !dateString.trim()) return null;
+  const match = dateString.trim().match(/^(\d{4})-(\d{2})$/);
+  if (match) {
+    return `${match[2]}/${match[1]}`;
+  }
+  return dateString.trim();
+}
 
 function ObjectSection({
   title,
@@ -182,7 +189,9 @@ export function CvList({
                 pickSubtitle={(row) => {
                   const parts = [String(row.company ?? '')];
                   if (row.startDate || row.endDate) {
-                    parts.push(`${row.startDate ?? '?'} - ${row.endDate ?? 'Present'}`);
+                    const start = formatMonthYear(row.startDate) ?? '?';
+                    const end = formatMonthYear(row.endDate) ?? 'Present';
+                    parts.push(`${start} - ${end}`);
                   }
                   const companyDate = parts.filter(Boolean).join(' • ');
                   const techDesc = Array.isArray(row.tech) && row.tech.length
@@ -201,7 +210,9 @@ export function CvList({
                 pickSubtitle={(row) => {
                   const parts = [String(row.school ?? row.field ?? '')];
                   if (row.startDate || row.endDate) {
-                    parts.push(`${row.startDate ?? '?'} - ${row.endDate ?? 'Present'}`);
+                    const start = formatMonthYear(row.startDate) ?? '?';
+                    const end = formatMonthYear(row.endDate) ?? 'Present';
+                    parts.push(`${start} - ${end}`);
                   }
                   return parts.filter(Boolean).join(' • ');
                 }}
