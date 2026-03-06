@@ -64,6 +64,12 @@ export default async function CandidateDashboardPage() {
 
       <div className="mt-5 flex flex-wrap gap-3">
         <Link
+          href="/jobs"
+          className="inline-flex h-10 items-center justify-center rounded-lg border border-zinc-300 px-4 text-sm font-medium text-zinc-800 hover:bg-zinc-100"
+        >
+          Browse jobs
+        </Link>
+        <Link
           href="/dashboard/profile"
           className="inline-flex h-10 items-center justify-center rounded-lg border border-zinc-300 px-4 text-sm font-medium text-zinc-800 hover:bg-zinc-100"
         >

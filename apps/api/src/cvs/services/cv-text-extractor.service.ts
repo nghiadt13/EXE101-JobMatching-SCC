@@ -14,15 +14,21 @@ export class CvTextExtractorService {
     this.assertSupported(file);
 
     let text = '';
-    if (file.mimetype === 'application/pdf') {
-      const parsePdf = pdfParse as unknown as (
-        buffer: Buffer,
-      ) => Promise<{ text?: string }>;
-      const parsed = await parsePdf(file.buffer);
-      text = typeof parsed.text === 'string' ? parsed.text : '';
-    } else {
-      const parsed = await mammoth.extractRawText({ buffer: file.buffer });
-      text = parsed.value;
+    try {
+      if (file.mimetype === 'application/pdf') {
+        const parsePdf = pdfParse as unknown as (
+          buffer: Buffer,
+        ) => Promise<{ text?: string }>;
+        const parsed = await parsePdf(file.buffer);
+        text = typeof parsed.text === 'string' ? parsed.text : '';
+      } else {
+        const parsed = await mammoth.extractRawText({ buffer: file.buffer });
+        text = parsed.value;
+      }
+    } catch {
+      throw new UnprocessableEntityException(
+        'Could not parse CV file. Please upload a valid PDF or DOCX file',
+      );
     }
 
     const normalized = text.replace(/\s+/g, ' ').trim();

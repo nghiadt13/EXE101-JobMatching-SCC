@@ -4,9 +4,15 @@ import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import { CvList } from '@/components/cv/cv-list';
 import { CvUploadForm } from '@/components/cv/cv-upload-form';
+import { ApiError } from '@/lib/api-client';
 import { deleteCv, getMyCvs, setPrimaryCv, updateCv, uploadCv } from '@/lib/cv-client';
 
-export default async function CandidateCvsPage() {
+type PageProps = {
+  searchParams: Promise<{ error?: string }>;
+};
+
+export default async function CandidateCvsPage({ searchParams }: PageProps) {
+  const query = await searchParams;
   const session = await auth();
   if (!session?.user || !session.accessToken) {
     redirect('/login');
@@ -27,11 +33,29 @@ export default async function CandidateCvsPage() {
 
     const file = formData.get('file');
     if (!(file instanceof File)) {
-      return;
+      redirect('/dashboard/candidate/cvs?error=missing-file');
     }
 
-    await uploadCv(currentSession.accessToken, file);
-    revalidatePath('/dashboard/candidate/cvs');
+    try {
+      await uploadCv(currentSession.accessToken, file);
+      revalidatePath('/dashboard/candidate/cvs');
+    } catch (error) {
+      if (error instanceof ApiError) {
+        if (error.status === 401) {
+          redirect('/login');
+        }
+        if (error.status === 413) {
+          redirect('/dashboard/candidate/cvs?error=file-too-large');
+        }
+        if (error.status === 415) {
+          redirect('/dashboard/candidate/cvs?error=unsupported-file');
+        }
+        if (error.status === 422) {
+          redirect('/dashboard/candidate/cvs?error=parse-failed');
+        }
+      }
+      redirect('/dashboard/candidate/cvs?error=upload-failed');
+    }
   }
 
   async function setPrimaryAction(formData: FormData) {
@@ -89,6 +113,18 @@ export default async function CandidateCvsPage() {
   }
 
   const cvs = await getMyCvs(session.accessToken);
+  const errorMessage =
+    query.error === 'missing-file'
+      ? 'Please choose a file before uploading.'
+      : query.error === 'file-too-large'
+        ? 'CV file is too large. Maximum size is 5MB.'
+        : query.error === 'unsupported-file'
+          ? 'Only PDF and DOCX files are supported.'
+          : query.error === 'parse-failed'
+            ? 'Could not read this CV file. Please upload another PDF/DOCX.'
+            : query.error === 'upload-failed'
+              ? 'Upload failed. Please try again.'
+              : null;
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col px-6 py-12">
@@ -103,6 +139,11 @@ export default async function CandidateCvsPage() {
       </header>
 
       <div className="grid gap-6">
+        {errorMessage ? (
+          <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {errorMessage}
+          </p>
+        ) : null}
         <CvUploadForm uploadAction={uploadAction} />
         <CvList
           items={cvs.items}
