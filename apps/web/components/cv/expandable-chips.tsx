@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-export function ExpandableChips({ title, items }: { title: string; items: string[] }) {
+export function ExpandableChips({ title, items, categorize = false }: { title: string; items: string[], categorize?: boolean }) {
   const [expanded, setExpanded] = useState(false);
 
   if (!items.length) return null;
@@ -19,7 +19,7 @@ export function ExpandableChips({ title, items }: { title: string; items: string
       <div className="mt-2 flex flex-wrap gap-2">
         {displayItems.map((item) => {
           const parts = item.split(':');
-          if (parts.length > 1) {
+          if (categorize && parts.length > 1) {
             return (
               <div
                 key={`${title}-${item}`}

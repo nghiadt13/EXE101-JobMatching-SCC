@@ -270,6 +270,7 @@ export class AiNormalizationService {
         field: this.normalizeString(item['field']),
         startDate: this.normalizeDate(item['startDate']),
         endDate: this.normalizeDate(item['endDate']),
+        gpa: this.normalizeString(item['gpa']),
       }))
       .filter((entry) => entry.school || entry.degree || entry.field)
       .slice(0, 20);
@@ -398,6 +399,7 @@ export class AiNormalizationService {
           field: '',
           startDate: 'YYYY-MM',
           endDate: 'YYYY-MM',
+          gpa: '',
         },
       ],
       certifications: [''],

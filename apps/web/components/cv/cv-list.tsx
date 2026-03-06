@@ -150,6 +150,7 @@ export function CvList({
             <div className="mt-4">
               <ChipsSection
                 title="Skills"
+                categorize={true}
                 items={preferStringArray(
                   cv.normalizedProfile?.skills ?? [],
                   cv.skills,
@@ -213,6 +214,9 @@ export function CvList({
                     const start = formatMonthYear(row.startDate) ?? '?';
                     const end = formatMonthYear(row.endDate) ?? 'Present';
                     parts.push(`${start} - ${end}`);
+                  }
+                  if (row.gpa) {
+                    parts.push(`GPA: ${row.gpa}`);
                   }
                   return parts.filter(Boolean).join(' • ');
                 }}

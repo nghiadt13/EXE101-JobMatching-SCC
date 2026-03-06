@@ -19,6 +19,7 @@ export interface NormalizedEducation {
   field: string;
   startDate: string | null;
   endDate: string | null;
+  gpa: string | null;
 }
 
 export interface NormalizedProject {
