@@ -6,6 +6,10 @@ type CvEditFormProps = {
 };
 
 export function CvEditForm({ cv, updateAction }: CvEditFormProps) {
+  const summary =
+    cv.normalizedProfile?.summary ??
+    (typeof cv.parsedData.summary === 'string' ? cv.parsedData.summary : '');
+
   return (
     <form action={updateAction} className="space-y-2 rounded-lg border border-zinc-200 p-3">
       <input type="hidden" name="cvId" value={cv.id} />
@@ -15,7 +19,7 @@ export function CvEditForm({ cv, updateAction }: CvEditFormProps) {
         </span>
         <input
           name="skills"
-          defaultValue={cv.skills.join(', ')}
+          defaultValue={(cv.normalizedProfile?.skills ?? cv.skills).join(', ')}
           className="h-9 w-full rounded-md border border-zinc-300 px-2 text-sm"
         />
       </label>
@@ -25,7 +29,7 @@ export function CvEditForm({ cv, updateAction }: CvEditFormProps) {
         </span>
         <textarea
           name="summary"
-          defaultValue={typeof cv.parsedData.summary === 'string' ? cv.parsedData.summary : ''}
+          defaultValue={summary}
           className="min-h-20 w-full rounded-md border border-zinc-300 px-2 py-2 text-sm"
         />
       </label>

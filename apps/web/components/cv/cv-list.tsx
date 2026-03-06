@@ -14,6 +14,12 @@ export function CvList({
   deleteAction,
   updateAction,
 }: CvListProps) {
+  const parseStatusLabel: Record<CvItem['parseStatus'], string> = {
+    parsed_ok: 'Parsed OK',
+    fallback: 'Fallback Parse',
+    needs_review: 'Needs Review',
+  };
+
   if (!items.length) {
     return (
       <section className="rounded-2xl border border-dashed border-zinc-300 p-6 text-sm text-zinc-600">
@@ -38,6 +44,9 @@ export function CvList({
                     Primary CV
                   </span>
                 ) : null}
+                <span className="rounded-full bg-amber-100 px-2 py-1 text-xs font-medium text-amber-700">
+                  {parseStatusLabel[cv.parseStatus]}
+                </span>
                 {cv.skills.slice(0, 6).map((skill) => (
                   <span
                     key={`${cv.id}-${skill}`}
@@ -47,6 +56,11 @@ export function CvList({
                   </span>
                 ))}
               </div>
+              {(cv.normalizedProfile?.summary ?? cv.parsedData.summary) ? (
+                <p className="mt-2 line-clamp-2 max-w-3xl text-sm text-zinc-600">
+                  {cv.normalizedProfile?.summary ?? String(cv.parsedData.summary)}
+                </p>
+              ) : null}
             </div>
             <div className="flex gap-2">
               <form action={setPrimaryAction}>

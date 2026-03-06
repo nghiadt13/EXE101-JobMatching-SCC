@@ -54,7 +54,7 @@ Xây dựng platform tuyển dụng với AI matching tự động giữa CV ứ
 1. Candidate đăng ký/đăng nhập
 2. Upload CV (PDF/DOCX)
 3. Backend extract text
-4. Gemini API parse thông tin:
+4. Gửi text vào Gemini API (`gemini-3.1-flash-lite-preview`) để parse:
    - Skills
    - Experience
    - Education
@@ -69,10 +69,11 @@ Xây dựng platform tuyển dụng với AI matching tự động giữa CV ứ
 1. Recruiter đăng nhập
 2. Tạo job posting:
    - Title, description
-   - Required skills (chọn từ dropdown)
+   - Required skills (manual hoặc AI extract từ JD text)
    - Salary, location, type
-3. Lưu vào database
-4. Publish job
+3. Gửi JD text vào Gemini API để normalize về schema chuẩn
+4. Lưu vào database
+5. Publish job
 ```
 
 ### Luồng 3: Matching & Application
@@ -103,7 +104,7 @@ Xây dựng platform tuyển dụng với AI matching tự động giữa CV ứ
 └──────┬──────┘
        │
        ├─→ PostgreSQL (Database)
-       ├─→ Gemini API (CV parsing, matching)
+       ├─→ Gemini API (CV/JD parsing normalization)
        └─→ Local filesystem (CV files)
 ```
 

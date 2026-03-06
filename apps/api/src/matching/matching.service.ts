@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { JobStatus, Prisma, UserRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { JOB_LOCATION_NORMALIZATION_KEY } from '../normalization/normalization.types';
 import { ScoreCombinerService } from './calculators/score-combiner.service';
 import { SkillsCalculatorService } from './calculators/skills-calculator.service';
 import { TfidfCalculatorService } from './calculators/tfidf-calculator.service';
@@ -23,6 +24,7 @@ type JobRecord = {
   recruiterId: string;
   description: string;
   skills: Prisma.JsonValue;
+  location: Prisma.JsonValue | null;
   status: JobStatus;
 };
 
@@ -42,10 +44,18 @@ export class MatchingService {
   ): Promise<MatchingResult> {
     const cv = await this.getCvOrThrow(cvId, actor);
     const job = await this.getJobOrThrow(jobId, actor);
-    const cvSkills = this.readJsonStringArray(cv.skills);
-    const jobSkills = this.readJsonStringArray(job.skills);
+    const cvProfile = this.extractCvNormalizedProfile(cv.parsedData);
+    const jobProfile = this.extractJobNormalizedProfile(job.location);
+    const cvSkills =
+      cvProfile.length > 0 ? cvProfile : this.readJsonStringArray(cv.skills);
+    const jobSkills =
+      jobProfile.length > 0 ? jobProfile : this.readJsonStringArray(job.skills);
     const cvText = this.extractCvText(cv.parsedData, cvSkills);
-    const jobText = this.extractJobText(job.description, jobSkills);
+    const jobText = this.extractJobText(
+      job.description,
+      jobSkills,
+      job.location,
+    );
 
     const tfidfScore = this.scoreCombiner.normalizeUnit(
       this.tfidfCalculator.calculateTfidfScore(cvText, jobText),
@@ -111,6 +121,7 @@ export class MatchingService {
         recruiterId: true,
         description: true,
         skills: true,
+        location: true,
         status: true,
       },
     });
@@ -154,8 +165,49 @@ export class MatchingService {
     return chunks.filter(Boolean).join(' ');
   }
 
-  private extractJobText(description: string, skills: string[]): string {
+  private extractJobText(
+    description: string,
+    skills: string[],
+    location: Prisma.JsonValue | null,
+  ): string {
+    const normalized = this.extractNormalizedProfileFromLocation(location);
+    if (normalized) {
+      const root = this.readJsonObject(normalized);
+      const chunks = [
+        this.readJsonString(root.summary),
+        this.readJsonString(root.title),
+        this.readJsonString(root.jobMeta),
+        skills.join(' '),
+      ];
+      return chunks.filter(Boolean).join(' ');
+    }
     return `${description} ${skills.join(' ')}`.trim();
+  }
+
+  private extractCvNormalizedProfile(parsedData: Prisma.JsonValue): string[] {
+    const root = this.readJsonObject(parsedData);
+    const normalized = this.readJsonObject(root.normalizedProfile);
+    return this.readJsonStringArray(normalized.skills);
+  }
+
+  private extractJobNormalizedProfile(
+    location: Prisma.JsonValue | null,
+  ): string[] {
+    const normalized = this.extractNormalizedProfileFromLocation(location);
+    if (!normalized) {
+      return [];
+    }
+    return this.readJsonStringArray(this.readJsonObject(normalized).skills);
+  }
+
+  private extractNormalizedProfileFromLocation(
+    location: Prisma.JsonValue | null,
+  ): Prisma.JsonValue | null {
+    const root = this.readJsonObject(location);
+    const normalization = this.readJsonObject(
+      root[JOB_LOCATION_NORMALIZATION_KEY],
+    );
+    return normalization.normalizedProfile ?? null;
   }
 
   private readJsonStringArray(value: Prisma.JsonValue): string[] {

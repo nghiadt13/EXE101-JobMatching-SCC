@@ -7,6 +7,13 @@ import {
 } from '@nestjs/common';
 import { JobStatus, Prisma, UserRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { AiNormalizationService } from '../normalization/ai-normalization.service';
+import {
+  JOB_LOCATION_NORMALIZATION_KEY,
+  NormalizationResult,
+  NormalizedProfile,
+  ParseStatus,
+} from '../normalization/normalization.types';
 import { CreateJobDto } from './dto/create-job.dto';
 import { QueryJobsDto } from './dto/query-jobs.dto';
 import { UpdateJobDto } from './dto/update-job.dto';
@@ -22,12 +29,22 @@ type Viewer = {
 export class JobsService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly aiNormalizationService: AiNormalizationService,
     private readonly jobSlugService: JobSlugService,
   ) {}
 
   async create(recruiterId: string, dto: CreateJobDto): Promise<JobView> {
     this.validateSalaryRange(dto.salaryMin, dto.salaryMax);
     const slug = await this.jobSlugService.generateUniqueSlug(dto.title);
+    const normalizedSkills = this.normalizeSkills(dto.skills);
+    const normalization = await this.aiNormalizationService.normalizeJob(
+      this.composeJobRawText({
+        title: dto.title,
+        description: dto.description,
+        skills: normalizedSkills,
+        employmentType: dto.employmentType,
+      }),
+    );
 
     try {
       const created = await this.prisma.job.create({
@@ -36,10 +53,8 @@ export class JobsService {
           title: dto.title,
           slug,
           description: dto.description,
-          skills: this.normalizeSkills(dto.skills) as Prisma.InputJsonValue,
-          ...(dto.location !== undefined
-            ? { location: dto.location as Prisma.InputJsonValue }
-            : {}),
+          skills: normalizedSkills as Prisma.InputJsonValue,
+          location: this.withNormalizationMeta(dto.location, normalization),
           salaryMin: dto.salaryMin ?? null,
           salaryMax: dto.salaryMax ?? null,
           employmentType: dto.employmentType,
@@ -122,6 +137,25 @@ export class JobsService {
       dto.title !== undefined
         ? await this.jobSlugService.generateUniqueSlug(dto.title, existing.id)
         : existing.slug;
+    const nextSkills =
+      dto.skills !== undefined
+        ? this.normalizeSkills(dto.skills)
+        : this.normalizeSkills(this.readJsonStringArray(existing.skills));
+    const nextTitle = dto.title ?? existing.title;
+    const nextDescription = dto.description ?? existing.description;
+    const nextEmploymentType = dto.employmentType ?? existing.employmentType;
+    const normalization = await this.aiNormalizationService.normalizeJob(
+      this.composeJobRawText({
+        title: nextTitle,
+        description: nextDescription,
+        skills: nextSkills,
+        employmentType: nextEmploymentType,
+      }),
+    );
+    const baseLocation =
+      dto.location !== undefined
+        ? dto.location
+        : this.stripNormalizationMeta(existing.location);
 
     try {
       const updated = await this.prisma.job.update({
@@ -133,14 +167,10 @@ export class JobsService {
             : {}),
           ...(dto.skills !== undefined
             ? {
-                skills: this.normalizeSkills(
-                  dto.skills,
-                ) as Prisma.InputJsonValue,
+                skills: nextSkills as Prisma.InputJsonValue,
               }
             : {}),
-          ...(dto.location !== undefined
-            ? { location: dto.location as Prisma.InputJsonValue }
-            : {}),
+          location: this.withNormalizationMeta(baseLocation, normalization),
           ...(dto.salaryMin !== undefined ? { salaryMin: dto.salaryMin } : {}),
           ...(dto.salaryMax !== undefined ? { salaryMax: dto.salaryMax } : {}),
           ...(dto.employmentType !== undefined
@@ -219,6 +249,11 @@ export class JobsService {
         id: true,
         recruiterId: true,
         slug: true,
+        title: true,
+        description: true,
+        skills: true,
+        location: true,
+        employmentType: true,
         status: true,
       },
     });
@@ -310,14 +345,30 @@ export class JobsService {
     createdAt: Date;
     updatedAt: Date;
   }): JobView {
+    const location =
+      item.location &&
+      typeof item.location === 'object' &&
+      !Array.isArray(item.location)
+        ? (item.location as Record<string, unknown>)
+        : {};
+    const normalization = this.asRecord(
+      location[JOB_LOCATION_NORMALIZATION_KEY],
+    );
+    const parseTelemetry = this.asRecord(normalization['parseTelemetry']);
+    const normalizedProfile = this.asRecord(normalization['normalizedProfile']);
+
     return {
       ...item,
       skills: Array.isArray(item.skills) ? (item.skills as string[]) : [],
-      location:
-        item.location &&
-        typeof item.location === 'object' &&
-        !Array.isArray(item.location)
-          ? (item.location as Record<string, unknown>)
+      location: this.stripNormalizationMeta(item.location),
+      parseStatus: this.normalizeParseStatus(normalization['parseStatus']),
+      normalizedProfile:
+        Object.keys(normalizedProfile).length > 0
+          ? (normalizedProfile as unknown as NormalizedProfile)
+          : null,
+      parseTelemetry:
+        Object.keys(parseTelemetry).length > 0
+          ? (parseTelemetry as unknown as JobView['parseTelemetry'])
           : null,
     };
   }
@@ -340,5 +391,75 @@ export class JobsService {
       createdAt: true,
       updatedAt: true,
     } satisfies Prisma.JobSelect;
+  }
+
+  private composeJobRawText(input: {
+    title: string;
+    description: string;
+    skills: string[];
+    employmentType: string;
+  }): string {
+    return [
+      `Title: ${input.title}`,
+      `Description: ${input.description}`,
+      `Skills: ${input.skills.join(', ')}`,
+      `Employment type: ${input.employmentType}`,
+    ].join('\n');
+  }
+
+  private withNormalizationMeta(
+    location: Record<string, unknown> | null | undefined,
+    normalization: NormalizationResult,
+  ): Prisma.InputJsonValue {
+    const base = {
+      ...(location ?? {}),
+    };
+
+    return {
+      ...base,
+      [JOB_LOCATION_NORMALIZATION_KEY]: {
+        schemaVersion: normalization.schemaVersion,
+        parseStatus: normalization.status,
+        parseTelemetry: normalization.telemetry,
+        normalizedProfile: normalization.profile,
+      },
+    } as unknown as Prisma.InputJsonValue;
+  }
+
+  private stripNormalizationMeta(
+    value: Prisma.JsonValue | Record<string, unknown> | null | undefined,
+  ): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return null;
+    }
+    const root = value as Record<string, unknown>;
+    const clean = { ...root };
+    delete clean[JOB_LOCATION_NORMALIZATION_KEY];
+    return Object.keys(clean).length > 0 ? clean : null;
+  }
+
+  private readJsonStringArray(value: Prisma.JsonValue): string[] {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+    return value
+      .filter((entry): entry is string => typeof entry === 'string')
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+  }
+
+  private asRecord(value: unknown): Record<string, unknown> {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      return value as Record<string, unknown>;
+    }
+    return {};
+  }
+
+  private normalizeParseStatus(value: unknown): ParseStatus {
+    return value === 'parsed_ok' ||
+      value === 'fallback' ||
+      value === 'needs_review'
+      ? value
+      : 'needs_review';
   }
 }

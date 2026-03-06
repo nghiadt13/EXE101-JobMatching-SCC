@@ -78,6 +78,24 @@ export default async function RecruiterJobDetailPage({ params }: PageProps) {
           salaryMax: job.salaryMax,
         }}
       />
+      <section className="mt-6 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+        <h2 className="text-sm font-semibold uppercase tracking-[0.08em] text-zinc-600">
+          AI Parsed Preview
+        </h2>
+        <p className="mt-2 text-xs text-zinc-500">Status: {job.parseStatus}</p>
+        <p className="mt-3 text-sm text-zinc-700">
+          {job.normalizedProfile?.summary || 'No parsed summary available yet.'}
+        </p>
+        {job.normalizedProfile?.skills?.length ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {job.normalizedProfile.skills.slice(0, 12).map((skill) => (
+              <span key={`${job.id}-${skill}`} className="rounded-full bg-zinc-100 px-2 py-1 text-xs text-zinc-700">
+                {skill}
+              </span>
+            ))}
+          </div>
+        ) : null}
+      </section>
     </main>
   );
 }

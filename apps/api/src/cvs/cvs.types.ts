@@ -1,4 +1,9 @@
 import { CvParsedData } from './cv-parser.types';
+import {
+  NormalizationTelemetry,
+  NormalizedProfile,
+  ParseStatus,
+} from '../normalization/normalization.types';
 
 export interface CvView {
   id: string;
@@ -7,6 +12,9 @@ export interface CvView {
   mimeType: string;
   parsedData: CvParsedData;
   skills: string[];
+  parseStatus: ParseStatus;
+  normalizedProfile: NormalizedProfile | null;
+  parseTelemetry: NormalizationTelemetry | null;
   isPrimary: boolean;
   createdAt: Date;
   updatedAt: Date;

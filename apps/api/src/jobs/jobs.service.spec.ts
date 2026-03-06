@@ -2,6 +2,7 @@ import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { JobStatus, UserRole } from '@prisma/client';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../prisma/prisma.service';
+import { AiNormalizationService } from '../normalization/ai-normalization.service';
 import { JobsService } from './jobs.service';
 import { JobSlugService } from './services/job-slug.service';
 
@@ -16,6 +17,7 @@ describe('JobsService', () => {
       update: jest.Mock;
     };
   };
+  let aiNormalizationService: { normalizeJob: jest.Mock };
 
   beforeEach(async () => {
     prismaService = {
@@ -27,11 +29,38 @@ describe('JobsService', () => {
         update: jest.fn(),
       },
     };
+    aiNormalizationService = {
+      normalizeJob: jest.fn().mockResolvedValue({
+        schemaVersion: 'candidate_job_profile_v1',
+        status: 'parsed_ok',
+        profile: {
+          schemaVersion: 'candidate_job_profile_v1',
+          language: 'en',
+          title: 'Job',
+          summary: 'Summary',
+          skills: ['TypeScript'],
+          experience: [],
+          education: [],
+          certifications: [],
+          projects: [],
+          languages: [],
+          location: { city: '', country: '' },
+          rawQuality: { score: 90, needsManualReview: false, reason: '' },
+          jobMeta: {
+            requirements: [],
+            benefits: [],
+            employmentType: 'FULL_TIME',
+          },
+        },
+        telemetry: { source: 'llm', fallbackUsed: false, latencyMs: 100 },
+      }),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         JobsService,
         { provide: PrismaService, useValue: prismaService },
+        { provide: AiNormalizationService, useValue: aiNormalizationService },
         {
           provide: JobSlugService,
           useValue: {

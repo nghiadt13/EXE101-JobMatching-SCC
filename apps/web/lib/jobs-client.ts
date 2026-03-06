@@ -11,6 +11,22 @@ export type JobItem = {
   slug: string;
   description: string;
   skills: string[];
+  parseStatus: 'parsed_ok' | 'fallback' | 'needs_review';
+  parseTelemetry: {
+    source: 'llm' | 'fallback';
+    fallbackUsed: boolean;
+    latencyMs: number;
+  } | null;
+  normalizedProfile: {
+    title: string;
+    summary: string;
+    skills: string[];
+    jobMeta?: {
+      requirements: string[];
+      benefits: string[];
+      employmentType: string;
+    };
+  } | null;
   location: Record<string, unknown> | null;
   salaryMin: number | null;
   salaryMax: number | null;

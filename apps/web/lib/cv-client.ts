@@ -7,6 +7,19 @@ export type CvItem = {
   fileName: string;
   fileSize: number;
   mimeType: string;
+  parseStatus: 'parsed_ok' | 'fallback' | 'needs_review';
+  parseTelemetry: {
+    source: 'llm' | 'fallback';
+    fallbackUsed: boolean;
+    latencyMs: number;
+  } | null;
+  normalizedProfile: {
+    title: string;
+    summary: string;
+    skills: string[];
+    experience: Array<Record<string, unknown>>;
+    education: Array<Record<string, unknown>>;
+  } | null;
   parsedData: {
     skills: string[];
     summary?: string;

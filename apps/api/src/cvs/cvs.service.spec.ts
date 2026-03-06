@@ -2,10 +2,9 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CvsService } from './cvs.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { AiNormalizationService } from '../normalization/ai-normalization.service';
 import { CvStorageService } from './services/cv-storage.service';
 import { CvTextExtractorService } from './services/cv-text-extractor.service';
-import { CvAiParserService } from './services/cv-ai-parser.service';
-import { CvParsingNormalizerService } from './services/cv-parsing-normalizer.service';
 
 describe('CvsService', () => {
   let service: CvsService;
@@ -14,8 +13,7 @@ describe('CvsService', () => {
     assertSupported: jest.Mock;
     extract: jest.Mock;
   };
-  let cvAiParserService: { parse: jest.Mock };
-  let cvParsingNormalizerService: { normalize: jest.Mock };
+  let aiNormalizationService: { normalizeCv: jest.Mock };
   let prismaService: {
     candidate: { findFirst: jest.Mock };
     cV: {
@@ -32,8 +30,7 @@ describe('CvsService', () => {
   beforeEach(async () => {
     cvStorageService = { save: jest.fn(), remove: jest.fn() };
     cvTextExtractorService = { assertSupported: jest.fn(), extract: jest.fn() };
-    cvAiParserService = { parse: jest.fn() };
-    cvParsingNormalizerService = { normalize: jest.fn() };
+    aiNormalizationService = { normalizeCv: jest.fn() };
 
     prismaService = {
       candidate: { findFirst: jest.fn() },
@@ -60,13 +57,9 @@ describe('CvsService', () => {
       providers: [
         CvsService,
         { provide: PrismaService, useValue: prismaService },
+        { provide: AiNormalizationService, useValue: aiNormalizationService },
         { provide: CvStorageService, useValue: cvStorageService },
         { provide: CvTextExtractorService, useValue: cvTextExtractorService },
-        { provide: CvAiParserService, useValue: cvAiParserService },
-        {
-          provide: CvParsingNormalizerService,
-          useValue: cvParsingNormalizerService,
-        },
       ],
     }).compile();
 
@@ -100,16 +93,25 @@ describe('CvsService', () => {
     cvTextExtractorService.extract.mockRejectedValue(
       new Error('parser failed'),
     );
-    cvParsingNormalizerService.normalize.mockReturnValue({
-      parsedData: {
+    aiNormalizationService.normalizeCv.mockResolvedValue({
+      schemaVersion: 'candidate_job_profile_v1',
+      status: 'fallback',
+      profile: {
+        schemaVersion: 'candidate_job_profile_v1',
+        language: 'en',
+        title: 'Unstructured candidate profile',
+        summary:
+          'CV uploaded successfully, but auto-parsing could not read the content. Please update summary and skills manually.',
         skills: [],
         experience: [],
         education: [],
-        contact: {},
-        summary:
-          'CV uploaded successfully, but auto-parsing could not read the content. Please update summary and skills manually.',
+        certifications: [],
+        projects: [],
+        languages: [],
+        location: { city: '', country: '' },
+        rawQuality: { score: 45, needsManualReview: true, reason: 'fallback' },
       },
-      skills: [],
+      telemetry: { source: 'fallback', fallbackUsed: true, latencyMs: 10 },
     });
     cvStorageService.save.mockResolvedValue('candidate-1/file.pdf');
     prismaService.cV.create.mockResolvedValue({
@@ -139,16 +141,7 @@ describe('CvsService', () => {
       buffer: Buffer.from('content'),
     } as Express.Multer.File);
 
-    expect(cvAiParserService.parse).not.toHaveBeenCalled();
-    expect(cvParsingNormalizerService.normalize).toHaveBeenCalledWith(
-      {
-        skills: [],
-        summary:
-          'CV uploaded successfully, but auto-parsing could not read the content. Please update summary and skills manually.',
-        experience: [],
-        education: [],
-        contact: {},
-      },
+    expect(aiNormalizationService.normalizeCv).toHaveBeenCalledWith(
       'CV uploaded successfully, but auto-parsing could not read the content. Please update summary and skills manually.',
     );
     expect(result.id).toBe('cv-1');

@@ -11,12 +11,14 @@ import { MatchingModule } from './matching/matching.module';
 import { ProfileModule } from './profile/profile.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './users/users.module';
+import { NormalizationModule } from './normalization/normalization.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    NormalizationModule,
     PrismaModule,
     AuthModule,
     ApplicationsModule,

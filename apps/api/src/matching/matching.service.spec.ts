@@ -46,6 +46,7 @@ describe('MatchingService', () => {
       recruiterId: 'recruiter-1',
       description: 'Need a TypeScript backend engineer with NestJS.',
       skills: ['TypeScript', 'NestJS', 'Docker'],
+      location: null,
       status: JobStatus.PUBLISHED,
     });
 
@@ -90,6 +91,7 @@ describe('MatchingService', () => {
       recruiterId: 'recruiter-1',
       description: 'Draft only',
       skills: ['Hiring'],
+      location: null,
       status: JobStatus.DRAFT,
     });
 
@@ -114,6 +116,7 @@ describe('MatchingService', () => {
       recruiterId: 'recruiter-1',
       description: 'Need sourcing and communication',
       skills: ['Sourcing'],
+      location: null,
       status: JobStatus.DRAFT,
     });
 

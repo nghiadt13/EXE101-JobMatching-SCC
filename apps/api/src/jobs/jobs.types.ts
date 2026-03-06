@@ -1,4 +1,9 @@
 import { JobStatus } from '@prisma/client';
+import {
+  NormalizationTelemetry,
+  NormalizedProfile,
+  ParseStatus,
+} from '../normalization/normalization.types';
 
 export interface JobView {
   id: string;
@@ -11,6 +16,9 @@ export interface JobView {
   salaryMin: number | null;
   salaryMax: number | null;
   employmentType: string;
+  parseStatus: ParseStatus;
+  normalizedProfile: NormalizedProfile | null;
+  parseTelemetry: NormalizationTelemetry | null;
   status: JobStatus;
   publishedAt: Date | null;
   closedAt: Date | null;

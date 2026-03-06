@@ -15,6 +15,12 @@ export function RecruiterJobsTable({
   closeAction,
   deleteAction,
 }: RecruiterJobsTableProps) {
+  const parseStatusLabel: Record<JobItem['parseStatus'], string> = {
+    parsed_ok: 'Parsed OK',
+    fallback: 'Fallback Parse',
+    needs_review: 'Needs Review',
+  };
+
   if (!jobs.length) {
     return (
       <div className="rounded-2xl border border-dashed border-zinc-300 p-6 text-sm text-zinc-600">
@@ -41,10 +47,18 @@ export function RecruiterJobsTable({
                   {job.title}
                 </Link>
                 <p className="text-zinc-500">{job.employmentType}</p>
+                {job.normalizedProfile?.summary ? (
+                  <p className="mt-1 line-clamp-2 max-w-xl text-xs text-zinc-600">
+                    {job.normalizedProfile.summary}
+                  </p>
+                ) : null}
               </td>
               <td className="px-4 py-3">
-                <span className="rounded-full bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-700">
+                <span className="mr-2 rounded-full bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-700">
                   {job.status}
+                </span>
+                <span className="rounded-full bg-amber-100 px-2 py-1 text-xs font-medium text-amber-700">
+                  {parseStatusLabel[job.parseStatus]}
                 </span>
               </td>
               <td className="px-4 py-3">

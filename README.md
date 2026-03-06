@@ -38,6 +38,8 @@ Required variables:
 - `JWT_SECRET`
 - `WEB_URL` (default `http://localhost:3000`)
 - `PORT` (default `3001` recommended for local)
+- `GEMINI_API_KEY` (required for AI normalization)
+- `GEMINI_MODEL` (set to `gemini-3.1-flash-lite-preview`)
 
 Example (PowerShell):
 
@@ -46,7 +48,16 @@ $env:DATABASE_URL='postgresql://postgres:postgres@localhost:5432/postgres'
 $env:JWT_SECRET='local-jwt-secret'
 $env:WEB_URL='http://localhost:3000'
 $env:PORT='3001'
+$env:GEMINI_API_KEY='your-gemini-api-key'
+$env:GEMINI_MODEL='gemini-3.1-flash-lite-preview'
 ```
+
+AI parse workflow (current):
+
+1. Extract text from source (`PDF/DOCX` for CV, form text for JD)
+2. Send extracted text to Gemini LLM API
+3. Normalize LLM JSON output to internal schema
+4. Persist normalized payload for matching
 
 ### 2. Web (`apps/web`)
 
