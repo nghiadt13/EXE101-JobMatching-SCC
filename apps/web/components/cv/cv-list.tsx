@@ -1,6 +1,7 @@
 import { CvItem } from '@/lib/cv-client';
 import { CvEditForm } from './cv-edit-form';
 import { ExpandableSummary } from './expandable-summary';
+import { ExpandableChips as ChipsSection } from './expandable-chips';
 
 type CvListProps = {
   items: CvItem[];
@@ -36,21 +37,7 @@ function preferRecordArray(
   return primary.length ? primary : fallback;
 }
 
-function ChipsSection({ title, items }: { title: string; items: string[] }) {
-  if (!items.length) return null;
-  return (
-    <div>
-      <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">{title}</p>
-      <div className="mt-2 flex flex-wrap gap-2">
-        {items.slice(0, 12).map((item) => (
-          <span key={`${title}-${item}`} className="rounded-full bg-zinc-100 px-2 py-1 text-xs text-zinc-700">
-            {item}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
+
 
 function ObjectSection({
   title,
@@ -182,7 +169,13 @@ export function CvList({
               <ObjectSection
                 title="Experience"
                 rows={preferRecordArray(
-                  cv.normalizedProfile?.experience ?? [],
+                  (cv.normalizedProfile?.experience ?? []).map((exp) => ({
+                    role: exp.role,
+                    company: exp.company,
+                    startDate: exp.startDate,
+                    endDate: exp.endDate,
+                    tech: exp.tech,
+                  })),
                   toRecordArray(cv.parsedData.experience),
                 )}
                 pickTitle={(row) => String(row.role ?? '')}
@@ -191,7 +184,11 @@ export function CvList({
                   if (row.startDate || row.endDate) {
                     parts.push(`${row.startDate ?? '?'} - ${row.endDate ?? 'Present'}`);
                   }
-                  return parts.filter(Boolean).join(' • ');
+                  const companyDate = parts.filter(Boolean).join(' • ');
+                  const techDesc = Array.isArray(row.tech) && row.tech.length
+                    ? `Tech: ${row.tech.join(', ')}`
+                    : '';
+                  return [companyDate, techDesc].filter(Boolean).join(' | ');
                 }}
               />
               <ObjectSection
@@ -215,11 +212,17 @@ export function CvList({
                   (cv.normalizedProfile?.projects ?? []).map((project) => ({
                     name: project.name,
                     description: project.description,
+                    tech: project.tech,
                   })),
                   toRecordArray(cv.parsedData.projects),
                 )}
                 pickTitle={(row) => String(row.name ?? '')}
-                pickSubtitle={(row) => String(row.description ?? '')}
+                pickSubtitle={(row) => {
+                  const techDesc = Array.isArray(row.tech) && row.tech.length
+                    ? `Tech: ${row.tech.join(', ')}`
+                    : '';
+                  return techDesc || String(row.description ?? '');
+                }}
               />
             </div>
 

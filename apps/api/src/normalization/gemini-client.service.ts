@@ -3,7 +3,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 @Injectable()
 export class GeminiClientService {
-  async generateText(prompt: string, timeoutMs = 12000): Promise<string> {
+  async generateText(prompt: string, timeoutMs = 45000): Promise<string> {
     const apiKey = process.env['GEMINI_API_KEY'];
     if (!apiKey) {
       throw new Error('GEMINI_API_KEY is required');

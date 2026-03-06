@@ -10,7 +10,7 @@ export interface NormalizedExperience {
   company: string;
   startDate: string | null;
   endDate: string | null;
-  highlights: string[];
+  tech: string[];
 }
 
 export interface NormalizedEducation {

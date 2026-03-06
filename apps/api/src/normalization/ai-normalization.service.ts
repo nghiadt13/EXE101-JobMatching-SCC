@@ -91,21 +91,20 @@ export class AiNormalizationService {
   }
 
   private buildPrompt(domain: Domain, rawText: string): string {
-    const domainHint =
-      domain === 'cv'
-        ? 'Input is a candidate CV/resume.'
-        : 'Input is a job description.';
-
     return [
-      'Return strict JSON only. No markdown. No explanation.',
-      domainHint,
-      `Use schemaVersion="${NORMALIZED_SCHEMA_VERSION}" and this JSON shape:`,
-      JSON.stringify(this.emptyProfileTemplate(domain), null, 2),
-      'If data is missing, keep empty strings/arrays/nulls.',
-      'Keep only factual information from input text.',
+      'You are an expert IT Recruiter AI.',
+      'Analyze the following raw text extracted from a ' + (domain === 'cv' ? 'candidate CV' : 'Job Description') + '.',
+      'CRITICAL INSTRUCTION: Read the ENTIRE document from start to finish. Extract ALL technical skills, tools, frameworks, and programming languages you can find into the "skills" array. DO NOT summarize or omit any technical keywords.',
+      'For Experience and Education: Connect the dates, company/school names, and job titles even if they appear on separate or disjointed lines in the raw text.',
       '',
-      'Text:',
+      'Return STRICT JSON ONLY. No markdown formatted blocks (e.g. no ```json), no explanations, no preamble.',
+      `Use schemaVersion="${NORMALIZED_SCHEMA_VERSION}" and match this exact JSON structure:`,
+      JSON.stringify(this.emptyProfileTemplate(domain), null, 2),
+      'If a specific piece of data is missing, keep its value as an empty string, empty array, or null.',
+      '',
+      '--- START OF TEXT ---',
       rawText,
+      '--- END OF TEXT ---'
     ].join('\n');
   }
 
@@ -253,9 +252,9 @@ export class AiNormalizationService {
         company: this.normalizeString(item['company']),
         startDate: this.normalizeDate(item['startDate']),
         endDate: this.normalizeDate(item['endDate']),
-        highlights: this.normalizeStringArray(item['highlights'], 20),
+        tech: this.normalizeStringArray(item['tech'], 20),
       }))
-      .filter((entry) => entry.role || entry.company || entry.highlights.length)
+      .filter((entry) => entry.role || entry.company || entry.tech.length)
       .slice(0, 30);
   }
 
@@ -382,12 +381,34 @@ export class AiNormalizationService {
       language: 'mixed',
       title: '',
       summary: '',
-      skills: [],
-      experience: [],
-      education: [],
-      certifications: [],
-      projects: [],
-      languages: [],
+      skills: [''],
+      experience: [
+        {
+          role: '',
+          company: '',
+          startDate: 'YYYY-MM',
+          endDate: 'YYYY-MM',
+          tech: [''],
+        },
+      ],
+      education: [
+        {
+          school: '',
+          degree: '',
+          field: '',
+          startDate: 'YYYY-MM',
+          endDate: 'YYYY-MM',
+        },
+      ],
+      certifications: [''],
+      projects: [
+        {
+          name: '',
+          description: '',
+          tech: [''],
+        },
+      ],
+      languages: [''],
       location: { city: '', country: '' },
       rawQuality: {
         score: 0,
@@ -397,12 +418,12 @@ export class AiNormalizationService {
       ...(domain === 'job'
         ? {
             jobMeta: {
-              requirements: [],
-              benefits: [],
+              requirements: [''],
+              benefits: [''],
               employmentType: '',
             },
           }
         : {}),
-    };
+    } as NormalizedProfile;
   }
 }
