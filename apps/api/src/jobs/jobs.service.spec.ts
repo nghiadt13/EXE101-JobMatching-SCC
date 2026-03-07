@@ -12,6 +12,7 @@ import { SkillStorageAdapterService } from '../matching/services/skill-storage-a
 import { PrismaService } from '../prisma/prisma.service';
 import { AiNormalizationService } from '../normalization/ai-normalization.service';
 import { AiNormalizationError } from '../normalization/normalization.errors';
+import { AppLogger } from '../common/logging/app-logger.service';
 import { JobsService } from './jobs.service';
 import { JobSlugService } from './services/job-slug.service';
 
@@ -113,6 +114,14 @@ describe('JobsService', () => {
           provide: JobSlugService,
           useValue: {
             generateUniqueSlug,
+          },
+        },
+        {
+          provide: AppLogger,
+          useValue: {
+            info: jest.fn(),
+            warn: jest.fn(),
+            error: jest.fn(),
           },
         },
       ],
@@ -334,11 +343,9 @@ describe('JobsService', () => {
       updatedAt: new Date('2026-03-07T00:00:00.000Z'),
     });
     prismaService.job.delete.mockResolvedValue({ id: 'job-1' });
-    jest
-      .spyOn(service as never, 'toView' as never)
-      .mockImplementation(() => {
-        throw new Error('view failure');
-      });
+    jest.spyOn(service as never, 'toView' as never).mockImplementation(() => {
+      throw new Error('view failure');
+    });
 
     await expect(
       service.createFromFile('recruiter-1', {
@@ -399,11 +406,9 @@ describe('JobsService', () => {
       updatedAt: new Date('2026-03-07T00:00:00.000Z'),
     });
     prismaService.job.delete.mockRejectedValue(new Error('rollback failed'));
-    jest
-      .spyOn(service as never, 'toView' as never)
-      .mockImplementation(() => {
-        throw new Error('view failure');
-      });
+    jest.spyOn(service as never, 'toView' as never).mockImplementation(() => {
+      throw new Error('view failure');
+    });
 
     await expect(
       service.createFromFile('recruiter-1', {
@@ -426,14 +431,23 @@ describe('JobsService', () => {
       new Error('llm failed'),
     );
 
-    await expect(
-      service.createFromFile('recruiter-1', {
+    try {
+      await service.createFromFile('recruiter-1', {
         originalname: 'jd.pdf',
         mimetype: 'application/pdf',
         size: 100,
         buffer: Buffer.from('jd content'),
-      } as Express.Multer.File),
-    ).rejects.toBeInstanceOf(UnprocessableEntityException);
+      } as Express.Multer.File);
+      fail('Expected JD upload to fail');
+    } catch (error) {
+      expect(error).toBeInstanceOf(UnprocessableEntityException);
+      expect(
+        (error as UnprocessableEntityException).getResponse(),
+      ).toMatchObject({
+        code: 'JD_PARSE_FAILED',
+        details: { stage: 'normalization' },
+      });
+    }
 
     expect(documentStorageService.save).not.toHaveBeenCalled();
   });
@@ -444,14 +458,23 @@ describe('JobsService', () => {
       new AiNormalizationError('service_unavailable', 'provider down'),
     );
 
-    await expect(
-      service.createFromFile('recruiter-1', {
+    try {
+      await service.createFromFile('recruiter-1', {
         originalname: 'jd.pdf',
         mimetype: 'application/pdf',
         size: 100,
         buffer: Buffer.from('jd content'),
-      } as Express.Multer.File),
-    ).rejects.toBeInstanceOf(ServiceUnavailableException);
+      } as Express.Multer.File);
+      fail('Expected JD upload to fail');
+    } catch (error) {
+      expect(error).toBeInstanceOf(ServiceUnavailableException);
+      expect(
+        (error as ServiceUnavailableException).getResponse(),
+      ).toMatchObject({
+        code: 'AI_SERVICE_UNAVAILABLE',
+        details: { stage: 'normalization' },
+      });
+    }
   });
 
   it('preserves uploaded JD provenance when recruiter edits the draft', async () => {

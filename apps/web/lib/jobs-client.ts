@@ -1,4 +1,4 @@
-import { ApiError } from './api-client';
+import { createApiError } from './api-client';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api';
 
@@ -69,17 +69,16 @@ async function apiRequest<T>(
     cache: 'no-store',
   });
   const body = (await response.json().catch(() => null)) as
-    | { message?: string | string[] }
+    | {
+        message?: string | string[];
+        code?: string;
+        requestId?: string;
+        details?: unknown;
+      }
     | null;
 
   if (!response.ok) {
-    const message =
-      typeof body?.message === 'string'
-        ? body.message
-        : Array.isArray(body?.message)
-          ? body.message[0]
-          : 'Request failed';
-    throw new ApiError(message, response.status);
+    throw createApiError(response.status, body);
   }
 
   return body as T;

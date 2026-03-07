@@ -112,7 +112,7 @@ Timeline: **1-2 tuần** (14 ngày)
 
 - [ ] Dark mode
 - [ ] Toast notifications
-- [ ] Better error messages
+- [x] Better error messages
 - [ ] Animations
 
 ### Features
@@ -134,10 +134,10 @@ Timeline: **1-2 tuần** (14 ngày)
 
 ### CV Flow
 
-- [ ] Upload PDF CV
-- [ ] Upload DOCX CV
-- [ ] Parse thành công
-- [ ] Parse failure surfaces clear error state
+- [x] Upload PDF CV
+- [x] Upload DOCX CV
+- [x] Parse thành công
+- [x] Parse failure surfaces clear error state
 - [ ] Edit parsed data
 - [ ] Set primary CV
 - [ ] Delete CV
@@ -145,7 +145,7 @@ Timeline: **1-2 tuần** (14 ngày)
 ### Job Flow
 
 - [x] Upload JD PDF/DOCX để tạo draft job
-- [ ] JD parse failure surfaces clear error state
+- [x] JD parse failure surfaces clear error state
 - [ ] Create job (draft)
 - [ ] Edit job
 - [ ] Publish job
@@ -205,3 +205,12 @@ Timeline: **1-2 tuần** (14 ngày)
 - [x] Không có critical bugs
 - [ ] Demo flow mượt mà
 - [x] Code clean và có comments
+
+## Debugging Checklist
+
+- [x] API errors return a shared envelope with `statusCode`, `code`, `message`, `requestId`, `timestamp`, and `path`
+- [x] CV and JD upload failures show backend-provided message in the UI
+- [x] CV and JD upload failures show `requestId` in the UI for log correlation
+- [x] Backend logs include correlated start/failure/cleanup events for upload flows
+- [ ] Manual QA: reproduce one CV parse failure and trace it end-to-end by `requestId`
+- [ ] Manual QA: reproduce one JD parse failure and trace it end-to-end by `requestId`

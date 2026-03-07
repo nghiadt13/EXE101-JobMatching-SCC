@@ -22,12 +22,49 @@ type RegisterPayload = {
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api';
 
 export class ApiError extends Error {
+  public readonly code?: string;
+  public readonly requestId?: string;
+  public readonly details?: unknown;
+
   constructor(
     message: string,
     public readonly status: number,
+    options?: {
+      code?: string;
+      requestId?: string;
+      details?: unknown;
+    },
   ) {
     super(message);
+    this.code = options?.code;
+    this.requestId = options?.requestId;
+    this.details = options?.details;
   }
+}
+
+type ApiErrorBody = {
+  message?: string | string[];
+  code?: string;
+  requestId?: string;
+  details?: unknown;
+};
+
+export function createApiError(
+  status: number,
+  body: ApiErrorBody | null,
+): ApiError {
+  const message =
+    typeof body?.message === 'string'
+      ? body.message
+      : Array.isArray(body?.message)
+        ? body.message[0] ?? 'Request failed'
+        : 'Request failed';
+
+  return new ApiError(message, status, {
+    code: body?.code,
+    requestId: body?.requestId,
+    details: body?.details,
+  });
 }
 
 async function apiRequest<T>(path: string, init: RequestInit): Promise<T> {
@@ -40,17 +77,11 @@ async function apiRequest<T>(path: string, init: RequestInit): Promise<T> {
     cache: 'no-store',
   });
   const body = (await response.json().catch(() => null)) as
-    | { message?: string | string[] }
+    | ApiErrorBody
     | null;
 
   if (!response.ok) {
-    const message =
-      typeof body?.message === 'string'
-        ? body.message
-        : Array.isArray(body?.message)
-          ? body.message[0]
-          : 'Request failed';
-    throw new ApiError(message, response.status);
+    throw createApiError(response.status, body);
   }
 
   return body as T;

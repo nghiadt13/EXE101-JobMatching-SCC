@@ -67,6 +67,8 @@ AI parse workflow (current):
 
 If the LLM returns invalid JSON, or the extracted file content cannot be parsed, the API now fails explicitly with a parse error. If the configured provider is unavailable or misconfigured, the API returns a service-unavailable error instead of pretending the file was unreadable. The system no longer saves synthetic fallback parses.
 
+API failures now use one shared error envelope with `statusCode`, `code`, `message`, `requestId`, `timestamp`, and `path`. The web upload flows surface the backend `message` plus `requestId`, so you can correlate a user-visible failure directly with backend logs.
+
 ### 2. Web (`apps/web`)
 
 Required variables:
@@ -145,6 +147,7 @@ $env:AUTH_SECRET='local-test-secret-for-build-only'; npm run build -w web
 - Error kết nối DB: kiểm tra `DATABASE_URL`, DB service, và migration state.
 - CORS lỗi khi login: kiểm tra `WEB_URL` ở API đúng với URL web.
 - Dashboard/API data bất thường: rerun seed rồi restart API/Web.
+- Upload/save failure needs root cause: capture the `Request ID` shown in the web banner, then grep API logs for that id.
 
 ## Documentation
 

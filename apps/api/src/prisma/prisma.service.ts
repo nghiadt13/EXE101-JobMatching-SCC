@@ -1,11 +1,7 @@
-import {
-  Injectable,
-  Logger,
-  OnModuleDestroy,
-  OnModuleInit,
-} from '@nestjs/common';
+import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
+import { AppLogger } from '../common/logging/app-logger.service';
 
 const REQUIRED_SCHEMA_COLUMNS = [
   { tableName: 'CV', columnName: 'skillAtoms' },
@@ -18,9 +14,7 @@ export class PrismaService
   extends PrismaClient
   implements OnModuleInit, OnModuleDestroy
 {
-  private readonly logger = new Logger(PrismaService.name);
-
-  constructor() {
+  constructor(private readonly logger: AppLogger) {
     const connectionString =
       process.env['DATABASE_URL'] ??
       'postgresql://postgres:postgres@localhost:5432/postgres';
@@ -74,9 +68,9 @@ export class PrismaService
       .map((entry) => `${entry.tableName}.${entry.columnName}`)
       .join(', ');
 
-    this.logger.error(
-      `Database schema is out of date. Missing columns: ${missingColumns}. Run Prisma migrations before starting the API.`,
-    );
+    this.logger.error('database_schema_out_of_date', {
+      missingColumns,
+    });
 
     throw new Error(
       `Database schema is out of date. Missing columns: ${missingColumns}. Run \`npx prisma migrate deploy\` in apps/api before starting the API.`,

@@ -7,6 +7,7 @@ import {
 import { AiNormalizationError } from '../normalization/normalization.errors';
 import { Test, TestingModule } from '@nestjs/testing';
 import { SkillStorageAdapterService } from '../matching/services/skill-storage-adapter.service';
+import { AppLogger } from '../common/logging/app-logger.service';
 import { CvsService } from './cvs.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiNormalizationService } from '../normalization/ai-normalization.service';
@@ -82,6 +83,14 @@ describe('CvsService', () => {
         },
         { provide: CvStorageService, useValue: cvStorageService },
         { provide: CvTextExtractorService, useValue: cvTextExtractorService },
+        {
+          provide: AppLogger,
+          useValue: {
+            info: jest.fn(),
+            warn: jest.fn(),
+            error: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -116,14 +125,23 @@ describe('CvsService', () => {
       new Error('parser failed'),
     );
 
-    await expect(
-      service.upload('candidate-user', {
+    try {
+      await service.upload('candidate-user', {
         originalname: 'cv.pdf',
         mimetype: 'application/pdf',
         size: 100,
         buffer: Buffer.from('content'),
-      } as Express.Multer.File),
-    ).rejects.toBeInstanceOf(UnprocessableEntityException);
+      } as Express.Multer.File);
+      fail('Expected CV upload to fail');
+    } catch (error) {
+      expect(error).toBeInstanceOf(UnprocessableEntityException);
+      expect(
+        (error as UnprocessableEntityException).getResponse(),
+      ).toMatchObject({
+        code: 'CV_PARSE_FAILED',
+        details: { stage: 'document_processing' },
+      });
+    }
 
     expect(cvStorageService.save).not.toHaveBeenCalled();
   });
@@ -136,14 +154,25 @@ describe('CvsService', () => {
       new Error('llm failed'),
     );
 
-    await expect(
-      service.upload('candidate-user', {
+    try {
+      await service.upload('candidate-user', {
         originalname: 'cv.pdf',
         mimetype: 'application/pdf',
         size: 100,
         buffer: Buffer.from('content'),
-      } as Express.Multer.File),
-    ).rejects.toBeInstanceOf(UnprocessableEntityException);
+      } as Express.Multer.File);
+      fail('Expected CV upload to fail');
+    } catch (error) {
+      expect(error).toBeInstanceOf(UnprocessableEntityException);
+      expect(
+        (error as UnprocessableEntityException).getResponse(),
+      ).toMatchObject({
+        code: 'CV_PARSE_FAILED',
+        details: {
+          stage: 'document_processing',
+        },
+      });
+    }
 
     expect(aiNormalizationService.normalizeCv).toHaveBeenCalledWith(
       'Extracted CV text',
@@ -159,14 +188,23 @@ describe('CvsService', () => {
       new AiNormalizationError('service_unavailable', 'provider down'),
     );
 
-    await expect(
-      service.upload('candidate-user', {
+    try {
+      await service.upload('candidate-user', {
         originalname: 'cv.pdf',
         mimetype: 'application/pdf',
         size: 100,
         buffer: Buffer.from('content'),
-      } as Express.Multer.File),
-    ).rejects.toBeInstanceOf(ServiceUnavailableException);
+      } as Express.Multer.File);
+      fail('Expected CV upload to fail');
+    } catch (error) {
+      expect(error).toBeInstanceOf(ServiceUnavailableException);
+      expect(
+        (error as ServiceUnavailableException).getResponse(),
+      ).toMatchObject({
+        code: 'AI_SERVICE_UNAVAILABLE',
+        details: { stage: 'normalization' },
+      });
+    }
   });
 
   it('keeps parsed data, normalized profile, and canonical atoms in sync on manual skill edits', async () => {

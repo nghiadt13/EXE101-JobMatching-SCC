@@ -1,7 +1,7 @@
 import {
   BadRequestException,
+  HttpException,
   Injectable,
-  Logger,
   NotFoundException,
   PayloadTooLargeException,
   ServiceUnavailableException,
@@ -20,6 +20,9 @@ import { SkillStorageAdapterService } from '../matching/services/skill-storage-a
 import { PrismaService } from '../prisma/prisma.service';
 import { AiNormalizationService } from '../normalization/ai-normalization.service';
 import { AiNormalizationError } from '../normalization/normalization.errors';
+import { buildErrorPayload } from '../common/errors/api-error-envelope';
+import { ERROR_CODES } from '../common/errors/error-codes';
+import { AppLogger } from '../common/logging/app-logger.service';
 import {
   NormalizationResult,
   NormalizedProfile,
@@ -30,9 +33,8 @@ import { CvTextExtractorService } from './services/cv-text-extractor.service';
 
 @Injectable()
 export class CvsService {
-  private readonly logger = new Logger(CvsService.name);
-
   constructor(
+    private readonly logger: AppLogger,
     private readonly prisma: PrismaService,
     private readonly aiNormalizationService: AiNormalizationService,
     private readonly cvStorageService: CvStorageService,
@@ -42,10 +44,14 @@ export class CvsService {
 
   async upload(userId: string, file: Express.Multer.File): Promise<CvView> {
     if (!file) {
-      throw new BadRequestException('CV file is required');
+      throw new BadRequestException(
+        buildErrorPayload(ERROR_CODES.cvFileRequired, 'CV file is required'),
+      );
     }
     if (file.size > CV_MAX_FILE_SIZE_BYTES) {
-      throw new PayloadTooLargeException('CV file is too large');
+      throw new PayloadTooLargeException(
+        buildErrorPayload(ERROR_CODES.cvFileTooLarge, 'CV file is too large'),
+      );
     }
     this.cvTextExtractorService.assertSupported(file);
 
@@ -54,8 +60,21 @@ export class CvsService {
       where: { candidateId: candidate.id, deletedAt: null },
     });
     if (activeCount >= CV_MAX_ACTIVE_PER_CANDIDATE) {
-      throw new BadRequestException('CV limit reached for candidate');
+      throw new BadRequestException(
+        buildErrorPayload(
+          ERROR_CODES.cvLimitReached,
+          'CV limit reached for candidate',
+        ),
+      );
     }
+
+    this.logger.info('cv_upload_started', {
+      actorId: userId,
+      fileName: file.originalname,
+      fileSize: file.size,
+      mimeType: file.mimetype,
+      candidateId: candidate.id,
+    });
 
     const normalized = await this.buildNormalizedCvData(file);
 
@@ -75,9 +94,33 @@ export class CvsService {
         },
         select: this.cvViewSelect,
       });
+      this.logger.info('cv_upload_completed', {
+        actorId: userId,
+        candidateId: candidate.id,
+        cvId: created.id,
+        fileName: file.originalname,
+        parseStatus: this.readParseStatus(created.parsedData),
+      });
       return this.toView(created);
     } catch (error) {
+      this.logger.error(
+        'cv_upload_failed',
+        {
+          actorId: userId,
+          candidateId: candidate.id,
+          fileName: file.originalname,
+          storedPath,
+          errorCode: this.readExceptionCode(error),
+        },
+        error,
+      );
+
       await this.cvStorageService.remove(storedPath);
+      this.logger.info('cv_upload_storage_cleanup_completed', {
+        actorId: userId,
+        candidateId: candidate.id,
+        storedPath,
+      });
       throw error;
     }
   }
@@ -92,30 +135,44 @@ export class CvsService {
       return this.toStoredCvData(result);
     } catch (error) {
       if (error instanceof AiNormalizationError) {
+        this.logger.warn('cv_normalization_rejected', {
+          fileName: file.originalname,
+          errorCode: error.code,
+          kind: error.kind,
+        });
         if (error.kind === 'service_unavailable') {
           throw new ServiceUnavailableException({
             code: error.code,
             message:
               'AI service is unavailable right now. Please try uploading again later.',
+            details: { stage: 'normalization' },
           });
         }
 
         throw new UnprocessableEntityException({
-          code: error.code,
+          code: ERROR_CODES.cvParseFailed,
           message:
             'AI parsing failed for this CV. Upload a readable PDF or DOCX and try again.',
+          details: { stage: 'normalization', upstreamCode: error.code },
         });
       }
 
-      this.logger.warn(
-        `CV parse failed for "${file.originalname}": ${
-          error instanceof Error ? error.message : 'Unknown error'
-        }`,
-      );
+      if (error instanceof HttpException) {
+        this.logger.warn('cv_document_processing_failed', {
+          fileName: file.originalname,
+          errorCode: this.readExceptionCode(error),
+        });
+      }
+
+      this.logger.warn('cv_parse_failed', {
+        fileName: file.originalname,
+        reason: error instanceof Error ? error.message : 'Unknown error',
+      });
       throw new UnprocessableEntityException({
-        code: 'AI_NORMALIZATION_FAILED',
+        code: ERROR_CODES.cvParseFailed,
         message:
           'AI parsing failed for this CV. Upload a readable PDF or DOCX and try again.',
+        details: { stage: 'document_processing' },
       });
     }
   }
@@ -321,7 +378,9 @@ export class CvsService {
       select: { id: true },
     });
     if (!candidate) {
-      throw new NotFoundException('Candidate profile not found');
+      throw new NotFoundException(
+        buildErrorPayload(ERROR_CODES.notFound, 'Candidate profile not found'),
+      );
     }
     return candidate;
   }
@@ -349,10 +408,33 @@ export class CvsService {
     });
 
     if (!cv) {
-      throw new NotFoundException('CV not found');
+      throw new NotFoundException(
+        buildErrorPayload(ERROR_CODES.notFound, 'CV not found'),
+      );
     }
 
     return cv;
+  }
+
+  private readExceptionCode(error: unknown): string | undefined {
+    if (!(error instanceof HttpException)) {
+      return undefined;
+    }
+
+    const response = error.getResponse();
+    if (response && typeof response === 'object') {
+      const code = (response as Record<string, unknown>)['code'];
+      return typeof code === 'string' ? code : undefined;
+    }
+
+    return undefined;
+  }
+
+  private readParseStatus(value: Prisma.JsonValue): ParseStatus {
+    const record = this.asRecord(value);
+    const profile = this.asRecord(record['normalizedProfile']);
+    const parseStatus = record['parseStatus'] ?? profile['parseStatus'];
+    return parseStatus === 'parsed_ok' ? 'parsed_ok' : 'needs_review';
   }
 
   private toView(item: {

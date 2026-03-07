@@ -4,6 +4,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { ApplicationsModule } from './applications/applications.module';
+import { CommonModule } from './common/common.module';
 import { CvsModule } from './cvs/cvs.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { JobsModule } from './jobs/jobs.module';
@@ -18,6 +19,7 @@ import { NormalizationModule } from './normalization/normalization.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    CommonModule,
     NormalizationModule,
     PrismaModule,
     AuthModule,

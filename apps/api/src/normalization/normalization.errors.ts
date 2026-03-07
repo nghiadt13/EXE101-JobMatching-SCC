@@ -1,6 +1,4 @@
-export type AiNormalizationErrorKind =
-  | 'parse_failed'
-  | 'service_unavailable';
+export type AiNormalizationErrorKind = 'parse_failed' | 'service_unavailable';
 
 export class AiNormalizationError extends Error {
   readonly code: 'AI_NORMALIZATION_FAILED' | 'AI_SERVICE_UNAVAILABLE';

@@ -10,6 +10,8 @@ import {
   DOCUMENT_ALLOWED_EXTENSIONS,
   DOCUMENT_ALLOWED_MIME_TYPES,
 } from '../document-upload.constants';
+import { buildErrorPayload } from '../../common/errors/api-error-envelope';
+import { ERROR_CODES } from '../../common/errors/error-codes';
 
 @Injectable()
 export class DocumentTextExtractorService {
@@ -35,14 +37,20 @@ export class DocumentTextExtractorService {
       }
     } catch {
       throw new UnprocessableEntityException(
-        `Could not parse ${documentLabel} file. Please upload a valid PDF or DOCX file`,
+        buildErrorPayload(
+          ERROR_CODES.documentParseFailed,
+          `Could not parse ${documentLabel} file. Please upload a valid PDF or DOCX file`,
+        ),
       );
     }
 
     const normalized = text.replace(/\s+/g, ' ').trim();
     if (!normalized) {
       throw new UnprocessableEntityException(
-        `Could not extract readable text from ${documentLabel} file`,
+        buildErrorPayload(
+          ERROR_CODES.documentTextMissing,
+          `Could not extract readable text from ${documentLabel} file`,
+        ),
       );
     }
 
@@ -58,7 +66,10 @@ export class DocumentTextExtractorService {
 
     if (!allowedMime || !allowedExtension) {
       throw new UnsupportedMediaTypeException(
-        'Only PDF and DOCX files are supported',
+        buildErrorPayload(
+          ERROR_CODES.documentUnsupportedType,
+          'Only PDF and DOCX files are supported',
+        ),
       );
     }
   }

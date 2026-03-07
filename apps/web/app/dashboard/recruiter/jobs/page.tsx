@@ -6,11 +6,15 @@ import { JdUploadForm } from '@/components/jobs/jd-upload-form';
 import { RecruiterJobForm } from '@/components/jobs/recruiter-job-form';
 import { RecruiterJobsTable } from '@/components/jobs/recruiter-jobs-table';
 import { ApiError } from '@/lib/api-client';
+import {
+  buildErrorRedirectPath,
+  resolveRouteError,
+} from '@/lib/errors/backend-error-state';
 import { composeJobDescription, parseMultilineList } from '@/lib/job-description-format';
 import { closeJob, createJob, deleteJob, getJobs, publishJob, uploadJobFile } from '@/lib/jobs-client';
 
 type PageProps = {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; message?: string; requestId?: string }>;
 };
 
 function parseSkills(input: FormDataEntryValue | null): string[] {
@@ -67,12 +71,7 @@ export default async function RecruiterJobsPage({ searchParams }: PageProps) {
         if (error.status === 401) {
           redirect('/login');
         }
-        if (error.status === 422) {
-          redirect('/dashboard/recruiter/jobs?error=parse-failed');
-        }
-        if (error.status === 503) {
-          redirect('/dashboard/recruiter/jobs?error=service-unavailable');
-        }
+        redirect(buildErrorRedirectPath('/dashboard/recruiter/jobs', error, 'create-failed'));
       }
       redirect('/dashboard/recruiter/jobs?error=create-failed');
     }
@@ -94,18 +93,7 @@ export default async function RecruiterJobsPage({ searchParams }: PageProps) {
         if (error.status === 401) {
           redirect('/login');
         }
-        if (error.status === 413) {
-          redirect('/dashboard/recruiter/jobs?error=file-too-large');
-        }
-        if (error.status === 415) {
-          redirect('/dashboard/recruiter/jobs?error=unsupported-file');
-        }
-        if (error.status === 422) {
-          redirect('/dashboard/recruiter/jobs?error=parse-failed');
-        }
-        if (error.status === 503) {
-          redirect('/dashboard/recruiter/jobs?error=service-unavailable');
-        }
+        redirect(buildErrorRedirectPath('/dashboard/recruiter/jobs', error, 'upload-failed'));
       }
       redirect('/dashboard/recruiter/jobs?error=upload-failed');
     }
@@ -148,20 +136,16 @@ export default async function RecruiterJobsPage({ searchParams }: PageProps) {
   ).length;
   const visibleCount = jobs.items.length;
   const totalCount = jobs.pagination.totalItems;
-  const errorMessage =
-    query.error === 'file-too-large'
-      ? 'JD file is too large. Maximum size is 5MB.'
-      : query.error === 'unsupported-file'
-        ? 'Only PDF and DOCX files are supported for JD upload.'
-        : query.error === 'parse-failed'
-          ? 'AI parsing failed for this job. Upload a readable JD or try manual creation.'
-          : query.error === 'service-unavailable'
-            ? 'AI service is temporarily unavailable. Please try the job action again later.'
-          : query.error === 'create-failed'
-            ? 'Job creation failed. Please try again.'
-            : query.error === 'upload-failed'
-              ? 'JD upload failed. Please try again.'
-              : null;
+  const routeError = resolveRouteError(query, {
+    'create-failed': 'Job creation failed. Please try again.',
+    'CV_FILE_TOO_LARGE': 'JD file is too large. Maximum size is 5MB.',
+    'DOCUMENT_UNSUPPORTED_TYPE': 'Only PDF and DOCX files are supported for JD upload.',
+    'JD_FILE_TOO_LARGE': 'JD file is too large. Maximum size is 5MB.',
+    'JD_PARSE_FAILED': 'AI parsing failed for this job. Upload a readable JD or try manual creation.',
+    'service-unavailable': 'AI service is temporarily unavailable. Please try the job action again later.',
+    'upload-failed': 'JD upload failed. Please try again.',
+    'AI_SERVICE_UNAVAILABLE': 'AI service is temporarily unavailable. Please try the job action again later.',
+  });
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-6 py-12">
@@ -178,10 +162,13 @@ export default async function RecruiterJobsPage({ searchParams }: PageProps) {
         </Link>
       </header>
 
-      {errorMessage ? (
-        <p className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {errorMessage}
-        </p>
+      {routeError ? (
+        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <p>{routeError.message}</p>
+          {routeError.requestId ? (
+            <p className="mt-1 text-xs font-medium text-red-800/80">Request ID: {routeError.requestId}</p>
+          ) : null}
+        </div>
       ) : null}
 
       <section className="mb-6 grid gap-4 md:grid-cols-3">

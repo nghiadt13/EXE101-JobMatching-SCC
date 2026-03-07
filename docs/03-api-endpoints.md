@@ -97,6 +97,31 @@ Soft delete user
 
 ## Profile
 
+## Shared Error Envelope
+
+All handled API errors now return one stable envelope:
+
+```json
+{
+  "statusCode": 422,
+  "code": "CV_PARSE_FAILED",
+  "message": "AI parsing failed for this CV. Upload a readable PDF or DOCX and try again.",
+  "requestId": "0f5b9d9e-5e03-4e21-bc7d-4f3272f12345",
+  "timestamp": "2026-03-07T10:00:00.000Z",
+  "path": "/api/cvs/upload",
+  "details": {
+    "stage": "normalization"
+  }
+}
+```
+
+Notes:
+
+- `requestId` is returned on every failed request and is also emitted in backend logs.
+- `message` is safe to show in the web UI.
+- `details` is optional and limited to safe hints such as validation arrays or failure stage metadata.
+- Unknown 500s are normalized into the same envelope instead of returning ad hoc Nest payloads.
+
 ### GET /profile
 
 Get current user profile
@@ -171,14 +196,28 @@ Response (Success):
 
 Response (Parse Error - 422):
 {
-  "code": "AI_NORMALIZATION_FAILED",
-  "message": "AI parsing failed for this CV. Upload a readable PDF or DOCX and try again."
+  "statusCode": 422,
+  "code": "CV_PARSE_FAILED",
+  "message": "AI parsing failed for this CV. Upload a readable PDF or DOCX and try again.",
+  "requestId": "uuid",
+  "timestamp": "2026-03-07T...",
+  "path": "/api/cvs/upload",
+  "details": {
+    "stage": "document_processing"
+  }
 }
 
 Response (Service Unavailable - 503):
 {
+  "statusCode": 503,
   "code": "AI_SERVICE_UNAVAILABLE",
-  "message": "AI service is unavailable right now. Please try again later."
+  "message": "AI service is unavailable right now. Please try again later.",
+  "requestId": "uuid",
+  "timestamp": "2026-03-07T...",
+  "path": "/api/cvs/upload",
+  "details": {
+    "stage": "normalization"
+  }
 }
 ```
 
@@ -314,14 +353,28 @@ Response (Success):
 
 Response (Parse Error - 422):
 {
-  "code": "AI_NORMALIZATION_FAILED",
-  "message": "AI parsing failed for this JD. Upload a readable PDF or DOCX and try again."
+  "statusCode": 422,
+  "code": "JD_PARSE_FAILED",
+  "message": "AI parsing failed for this JD. Upload a readable PDF or DOCX and try again.",
+  "requestId": "uuid",
+  "timestamp": "2026-03-07T...",
+  "path": "/api/jobs/upload",
+  "details": {
+    "stage": "document_processing"
+  }
 }
 
 Response (Service Unavailable - 503):
 {
+  "statusCode": 503,
   "code": "AI_SERVICE_UNAVAILABLE",
-  "message": "AI service is unavailable right now. Please try again later."
+  "message": "AI service is unavailable right now. Please try again later.",
+  "requestId": "uuid",
+  "timestamp": "2026-03-07T...",
+  "path": "/api/jobs/upload",
+  "details": {
+    "stage": "normalization"
+  }
 }
 ```
 
@@ -376,21 +429,42 @@ CV upload, JD upload, and job normalization all use one parse-failure contract:
 
 ```json
 {
-  "code": "AI_NORMALIZATION_FAILED",
-  "message": "AI parsing failed for this CV. Upload a readable PDF or DOCX and try again."
+  "statusCode": 422,
+  "code": "CV_PARSE_FAILED",
+  "message": "AI parsing failed for this CV. Upload a readable PDF or DOCX and try again.",
+  "requestId": "uuid",
+  "timestamp": "2026-03-07T...",
+  "path": "/api/cvs/upload",
+  "details": {
+    "stage": "document_processing"
+  }
 }
 ```
 
-The exact message varies slightly by CV vs JD flow, but the API no longer persists fallback parse payloads as successful uploads.
+The exact message and code vary by CV vs JD flow (`CV_PARSE_FAILED` vs `JD_PARSE_FAILED`), but the API no longer persists fallback parse payloads as successful uploads.
 
 Operational provider failures use a separate contract:
 
 ```json
 {
+  "statusCode": 503,
   "code": "AI_SERVICE_UNAVAILABLE",
-  "message": "AI service is unavailable right now. Please try again later."
+  "message": "AI service is unavailable right now. Please try again later.",
+  "requestId": "uuid",
+  "timestamp": "2026-03-07T...",
+  "path": "/api/jobs/upload",
+  "details": {
+    "stage": "normalization"
+  }
 }
 ```
+
+### Debug Flow
+
+1. Capture `requestId` from the web error banner or API response.
+2. Search API logs by `requestId`.
+3. Inspect the structured log events around that request, especially upload start/failure, normalization failure, rollback, and storage cleanup events.
+4. Use `code` plus `details.stage` to distinguish document extraction, normalization, and persistence failures quickly.
 
 ### Jobs Error Codes
 

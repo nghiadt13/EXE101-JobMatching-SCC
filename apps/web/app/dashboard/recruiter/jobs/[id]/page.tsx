@@ -5,6 +5,10 @@ import { auth } from '@/auth';
 import { RecruiterJobForm } from '@/components/jobs/recruiter-job-form';
 import { ApiError } from '@/lib/api-client';
 import {
+  buildErrorRedirectPath,
+  resolveRouteError,
+} from '@/lib/errors/backend-error-state';
+import {
   composeJobDescription,
   getJobFormInitialValues,
   parseMultilineList,
@@ -13,7 +17,7 @@ import { getJobDetail, updateJob } from '@/lib/jobs-client';
 
 type PageProps = {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; message?: string; requestId?: string }>;
 };
 
 function parseSkills(value: string): string[] {
@@ -95,12 +99,13 @@ export default async function RecruiterJobDetailPage({ params, searchParams }: P
         if (error.status === 401) {
           redirect('/login');
         }
-        if (error.status === 422) {
-          redirect(`/dashboard/recruiter/jobs/${id}?error=parse-failed`);
-        }
-        if (error.status === 503) {
-          redirect(`/dashboard/recruiter/jobs/${id}?error=service-unavailable`);
-        }
+        redirect(
+          buildErrorRedirectPath(
+            `/dashboard/recruiter/jobs/${id}`,
+            error,
+            'save-failed',
+          ),
+        );
       }
       redirect(`/dashboard/recruiter/jobs/${id}?error=save-failed`);
     }
@@ -108,14 +113,11 @@ export default async function RecruiterJobDetailPage({ params, searchParams }: P
     revalidatePath('/dashboard/recruiter/jobs');
   }
 
-  const errorMessage =
-    query.error === 'parse-failed'
-      ? 'AI parsing failed while saving this job. Review the fields and try again.'
-      : query.error === 'service-unavailable'
-        ? 'AI service is temporarily unavailable. Please try saving again later.'
-      : query.error === 'save-failed'
-        ? 'Saving this job failed. Please try again.'
-        : null;
+  const routeError = resolveRouteError(query, {
+    'JD_PARSE_FAILED': 'AI parsing failed while saving this job. Review the fields and try again.',
+    'AI_SERVICE_UNAVAILABLE': 'AI service is temporarily unavailable. Please try saving again later.',
+    'save-failed': 'Saving this job failed. Please try again.',
+  });
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col px-6 py-12">
@@ -129,10 +131,13 @@ export default async function RecruiterJobDetailPage({ params, searchParams }: P
         </Link>
       </header>
 
-      {errorMessage ? (
-        <p className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {errorMessage}
-        </p>
+      {routeError ? (
+        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <p>{routeError.message}</p>
+          {routeError.requestId ? (
+            <p className="mt-1 text-xs font-medium text-red-800/80">Request ID: {routeError.requestId}</p>
+          ) : null}
+        </div>
       ) : null}
 
       <RecruiterJobForm

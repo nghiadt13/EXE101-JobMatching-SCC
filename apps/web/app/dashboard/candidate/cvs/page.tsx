@@ -5,10 +5,14 @@ import { auth } from '@/auth';
 import { CvList } from '@/components/cv/cv-list';
 import { CvUploadForm } from '@/components/cv/cv-upload-form';
 import { ApiError } from '@/lib/api-client';
+import {
+  buildErrorRedirectPath,
+  resolveRouteError,
+} from '@/lib/errors/backend-error-state';
 import { deleteCv, getMyCvs, setPrimaryCv, updateCv, uploadCv } from '@/lib/cv-client';
 
 type PageProps = {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; message?: string; requestId?: string }>;
 };
 
 export default async function CandidateCvsPage({ searchParams }: PageProps) {
@@ -44,18 +48,7 @@ export default async function CandidateCvsPage({ searchParams }: PageProps) {
         if (error.status === 401) {
           redirect('/login');
         }
-        if (error.status === 413) {
-          redirect('/dashboard/candidate/cvs?error=file-too-large');
-        }
-        if (error.status === 415) {
-          redirect('/dashboard/candidate/cvs?error=unsupported-file');
-        }
-        if (error.status === 422) {
-          redirect('/dashboard/candidate/cvs?error=parse-failed');
-        }
-        if (error.status === 503) {
-          redirect('/dashboard/candidate/cvs?error=service-unavailable');
-        }
+        redirect(buildErrorRedirectPath('/dashboard/candidate/cvs', error, 'upload-failed'));
       }
       redirect('/dashboard/candidate/cvs?error=upload-failed');
     }
@@ -121,20 +114,14 @@ export default async function CandidateCvsPage({ searchParams }: PageProps) {
   }
 
   const cvs = await getMyCvs(session.accessToken);
-  const errorMessage =
-    query.error === 'missing-file'
-      ? 'Please choose a file before uploading.'
-      : query.error === 'file-too-large'
-        ? 'CV file is too large. Maximum size is 5MB.'
-        : query.error === 'unsupported-file'
-          ? 'Only PDF and DOCX files are supported.'
-          : query.error === 'parse-failed'
-            ? 'AI parsing failed for this CV. Upload a readable PDF or DOCX and try again.'
-            : query.error === 'service-unavailable'
-              ? 'AI service is temporarily unavailable. Please try uploading again later.'
-            : query.error === 'upload-failed'
-              ? 'Upload failed. Please try again.'
-              : null;
+  const routeError = resolveRouteError(query, {
+    'missing-file': 'Please choose a file before uploading.',
+    'CV_FILE_TOO_LARGE': 'CV file is too large. Maximum size is 5MB.',
+    'DOCUMENT_UNSUPPORTED_TYPE': 'Only PDF and DOCX files are supported.',
+    'CV_PARSE_FAILED': 'AI parsing failed for this CV. Upload a readable PDF or DOCX and try again.',
+    'AI_SERVICE_UNAVAILABLE': 'AI service is temporarily unavailable. Please try uploading again later.',
+    'upload-failed': 'Upload failed. Please try again.',
+  });
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col px-6 py-12">
@@ -149,10 +136,13 @@ export default async function CandidateCvsPage({ searchParams }: PageProps) {
       </header>
 
       <div className="grid gap-6">
-        {errorMessage ? (
-          <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {errorMessage}
-          </p>
+        {routeError ? (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <p>{routeError.message}</p>
+            {routeError.requestId ? (
+              <p className="mt-1 text-xs font-medium text-red-800/80">Request ID: {routeError.requestId}</p>
+            ) : null}
+          </div>
         ) : null}
         <CvUploadForm uploadAction={uploadAction} />
         <CvList

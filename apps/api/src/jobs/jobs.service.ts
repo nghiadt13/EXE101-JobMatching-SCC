@@ -2,8 +2,8 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  HttpException,
   Injectable,
-  Logger,
   NotFoundException,
   PayloadTooLargeException,
   ServiceUnavailableException,
@@ -11,6 +11,9 @@ import {
 } from '@nestjs/common';
 import { JobStatus, Prisma, UserRole } from '@prisma/client';
 import { basename, extname } from 'node:path';
+import { buildErrorPayload } from '../common/errors/api-error-envelope';
+import { ERROR_CODES } from '../common/errors/error-codes';
+import { AppLogger } from '../common/logging/app-logger.service';
 import {
   DOCUMENT_MAX_FILE_SIZE_BYTES,
   DOCUMENT_MAX_TEXT_CHARS,
@@ -49,10 +52,10 @@ type SourceDocumentMeta = {
 
 @Injectable()
 export class JobsService {
-  private readonly logger = new Logger(JobsService.name);
   private readonly slugRetryAttempts = 3;
 
   constructor(
+    private readonly logger: AppLogger,
     private readonly prisma: PrismaService,
     private readonly aiNormalizationService: AiNormalizationService,
     private readonly jobSlugService: JobSlugService,
@@ -109,13 +112,23 @@ export class JobsService {
     file: Express.Multer.File,
   ): Promise<JobView> {
     if (!file) {
-      throw new BadRequestException('JD file is required');
+      throw new BadRequestException(
+        buildErrorPayload(ERROR_CODES.jdFileRequired, 'JD file is required'),
+      );
     }
     if (file.size > DOCUMENT_MAX_FILE_SIZE_BYTES) {
-      throw new PayloadTooLargeException('JD file is too large');
+      throw new PayloadTooLargeException(
+        buildErrorPayload(ERROR_CODES.jdFileTooLarge, 'JD file is too large'),
+      );
     }
 
     this.documentTextExtractorService.assertSupported(file);
+    this.logger.info('job_upload_started', {
+      actorId: recruiterId,
+      fileName: file.originalname,
+      fileSize: file.size,
+      mimeType: file.mimetype,
+    });
 
     const rawText = await this.extractJobTextOrThrow(file);
     const normalization = await this.normalizeJobOrThrow(
@@ -175,11 +188,26 @@ export class JobsService {
       );
       createdJobId = created.id;
 
+      this.logger.info('job_upload_completed', {
+        actorId: recruiterId,
+        jobId: created.id,
+        fileName: file.originalname,
+        storedPath,
+        parseStatus: this.readParseStatus(created.location),
+      });
+
       return this.toView(created);
     } catch (error) {
       this.logger.error(
-        `JD upload failed for recruiter ${recruiterId} and file "${file.originalname}"`,
-        error instanceof Error ? error.stack : undefined,
+        'job_upload_failed',
+        {
+          actorId: recruiterId,
+          fileName: file.originalname,
+          storedPath,
+          jobId: createdJobId,
+          errorCode: this.readExceptionCode(error),
+        },
+        error,
       );
 
       let rolledBackJob = !createdJobId;
@@ -187,16 +215,28 @@ export class JobsService {
         try {
           await this.prisma.job.delete({ where: { id: createdJobId } });
           rolledBackJob = true;
+          this.logger.info('job_upload_rollback_completed', {
+            actorId: recruiterId,
+            jobId: createdJobId,
+          });
         } catch (cleanupError) {
           this.logger.error(
-            `Failed to roll back uploaded JD draft ${createdJobId}`,
-            cleanupError instanceof Error ? cleanupError.stack : undefined,
+            'job_upload_rollback_failed',
+            {
+              actorId: recruiterId,
+              jobId: createdJobId,
+            },
+            cleanupError,
           );
         }
       }
 
       if (rolledBackJob) {
         await this.documentStorageService.remove('jobs', storedPath);
+        this.logger.info('job_upload_storage_cleanup_completed', {
+          actorId: recruiterId,
+          storedPath,
+        });
       }
       throw error;
     }
@@ -785,13 +825,25 @@ export class JobsService {
         await this.documentTextExtractorService.extract(file, 'JD')
       ).slice(0, DOCUMENT_MAX_TEXT_CHARS);
     } catch (error) {
-      this.logger.warn(
-        `JD text extraction failed for "${file.originalname}": ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+      const errorCode = this.readExceptionCode(error);
+      this.logger.warn('job_document_processing_failed', {
+        fileName: file.originalname,
+        errorCode,
+        reason: error instanceof Error ? error.message : 'Unknown error',
+      });
+
+      if (error instanceof HttpException && error.getStatus() === 415) {
+        throw error;
+      }
+
       throw new UnprocessableEntityException({
-        code: 'AI_NORMALIZATION_FAILED',
+        code: ERROR_CODES.jdParseFailed,
         message:
           'AI parsing failed for this JD. Upload a readable PDF or DOCX and try again.',
+        details: {
+          stage: 'document_processing',
+          ...(errorCode ? { upstreamCode: errorCode } : {}),
+        },
       });
     }
   }
@@ -804,31 +856,59 @@ export class JobsService {
       return await this.aiNormalizationService.normalizeJob(rawText);
     } catch (error) {
       if (error instanceof AiNormalizationError) {
-        this.logger.warn(
-          `Job normalization rejected: ${error.code} (${error.message})`,
-        );
+        this.logger.warn('job_normalization_rejected', {
+          errorCode: error.code,
+          kind: error.kind,
+          reason: error.message,
+        });
         if (error.kind === 'service_unavailable') {
           throw new ServiceUnavailableException({
             code: error.code,
             message:
               'AI service is unavailable right now. Please try again later.',
+            details: { stage: 'normalization' },
           });
         }
 
         throw new UnprocessableEntityException({
-          code: error.code,
+          code: ERROR_CODES.jdParseFailed,
           message,
+          details: {
+            stage: 'normalization',
+            upstreamCode: error.code,
+          },
         });
       }
 
-      this.logger.warn(
-        `Job normalization failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+      this.logger.warn('job_normalization_failed', {
+        reason: error instanceof Error ? error.message : 'Unknown error',
+      });
       throw new UnprocessableEntityException({
-        code: 'AI_NORMALIZATION_FAILED',
+        code: ERROR_CODES.jdParseFailed,
         message,
+        details: { stage: 'normalization' },
       });
     }
+  }
+
+  private readExceptionCode(error: unknown): string | undefined {
+    if (!(error instanceof HttpException)) {
+      return undefined;
+    }
+
+    const response = error.getResponse();
+    if (response && typeof response === 'object') {
+      const code = (response as Record<string, unknown>)['code'];
+      return typeof code === 'string' ? code : undefined;
+    }
+
+    return undefined;
+  }
+
+  private readParseStatus(location: Prisma.JsonValue | null): ParseStatus {
+    const meta = this.readNormalizationMeta(location);
+    const parseStatus = meta['parseStatus'];
+    return parseStatus === 'parsed_ok' ? 'parsed_ok' : 'needs_review';
   }
 
   private mapUploadToDraft(

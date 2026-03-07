@@ -1,4 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { AppLogger } from '../common/logging/app-logger.service';
 import { GeminiClientService } from './gemini-client.service';
 import { LlmClient } from './llm-client.interface';
 import { AiNormalizationError } from './normalization.errors';
@@ -14,9 +15,8 @@ type Domain = 'cv' | 'job';
 
 @Injectable()
 export class AiNormalizationService {
-  private readonly logger = new Logger(AiNormalizationService.name);
-
   constructor(
+    private readonly logger: AppLogger,
     private readonly geminiClient: GeminiClientService,
     private readonly openAiClient: OpenAiClientService,
   ) {}
@@ -61,9 +61,13 @@ export class AiNormalizationService {
         },
       };
     } catch (error) {
-      this.logger.warn(
-        `LLM normalization failed (${client.provider}): ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+      this.logger.warn('ai_normalization_failed', {
+        domain,
+        provider: client.provider,
+        model: client.getModelName(),
+        latencyMs: Date.now() - start,
+        reason: error instanceof Error ? error.message : 'Unknown error',
+      });
 
       if (error instanceof AiNormalizationError) {
         throw error;

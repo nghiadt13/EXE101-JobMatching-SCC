@@ -1,5 +1,6 @@
 import { AiNormalizationService } from './ai-normalization.service';
 import { AiNormalizationError } from './normalization.errors';
+import { AppLogger } from '../common/logging/app-logger.service';
 import { GeminiClientService } from './gemini-client.service';
 import { OpenAiClientService } from './openai-client.service';
 
@@ -15,6 +16,11 @@ describe('AiNormalizationService', () => {
     generateText: jest.Mock;
     getModelName: jest.Mock;
   };
+  let logger: {
+    info: jest.Mock;
+    warn: jest.Mock;
+    error: jest.Mock;
+  };
 
   beforeEach(() => {
     geminiClient = {
@@ -27,7 +33,13 @@ describe('AiNormalizationService', () => {
       generateText: jest.fn(),
       getModelName: jest.fn().mockReturnValue('gpt-4.1-mini'),
     };
+    logger = {
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+    };
     service = new AiNormalizationService(
+      logger as unknown as AppLogger,
       geminiClient as unknown as GeminiClientService,
       openAiClient as unknown as OpenAiClientService,
     );
