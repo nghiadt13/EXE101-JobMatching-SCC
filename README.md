@@ -8,7 +8,7 @@ Hệ thống tuyển dụng MVP với AI matching giữa CV và Job Description.
 - Backend: NestJS + TypeScript + Prisma ORM
 - Database: PostgreSQL
 - Auth: NextAuth.js v5 (Credentials + JWT)
-- AI: Gemini API (CV parsing + matching)
+- AI: LLM Provider (Gemini or OpenAI - configurable via LLM_PROVIDER env)
 - Storage: Local filesystem (MVP)
 
 ## Core Features
@@ -38,8 +38,11 @@ Required variables:
 - `JWT_SECRET`
 - `WEB_URL` (default `http://localhost:3000`)
 - `PORT` (default `3001` recommended for local)
-- `GEMINI_API_KEY` (required for AI normalization)
-- `GEMINI_MODEL` (set to `gemini-3.1-flash-lite-preview`)
+- `LLM_PROVIDER` (`gemini` or `openai`, default `gemini`)
+- `GEMINI_API_KEY` (required when `LLM_PROVIDER=gemini`)
+- `GEMINI_MODEL` (default `gemini-3.1-flash-lite-preview`)
+- `OPENAI_API_KEY` (required when `LLM_PROVIDER=openai`)
+- `OPENAI_MODEL` (default `gpt-4.1-mini`)
 
 Example (PowerShell):
 
@@ -48,16 +51,21 @@ $env:DATABASE_URL='postgresql://postgres:postgres@localhost:5432/postgres'
 $env:JWT_SECRET='local-jwt-secret'
 $env:WEB_URL='http://localhost:3000'
 $env:PORT='3001'
+$env:LLM_PROVIDER='gemini'
 $env:GEMINI_API_KEY='your-gemini-api-key'
 $env:GEMINI_MODEL='gemini-3.1-flash-lite-preview'
+$env:OPENAI_API_KEY='your-openai-api-key'
+$env:OPENAI_MODEL='gpt-4.1-mini'
 ```
 
 AI parse workflow (current):
 
 1. Extract text from source (`PDF/DOCX` for CV, form text for JD)
-2. Send extracted text to Gemini LLM API
+2. Send extracted text to the configured LLM provider (`gemini` or `openai`)
 3. Normalize LLM JSON output to internal schema
 4. Persist normalized payload for matching
+
+If the LLM returns invalid JSON, or the extracted file content cannot be parsed, the API now fails explicitly with a parse error. If the configured provider is unavailable or misconfigured, the API returns a service-unavailable error instead of pretending the file was unreadable. The system no longer saves synthetic fallback parses.
 
 ### 2. Web (`apps/web`)
 

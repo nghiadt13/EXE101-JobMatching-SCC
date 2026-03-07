@@ -81,8 +81,12 @@ export function CvList({
 }: CvListProps) {
   const parseStatusLabel: Record<CvItem['parseStatus'], string> = {
     parsed_ok: 'Parsed OK',
-    fallback: 'Fallback Parse',
     needs_review: 'Needs Review',
+  };
+
+  const parseStatusClassName: Record<CvItem['parseStatus'], string> = {
+    parsed_ok: 'bg-emerald-100 text-emerald-700',
+    needs_review: 'bg-zinc-200 text-zinc-700',
   };
 
   if (!items.length) {
@@ -122,7 +126,7 @@ export function CvList({
                       Primary CV
                     </span>
                   )}
-                  <span className="rounded-full bg-amber-100 px-2 py-1 text-xs font-medium text-amber-700">
+                  <span className={`rounded-full px-2 py-1 text-xs font-medium ${parseStatusClassName[cv.parseStatus]}`}>
                     {parseStatusLabel[cv.parseStatus]}
                   </span>
                 </div>

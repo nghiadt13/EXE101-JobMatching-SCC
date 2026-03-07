@@ -145,21 +145,40 @@ Max size: 5MB
 Allowed mime: application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document
 Limit: tối đa 10 CV active / candidate
 
-Response:
+Response (Success):
 {
   "id": "uuid",
   "fileName": "cv.pdf",
   "fileSize": 120000,
   "mimeType": "application/pdf",
   "isPrimary": true,
+  "parseStatus": "parsed_ok",
   "skills": ["Python", "Django"],
+  "skillAtoms": [
+    {"raw": "python", "label": "Python", "canonical": "python", "group": "PROGRAMMING", "source": "cv_parsed"},
+    {"raw": "django", "label": "Django", "canonical": "django", "group": "FRAMEWORK", "source": "cv_parsed"}
+  ],
   "parsedData": {
     "skills": ["Python", "Django"],
     "experience": [...],
     "education": [...],
     "contact": {},
     "summary": "..."
-  }
+  },
+  "createdAt": "2026-03-07T...",
+  "updatedAt": "2026-03-07T..."
+}
+
+Response (Parse Error - 422):
+{
+  "code": "AI_NORMALIZATION_FAILED",
+  "message": "AI parsing failed for this CV. Upload a readable PDF or DOCX and try again."
+}
+
+Response (Service Unavailable - 503):
+{
+  "code": "AI_SERVICE_UNAVAILABLE",
+  "message": "AI service is unavailable right now. Please try again later."
 }
 ```
 
@@ -208,6 +227,8 @@ Soft delete CV
 - `404`: CV không tồn tại hoặc không thuộc candidate hiện tại
 - `413`: file vượt quá 5MB
 - `415`: sai định dạng file
+- `422`: AI parsing failed or file could not be extracted into readable text. No fallback parse is created. User should upload a readable PDF/DOCX and retry.
+- `503`: AI provider (Gemini or OpenAI) is unavailable or provider configuration in production is invalid. User should try again later.
 
 ## Jobs
 
@@ -233,6 +254,11 @@ Response:
   "title": "Senior Backend Developer",
   "description": "...",
   "skills": ["Python", "Django", "PostgreSQL"],
+  "skillAtoms": [
+    {"raw": "python", "label": "Python", "canonical": "python", "group": "PROGRAMMING", "source": "job_manual"},
+    {"raw": "django", "label": "Django", "canonical": "django", "group": "FRAMEWORK", "source": "job_manual"},
+    {"raw": "postgresql", "label": "PostgreSQL", "canonical": "postgresql", "group": "DATABASE", "source": "job_manual"}
+  ],
   "inputMode": "manual",
   "employmentType": "FULL_TIME",
   "status": "DRAFT",
@@ -254,19 +280,23 @@ File: jd.pdf hoặc jd.docx
 Max size: 5MB
 Allowed mime: application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document
 
-Response:
+Response (Success):
 {
   "id": "uuid",
   "title": "Senior Backend Engineer",
   "description": "Parsed summary + requirements draft",
   "skills": ["TypeScript", "NestJS"],
+  "skillAtoms": [
+    {"raw": "typescript", "label": "TypeScript", "canonical": "typescript", "group": "PROGRAMMING", "source": "job_parsed"},
+    {"raw": "nestjs", "label": "NestJS", "canonical": "nestjs", "group": "FRAMEWORK", "source": "job_parsed"}
+  ],
   "inputMode": "file_upload",
   "employmentType": "FULL_TIME",
   "status": "DRAFT",
   "parseStatus": "parsed_ok",
   "parseTelemetry": {
-    "source": "llm",
-    "fallbackUsed": false,
+    "provider": "gemini",
+    "model": "gemini-3.1-flash-lite-preview",
     "latencyMs": 1000
   },
   "normalizedProfile": {
@@ -280,6 +310,18 @@ Response:
       "employmentType": "FULL_TIME"
     }
   }
+}
+
+Response (Parse Error - 422):
+{
+  "code": "AI_NORMALIZATION_FAILED",
+  "message": "AI parsing failed for this JD. Upload a readable PDF or DOCX and try again."
+}
+
+Response (Service Unavailable - 503):
+{
+  "code": "AI_SERVICE_UNAVAILABLE",
+  "message": "AI service is unavailable right now. Please try again later."
 }
 ```
 
@@ -325,7 +367,30 @@ Close job (chỉ `PUBLISHED -> CLOSED`)
 - `403`: role không phải recruiter
 - `413`: file vượt quá 5MB
 - `415`: sai định dạng file
-- `422`: file hợp lệ nhưng không extract được readable text
+- `422`: AI parsing failed or file could not be extracted into readable text. Upload does not create a degraded fallback draft. User should upload a readable PDF/DOCX and retry.
+- `503`: AI provider (Gemini or OpenAI) is unavailable or provider configuration in production is invalid. User should try again later.
+
+### Parse Failure Contract
+
+CV upload, JD upload, and job normalization all use one parse-failure contract:
+
+```json
+{
+  "code": "AI_NORMALIZATION_FAILED",
+  "message": "AI parsing failed for this CV. Upload a readable PDF or DOCX and try again."
+}
+```
+
+The exact message varies slightly by CV vs JD flow, but the API no longer persists fallback parse payloads as successful uploads.
+
+Operational provider failures use a separate contract:
+
+```json
+{
+  "code": "AI_SERVICE_UNAVAILABLE",
+  "message": "AI service is unavailable right now. Please try again later."
+}
+```
 
 ### Jobs Error Codes
 
@@ -371,6 +436,12 @@ Response:
   "status": "APPLIED"
 }
 ```
+
+**Warnings in matchingSnapshot:**
+- Empty array `[]` if both CV and Job have canonical skillAtoms
+- Contains `"CV skills missing canonical atoms"` if CV lacks skillAtoms (matching used fallback derivation)
+- Contains `"Job skills missing canonical atoms"` if Job lacks skillAtoms (matching used fallback derivation)
+- Recruiters should reprocess CVs/Jobs with warnings before relying on the matching score for hiring decisions
 
 ### GET /applications (Candidate: own, Recruiter: own jobs)
 

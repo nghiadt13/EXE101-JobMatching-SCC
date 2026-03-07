@@ -50,10 +50,20 @@ export class MatchingService {
     const cv = await this.getCvOrThrow(cvId, actor);
     const job = await this.getJobOrThrow(jobId, actor);
     const matchingVersion = this.readConfiguredMatchingVersion();
-    const inputs =
+    const legacyInputs =
       matchingVersion === 'legacy'
         ? this.buildLegacySkillInputs(cv, job)
-        : this.buildV2SkillInputs(cv, job);
+        : null;
+    const v2Inputs =
+      matchingVersion === 'v2' ? this.buildV2SkillInputs(cv, job) : null;
+    const inputs = legacyInputs ?? v2Inputs;
+    if (!inputs) {
+      throw new NotFoundException('Resource not found');
+    }
+    const canonicalWarnings = {
+      missingCvAtoms: v2Inputs?.missingCvAtoms ?? false,
+      missingJobAtoms: v2Inputs?.missingJobAtoms ?? false,
+    };
     const cvSkills = this.toSkillLabels(inputs.cvSkills);
     const jobSkills = this.toSkillLabels(inputs.jobSkills);
     const cvText = this.extractCvText(cv.parsedData, cvSkills);
@@ -79,7 +89,8 @@ export class MatchingService {
     const warnings = this.buildWarnings(
       cv.parsedData,
       job.location,
-      inputs.usedLegacyFallback,
+      canonicalWarnings.missingCvAtoms,
+      canonicalWarnings.missingJobAtoms,
     );
 
     return {
@@ -223,23 +234,7 @@ export class MatchingService {
   }
 
   private extractCvSkillAtoms(cv: CvRecord): SkillAtom[] {
-    const stored = this.skillStorageAdapter.readSkillAtoms(cv.skillAtoms);
-    if (stored.length > 0) {
-      return stored;
-    }
-
-    const profileSkills = this.extractCvNormalizedProfile(cv.parsedData);
-    if (profileSkills.length > 0) {
-      return this.skillStorageAdapter.deriveFromLegacySkills(
-        profileSkills,
-        'legacy',
-      );
-    }
-
-    return this.skillStorageAdapter.deriveFromLegacySkills(
-      this.readJsonStringArray(cv.skills),
-      'legacy',
-    );
+    return this.skillStorageAdapter.readSkillAtoms(cv.skillAtoms);
   }
 
   private extractJobNormalizedProfile(
@@ -253,23 +248,7 @@ export class MatchingService {
   }
 
   private extractJobSkillAtoms(job: JobRecord): SkillAtom[] {
-    const stored = this.skillStorageAdapter.readSkillAtoms(job.skillAtoms);
-    if (stored.length > 0) {
-      return stored;
-    }
-
-    const profileSkills = this.extractJobNormalizedProfile(job.location);
-    if (profileSkills.length > 0) {
-      return this.skillStorageAdapter.deriveFromLegacySkills(
-        profileSkills,
-        'legacy',
-      );
-    }
-
-    return this.skillStorageAdapter.deriveFromLegacySkills(
-      this.readJsonStringArray(job.skills),
-      'legacy',
-    );
+    return this.skillStorageAdapter.readSkillAtoms(job.skillAtoms);
   }
 
   private buildLegacySkillInputs(cv: CvRecord, job: JobRecord) {
@@ -286,26 +265,33 @@ export class MatchingService {
   }
 
   private buildV2SkillInputs(cv: CvRecord, job: JobRecord) {
-    const hasCanonicalCv =
-      this.skillStorageAdapter.readSkillAtoms(cv.skillAtoms).length > 0;
-    const hasCanonicalJob =
-      this.skillStorageAdapter.readSkillAtoms(job.skillAtoms).length > 0;
+    const cvSkills = this.extractCvSkillAtoms(cv);
+    const jobSkills = this.extractJobSkillAtoms(job);
 
     return {
-      cvSkills: this.extractCvSkillAtoms(cv),
-      jobSkills: this.extractJobSkillAtoms(job),
-      usedLegacyFallback: !hasCanonicalCv || !hasCanonicalJob,
+      cvSkills,
+      jobSkills,
+      missingCvAtoms: cvSkills.length === 0,
+      missingJobAtoms: jobSkills.length === 0,
     };
   }
 
   private buildWarnings(
     parsedData: Prisma.JsonValue,
     location: Prisma.JsonValue | null,
-    usedLegacyFallback: boolean,
+    missingCvAtoms: boolean,
+    missingJobAtoms: boolean,
   ): string[] {
     const warnings: string[] = [];
-    if (usedLegacyFallback) {
-      warnings.push('Using legacy skills fallback for matching');
+    if (missingCvAtoms) {
+      warnings.push(
+        'CV canonical skills are missing. Reprocess the CV before relying on this match.',
+      );
+    }
+    if (missingJobAtoms) {
+      warnings.push(
+        'Job canonical skills are missing. Reprocess the JD before relying on this match.',
+      );
     }
     if (
       this.needsManualReview(this.readJsonObject(parsedData).normalizedProfile)

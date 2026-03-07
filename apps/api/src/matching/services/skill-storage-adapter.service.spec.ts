@@ -52,25 +52,4 @@ describe('SkillStorageAdapterService', () => {
       },
     ]);
   });
-
-  it('derives atoms from legacy grouped skills for fallback reads', () => {
-    const result = service.deriveFromLegacySkills(['Node.js/TypeScript']);
-
-    expect(result).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ canonical: 'nodejs' }),
-        expect.objectContaining({ canonical: 'typescript' }),
-      ]),
-    );
-  });
-
-  it('normalizes fallback node skill to nodejs', () => {
-    const result = service.deriveFromLegacySkills(['node']);
-
-    expect(result).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ canonical: 'nodejs' }),
-      ]),
-    );
-  });
 });

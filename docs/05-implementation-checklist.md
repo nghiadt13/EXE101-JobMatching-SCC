@@ -43,6 +43,8 @@ Timeline: **1-2 tuần** (14 ngày)
 - [x] Create CV upload page
 - [x] Create CV list page
 - [x] Test CV upload + parsing
+- [x] Remove degraded parse fallback persistence
+- [x] Surface explicit AI parse failures in candidate UI
 
 ## Week 2: Core Features (Ngày 8-14)
 
@@ -54,6 +56,8 @@ Timeline: **1-2 tuần** (14 ngày)
 - [x] Create job list page
 - [x] Create job detail page
 - [x] Test job posting flow
+- [x] Add OpenAI provider option and env wiring
+- [x] Surface recruiter-side AI parse failures for JD upload/edit flows
 
 ### Ngày 10-11: Matching Algorithm
 
@@ -133,6 +137,7 @@ Timeline: **1-2 tuần** (14 ngày)
 - [ ] Upload PDF CV
 - [ ] Upload DOCX CV
 - [ ] Parse thành công
+- [ ] Parse failure surfaces clear error state
 - [ ] Edit parsed data
 - [ ] Set primary CV
 - [ ] Delete CV
@@ -140,6 +145,7 @@ Timeline: **1-2 tuần** (14 ngày)
 ### Job Flow
 
 - [x] Upload JD PDF/DOCX để tạo draft job
+- [ ] JD parse failure surfaces clear error state
 - [ ] Create job (draft)
 - [ ] Edit job
 - [ ] Publish job
@@ -152,6 +158,7 @@ Timeline: **1-2 tuần** (14 ngày)
 - [x] Apply vào job
 - [x] Match score hiển thị đúng
 - [x] Skills breakdown đúng
+- [ ] Legacy rows without `skillAtoms` are reprocessed before relying on v2 scores
 - [ ] Ranking candidates
 - [x] Update application status
 - [x] View application history

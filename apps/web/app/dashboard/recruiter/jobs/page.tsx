@@ -5,8 +5,13 @@ import { auth } from '@/auth';
 import { JdUploadForm } from '@/components/jobs/jd-upload-form';
 import { RecruiterJobForm } from '@/components/jobs/recruiter-job-form';
 import { RecruiterJobsTable } from '@/components/jobs/recruiter-jobs-table';
+import { ApiError } from '@/lib/api-client';
 import { composeJobDescription, parseMultilineList } from '@/lib/job-description-format';
 import { closeJob, createJob, deleteJob, getJobs, publishJob, uploadJobFile } from '@/lib/jobs-client';
+
+type PageProps = {
+  searchParams: Promise<{ error?: string }>;
+};
 
 function parseSkills(input: FormDataEntryValue | null): string[] {
   return String(input ?? '')
@@ -22,7 +27,8 @@ function parseOptionalNumber(input: FormDataEntryValue | null): number | undefin
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
-export default async function RecruiterJobsPage() {
+export default async function RecruiterJobsPage({ searchParams }: PageProps) {
+  const query = await searchParams;
   const session = await auth();
   if (!session?.user || !session.accessToken) {
     redirect('/login');
@@ -43,18 +49,33 @@ export default async function RecruiterJobsPage() {
     );
     const benefits = parseMultilineList(String(formData.get('benefits') ?? ''));
 
-    await createJob(currentSession.accessToken, {
-      title: String(formData.get('title') ?? '').trim(),
-      description: composeJobDescription({
-        summary,
-        requirements,
-        benefits,
-      }),
-      skills: parseSkills(formData.get('skills')),
-      employmentType: String(formData.get('employmentType') ?? '').trim(),
-      salaryMin: parseOptionalNumber(formData.get('salaryMin')),
-      salaryMax: parseOptionalNumber(formData.get('salaryMax')),
-    });
+    try {
+      await createJob(currentSession.accessToken, {
+        title: String(formData.get('title') ?? '').trim(),
+        description: composeJobDescription({
+          summary,
+          requirements,
+          benefits,
+        }),
+        skills: parseSkills(formData.get('skills')),
+        employmentType: String(formData.get('employmentType') ?? '').trim(),
+        salaryMin: parseOptionalNumber(formData.get('salaryMin')),
+        salaryMax: parseOptionalNumber(formData.get('salaryMax')),
+      });
+    } catch (error) {
+      if (error instanceof ApiError) {
+        if (error.status === 401) {
+          redirect('/login');
+        }
+        if (error.status === 422) {
+          redirect('/dashboard/recruiter/jobs?error=parse-failed');
+        }
+        if (error.status === 503) {
+          redirect('/dashboard/recruiter/jobs?error=service-unavailable');
+        }
+      }
+      redirect('/dashboard/recruiter/jobs?error=create-failed');
+    }
     revalidatePath('/dashboard/recruiter/jobs');
   }
 
@@ -64,9 +85,30 @@ export default async function RecruiterJobsPage() {
     if (!currentSession?.user || !currentSession.accessToken) redirect('/login');
     if (currentSession.user.role !== 'RECRUITER') redirect('/dashboard');
 
-    const created = await uploadJobFile(currentSession.accessToken, formData);
-    revalidatePath('/dashboard/recruiter/jobs');
-    redirect(`/dashboard/recruiter/jobs/${created.id}`);
+    try {
+      const created = await uploadJobFile(currentSession.accessToken, formData);
+      revalidatePath('/dashboard/recruiter/jobs');
+      redirect(`/dashboard/recruiter/jobs/${created.id}`);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        if (error.status === 401) {
+          redirect('/login');
+        }
+        if (error.status === 413) {
+          redirect('/dashboard/recruiter/jobs?error=file-too-large');
+        }
+        if (error.status === 415) {
+          redirect('/dashboard/recruiter/jobs?error=unsupported-file');
+        }
+        if (error.status === 422) {
+          redirect('/dashboard/recruiter/jobs?error=parse-failed');
+        }
+        if (error.status === 503) {
+          redirect('/dashboard/recruiter/jobs?error=service-unavailable');
+        }
+      }
+      redirect('/dashboard/recruiter/jobs?error=upload-failed');
+    }
   }
 
   async function publishAction(formData: FormData) {
@@ -106,6 +148,20 @@ export default async function RecruiterJobsPage() {
   ).length;
   const visibleCount = jobs.items.length;
   const totalCount = jobs.pagination.totalItems;
+  const errorMessage =
+    query.error === 'file-too-large'
+      ? 'JD file is too large. Maximum size is 5MB.'
+      : query.error === 'unsupported-file'
+        ? 'Only PDF and DOCX files are supported for JD upload.'
+        : query.error === 'parse-failed'
+          ? 'AI parsing failed for this job. Upload a readable JD or try manual creation.'
+          : query.error === 'service-unavailable'
+            ? 'AI service is temporarily unavailable. Please try the job action again later.'
+          : query.error === 'create-failed'
+            ? 'Job creation failed. Please try again.'
+            : query.error === 'upload-failed'
+              ? 'JD upload failed. Please try again.'
+              : null;
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-6 py-12">
@@ -122,6 +178,12 @@ export default async function RecruiterJobsPage() {
         </Link>
       </header>
 
+      {errorMessage ? (
+        <p className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {errorMessage}
+        </p>
+      ) : null}
+
       <section className="mb-6 grid gap-4 md:grid-cols-3">
         <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500">Total jobs</p>
@@ -136,7 +198,7 @@ export default async function RecruiterJobsPage() {
         <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-blue-700">Visible attention</p>
           <p className="mt-3 text-3xl font-semibold text-blue-950">{reviewCount}</p>
-          <p className="mt-2 text-sm text-blue-900/80">Jobs in the current list view where parsing fell back or still needs manual verification.</p>
+          <p className="mt-2 text-sm text-blue-900/80">Jobs in the current list view where AI parsing still needs manual verification.</p>
         </div>
       </section>
 

@@ -21,7 +21,6 @@ export function RecruiterJobsTable({
 }: RecruiterJobsTableProps) {
   const parseStatusLabel: Record<JobItem['parseStatus'], string> = {
     parsed_ok: 'Parsed OK',
-    fallback: 'Fallback Parse',
     needs_review: 'Needs Review',
   };
 
@@ -34,7 +33,6 @@ export function RecruiterJobsTable({
 
   const parseClassName: Record<JobItem['parseStatus'], string> = {
     parsed_ok: 'border border-emerald-200 bg-emerald-50 text-emerald-700',
-    fallback: 'border border-amber-200 bg-amber-50 text-amber-700',
     needs_review: 'border border-zinc-300 bg-zinc-100 text-zinc-700',
   };
 
@@ -127,7 +125,7 @@ export function RecruiterJobsTable({
                 ) : null}
               </div>
 
-              <div className="w-full xl:w-52 xl:flex-shrink-0">
+              <div className="w-full xl:w-52 xl:shrink-0">
                 <RecruiterJobStatusActions
                   job={job}
                   publishAction={publishAction}

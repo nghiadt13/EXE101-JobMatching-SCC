@@ -54,13 +54,15 @@ Xây dựng platform tuyển dụng với AI matching tự động giữa CV ứ
 1. Candidate đăng ký/đăng nhập
 2. Upload CV (PDF/DOCX)
 3. Backend extract text
-4. Gửi text vào Gemini API (`gemini-3.1-flash-lite-preview`) để parse:
-   - Skills
+4. Gửi text vào configured LLM provider (Gemini or OpenAI) để parse:
+   - Skills (với canonical representation)
    - Experience
    - Education
    - Contact info
-5. Lưu vào database
+5. Lưu vào database với skillAtoms cho matching
 6. Candidate review và edit nếu cần
+7. Nếu AI parse thất bại, API trả về 422 (parse error) để user retry
+8. Nếu AI service unavailable, API trả về 503 để user thử lại sau
 ```
 
 ### Luồng 2: Recruiter Post Job
@@ -71,9 +73,11 @@ Xây dựng platform tuyển dụng với AI matching tự động giữa CV ứ
    - Title, description
    - Required skills (manual hoặc AI extract từ JD text)
    - Salary, location, type
-3. Gửi JD text vào Gemini API để normalize về schema chuẩn
-4. Lưu vào database
+3. Gửi JD text vào configured LLM provider để normalize về schema chuẩn
+4. Lưu vào database với skillAtoms cho matching
 5. Publish job
+6. Nếu AI parse thất bại, API trả về 422 để user retry
+7. Nếu AI service unavailable, API trả về 503 để user thử lại sau
 ```
 
 ### Luồng 3: Matching & Application
@@ -104,9 +108,11 @@ Xây dựng platform tuyển dụng với AI matching tự động giữa CV ứ
 └──────┬──────┘
        │
        ├─→ PostgreSQL (Database)
-       ├─→ Gemini API (CV/JD parsing normalization)
+       ├─→ LLM Provider (Gemini or OpenAI - CV/JD parsing normalization)
        └─→ Local filesystem (CV files)
 ```
+
+LLM provider được chọn qua `LLM_PROVIDER` env var (gemini hoặc openai, default gemini).
 
 ## Scalability Plan
 

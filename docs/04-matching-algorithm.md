@@ -18,7 +18,7 @@ Skill atoms are **deterministic, normalized representations** of individual skil
 - `label` - Normalized display name
 - `canonical` - Unique canonical identifier (e.g., 'python', 'django')
 - `group` - Category (PROGRAMMING, FRAMEWORK, DATABASE, TOOL, SOFT_SKILL)
-- `source` - Origin: `cv_parsed`, `cv_manual`, `job_parsed`, `job_manual`, or `legacy` (fallback)
+- `source` - Origin: `cv_parsed`, `cv_manual`, `job_parsed`, or `job_manual`
 
 ### Deterministic Atomization
 All CVs and Jobs store **dual skill representations**:
@@ -27,8 +27,8 @@ All CVs and Jobs store **dual skill representations**:
 
 This ensures matching is deterministic and not affected by skill string variations (e.g., "Python", "python", "PYTHON" all canonicalize to `canonical: 'python'`).
 
-### Fallback Handling
-When `skillAtoms` is missing, system automatically derives from legacy `skills` array with `source: 'legacy'` to maintain backward compatibility.
+### Canonical Requirement
+Matching v2 reads `skillAtoms` only. If canonical atoms are missing, matching emits warnings and the affected record should be reprocessed before recruiters rely on the score.
 
 ## Version Routing
 
@@ -181,7 +181,7 @@ interface MatchingSnapshot {
 This allows recruiter UI to:
 - Display rich matching breakdown
 - Track matching determinism (same snapshot on re-evaluate = bug-free)
-- Detect parsing quality issues
+- Detect parsing quality issues or missing canonical skill data
 
 ## UI Display
 

@@ -1,4 +1,10 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  NotFoundException,
+  ServiceUnavailableException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
+import { AiNormalizationError } from '../normalization/normalization.errors';
 import { Test, TestingModule } from '@nestjs/testing';
 import { SkillStorageAdapterService } from '../matching/services/skill-storage-adapter.service';
 import { CvsService } from './cvs.service';
@@ -16,7 +22,6 @@ describe('CvsService', () => {
   };
   let aiNormalizationService: {
     normalizeCv: jest.Mock;
-    forceFallbackCv: jest.Mock;
   };
   let skillStorageAdapterService: { toStoredSkills: jest.Mock };
   let prismaService: {
@@ -37,7 +42,6 @@ describe('CvsService', () => {
     cvTextExtractorService = { assertSupported: jest.fn(), extract: jest.fn() };
     aiNormalizationService = {
       normalizeCv: jest.fn(),
-      forceFallbackCv: jest.fn(),
     };
     skillStorageAdapterService = {
       toStoredSkills: jest.fn((skills: string[]) => ({
@@ -105,127 +109,64 @@ describe('CvsService', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
-  it('uses fallback parsed data when text extraction fails', async () => {
+  it('fails upload when text extraction fails', async () => {
     prismaService.candidate.findFirst.mockResolvedValue({ id: 'candidate-1' });
     prismaService.cV.count.mockResolvedValue(0);
     cvTextExtractorService.extract.mockRejectedValue(
       new Error('parser failed'),
     );
-    aiNormalizationService.forceFallbackCv.mockReturnValue({
-      schemaVersion: 'candidate_job_profile_v1',
-      status: 'fallback',
-      profile: {
-        schemaVersion: 'candidate_job_profile_v1',
-        language: 'en',
-        title: 'Unstructured candidate profile',
-        summary:
-          'CV uploaded successfully, but auto-parsing could not read the content. Please update summary and skills manually.',
-        skills: [],
-        experience: [],
-        education: [],
-        certifications: [],
-        projects: [],
-        languages: [],
-        location: { city: '', country: '' },
-        rawQuality: { score: 45, needsManualReview: true, reason: 'fallback' },
-      },
-      telemetry: { source: 'fallback', fallbackUsed: true, latencyMs: 10 },
-    });
-    cvStorageService.save.mockResolvedValue('candidate-1/file.pdf');
-    prismaService.cV.create.mockResolvedValue({
-      id: 'cv-1',
-      fileName: 'cv.pdf',
-      fileSize: 100,
-      mimeType: 'application/pdf',
-      parsedData: {
-        skills: [],
-        experience: [],
-        education: [],
-        contact: {},
-        summary:
-          'CV uploaded successfully, but auto-parsing could not read the content. Please update summary and skills manually.',
-      },
-      skills: [],
-      isPrimary: true,
-      createdAt: new Date('2026-03-06T00:00:00.000Z'),
-      updatedAt: new Date('2026-03-06T00:00:00.000Z'),
-      filePath: 'candidate-1/file.pdf',
-    });
 
-    const result = await service.upload('candidate-user', {
-      originalname: 'cv.pdf',
-      mimetype: 'application/pdf',
-      size: 100,
-      buffer: Buffer.from('content'),
-    } as Express.Multer.File);
+    await expect(
+      service.upload('candidate-user', {
+        originalname: 'cv.pdf',
+        mimetype: 'application/pdf',
+        size: 100,
+        buffer: Buffer.from('content'),
+      } as Express.Multer.File),
+    ).rejects.toBeInstanceOf(UnprocessableEntityException);
 
-    expect(aiNormalizationService.forceFallbackCv).toHaveBeenCalledWith(
-      'CV uploaded successfully, but auto-parsing could not read the content. Please update summary and skills manually.',
-      'extraction_failed',
-    );
-    expect(result.id).toBe('cv-1');
-    expect(result.skills).toEqual([]);
+    expect(cvStorageService.save).not.toHaveBeenCalled();
   });
 
-  it('forces fallback when normalization fails after extraction succeeds', async () => {
+  it('fails upload when normalization fails after extraction succeeds', async () => {
     prismaService.candidate.findFirst.mockResolvedValue({ id: 'candidate-1' });
     prismaService.cV.count.mockResolvedValue(0);
     cvTextExtractorService.extract.mockResolvedValue('Extracted CV text');
     aiNormalizationService.normalizeCv.mockRejectedValue(
       new Error('llm failed'),
     );
-    aiNormalizationService.forceFallbackCv.mockReturnValue({
-      schemaVersion: 'candidate_job_profile_v1',
-      status: 'fallback',
-      profile: {
-        schemaVersion: 'candidate_job_profile_v1',
-        language: 'en',
-        title: 'Unstructured candidate profile',
-        summary:
-          'CV uploaded successfully, but auto-parsing could not read the content. Please update summary and skills manually.',
-        skills: [],
-        experience: [],
-        education: [],
-        certifications: [],
-        projects: [],
-        languages: [],
-        location: { city: '', country: '' },
-        rawQuality: { score: 45, needsManualReview: true, reason: 'fallback' },
-      },
-      telemetry: { source: 'fallback', fallbackUsed: true, latencyMs: 10 },
-    });
-    cvStorageService.save.mockResolvedValue('candidate-1/file.pdf');
-    prismaService.cV.create.mockResolvedValue({
-      id: 'cv-1',
-      fileName: 'cv.pdf',
-      fileSize: 100,
-      mimeType: 'application/pdf',
-      parsedData: {
-        skills: [],
-        experience: [],
-        education: [],
-        contact: {},
-        summary:
-          'CV uploaded successfully, but auto-parsing could not read the content. Please update summary and skills manually.',
-      },
-      skills: [],
-      isPrimary: true,
-      createdAt: new Date('2026-03-06T00:00:00.000Z'),
-      updatedAt: new Date('2026-03-06T00:00:00.000Z'),
-      filePath: 'candidate-1/file.pdf',
-    });
 
-    await service.upload('candidate-user', {
-      originalname: 'cv.pdf',
-      mimetype: 'application/pdf',
-      size: 100,
-      buffer: Buffer.from('content'),
-    } as Express.Multer.File);
+    await expect(
+      service.upload('candidate-user', {
+        originalname: 'cv.pdf',
+        mimetype: 'application/pdf',
+        size: 100,
+        buffer: Buffer.from('content'),
+      } as Express.Multer.File),
+    ).rejects.toBeInstanceOf(UnprocessableEntityException);
 
     expect(aiNormalizationService.normalizeCv).toHaveBeenCalledWith(
       'Extracted CV text',
     );
-    expect(aiNormalizationService.forceFallbackCv).toHaveBeenCalled();
+    expect(cvStorageService.save).not.toHaveBeenCalled();
+  });
+
+  it('returns service unavailable when AI provider is unavailable', async () => {
+    prismaService.candidate.findFirst.mockResolvedValue({ id: 'candidate-1' });
+    prismaService.cV.count.mockResolvedValue(0);
+    cvTextExtractorService.extract.mockResolvedValue('Extracted CV text');
+    aiNormalizationService.normalizeCv.mockRejectedValue(
+      new AiNormalizationError('service_unavailable', 'provider down'),
+    );
+
+    await expect(
+      service.upload('candidate-user', {
+        originalname: 'cv.pdf',
+        mimetype: 'application/pdf',
+        size: 100,
+        buffer: Buffer.from('content'),
+      } as Express.Multer.File),
+    ).rejects.toBeInstanceOf(ServiceUnavailableException);
   });
 
   it('keeps parsed data, normalized profile, and canonical atoms in sync on manual skill edits', async () => {

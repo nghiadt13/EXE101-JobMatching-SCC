@@ -29,6 +29,18 @@ export function RecruiterApplicationsTable({ items, action }: RecruiterApplicati
               <p className="mt-1 text-xs text-zinc-600">
                 Job: {item.job.title} | Score: {Math.round(item.matchScore)}%
               </p>
+              {item.matchingSnapshot?.warnings.length ? (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {item.matchingSnapshot.warnings.slice(0, 2).map((warning) => (
+                    <span
+                      key={`${item.id}-${warning}`}
+                      className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] text-amber-800"
+                    >
+                      {warning}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
             </div>
             <span className="rounded-full bg-zinc-100 px-2 py-1 text-xs text-zinc-700">
               {item.status}

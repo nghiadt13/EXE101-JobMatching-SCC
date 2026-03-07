@@ -1,20 +1,43 @@
 import { AiNormalizationService } from './ai-normalization.service';
+import { AiNormalizationError } from './normalization.errors';
 import { GeminiClientService } from './gemini-client.service';
+import { OpenAiClientService } from './openai-client.service';
 
 describe('AiNormalizationService', () => {
   let service: AiNormalizationService;
-  let geminiClient: { generateText: jest.Mock };
+  let geminiClient: {
+    provider: 'gemini';
+    generateText: jest.Mock;
+    getModelName: jest.Mock;
+  };
+  let openAiClient: {
+    provider: 'openai';
+    generateText: jest.Mock;
+    getModelName: jest.Mock;
+  };
 
   beforeEach(() => {
-    geminiClient = { generateText: jest.fn() };
+    geminiClient = {
+      provider: 'gemini',
+      generateText: jest.fn(),
+      getModelName: jest.fn().mockReturnValue('gemini-3.1-flash-lite-preview'),
+    };
+    openAiClient = {
+      provider: 'openai',
+      generateText: jest.fn(),
+      getModelName: jest.fn().mockReturnValue('gpt-4.1-mini'),
+    };
     service = new AiNormalizationService(
       geminiClient as unknown as GeminiClientService,
+      openAiClient as unknown as OpenAiClientService,
     );
     process.env.GEMINI_API_KEY = 'test-key';
+    delete process.env.LLM_PROVIDER;
   });
 
   afterEach(() => {
     delete process.env.GEMINI_API_KEY;
+    delete process.env.LLM_PROVIDER;
   });
 
   it('repairs malformed LLM output into a normalized profile', async () => {
@@ -44,25 +67,50 @@ describe('AiNormalizationService', () => {
     const result = await service.normalizeCv('TypeScript Node.js engineer');
 
     expect(geminiClient.generateText).toHaveBeenCalledTimes(2);
-    expect(result.telemetry.source).toBe('llm');
-    expect(result.telemetry.fallbackUsed).toBe(false);
+    expect(result.telemetry.provider).toBe('gemini');
     expect(result.profile.skills).toEqual(['TypeScript', 'Node.js']);
     expect(result.status).toBe('parsed_ok');
   });
 
-  it('falls back when malformed JSON cannot be repaired', async () => {
+  it('throws when malformed JSON cannot be repaired', async () => {
     geminiClient.generateText
       .mockResolvedValueOnce('still invalid')
       .mockResolvedValueOnce('still invalid');
 
-    const result = await service.normalizeJob('AWS and Docker role');
+    await expect(
+      service.normalizeJob('AWS and Docker role'),
+    ).rejects.toBeInstanceOf(AiNormalizationError);
+  });
 
-    expect(result.telemetry.source).toBe('fallback');
-    expect(result.telemetry.fallbackUsed).toBe(true);
-    expect(result.status).toBe('fallback');
-    expect(result.profile.rawQuality.reason).toBe('invalid_json_from_llm');
-    expect(result.profile.skills).toEqual(
-      expect.arrayContaining(['docker', 'aws']),
+  it('uses the OpenAI client when configured', async () => {
+    process.env.LLM_PROVIDER = 'openai';
+    openAiClient.generateText.mockResolvedValue(
+      JSON.stringify({
+        schemaVersion: 'candidate_job_profile_v1',
+        language: 'en',
+        title: 'Platform Engineer',
+        summary: 'Owns platform systems',
+        skills: ['Docker', 'Kubernetes'],
+        experience: [],
+        education: [],
+        certifications: [],
+        projects: [],
+        languages: ['English'],
+        location: { city: 'Hanoi', country: 'Vietnam' },
+        rawQuality: {
+          score: 81,
+          needsManualReview: false,
+          reason: '',
+        },
+      }),
     );
+
+    const result = await service.normalizeCv(
+      'Docker Kubernetes platform engineer',
+    );
+
+    expect(result.telemetry.provider).toBe('openai');
+    expect(result.profile.skills).toEqual(['Docker', 'Kubernetes']);
+    expect(geminiClient.generateText).not.toHaveBeenCalled();
   });
 });

@@ -15,13 +15,6 @@ export class SkillStorageAdapterService {
     };
   }
 
-  deriveFromLegacySkills(
-    skills: string[],
-    source: SkillAtomSource = 'legacy',
-  ): SkillAtom[] {
-    return this.skillAtomizer.atomizeSkills(skills, source);
-  }
-
   readSkillAtoms(value: Prisma.JsonValue | null | undefined): SkillAtom[] {
     if (!Array.isArray(value)) {
       return [];

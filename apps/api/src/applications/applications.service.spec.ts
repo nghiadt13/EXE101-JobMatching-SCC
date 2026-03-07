@@ -202,7 +202,7 @@ describe('ApplicationsService', () => {
     expect(findManyCall.where.status).toBe(ApplicationStatus.APPLIED);
   });
 
-  it('computes and persists a real v2 snapshot for legacy fallback application data', async () => {
+  it('computes and persists a v2 snapshot while flagging missing canonical atoms', async () => {
     const integrationPrisma = {
       candidate: { findFirst: jest.fn().mockResolvedValue({ id: 'cand-2' }) },
       cV: {
@@ -288,9 +288,12 @@ describe('ApplicationsService', () => {
     );
 
     expect(result.matchingSnapshot?.version).toBe('v2');
-    expect(result.matchingSnapshot?.topMatchedSkills).toContain('EC2');
-    expect(result.matchingSnapshot?.warnings).toContain(
-      'Using legacy skills fallback for matching',
+    expect(result.matchingSnapshot?.topMatchedSkills).toEqual([]);
+    expect(result.matchingSnapshot?.warnings).toEqual(
+      expect.arrayContaining([
+        'CV canonical skills are missing. Reprocess the CV before relying on this match.',
+        'Job canonical skills are missing. Reprocess the JD before relying on this match.',
+      ]),
     );
   });
 });

@@ -3,8 +3,11 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
   PayloadTooLargeException,
+  ServiceUnavailableException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { JobStatus, Prisma, UserRole } from '@prisma/client';
 import { basename, extname } from 'node:path';
@@ -17,6 +20,7 @@ import { DocumentTextExtractorService } from '../documents/services/document-tex
 import { SkillStorageAdapterService } from '../matching/services/skill-storage-adapter.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiNormalizationService } from '../normalization/ai-normalization.service';
+import { AiNormalizationError } from '../normalization/normalization.errors';
 import {
   JOB_LOCATION_NORMALIZATION_KEY,
   NormalizationResult,
@@ -45,6 +49,7 @@ type SourceDocumentMeta = {
 
 @Injectable()
 export class JobsService {
+  private readonly logger = new Logger(JobsService.name);
   private readonly slugRetryAttempts = 3;
 
   constructor(
@@ -63,13 +68,14 @@ export class JobsService {
       'job_manual',
     );
     const normalization = this.syncNormalizationSkills(
-      await this.aiNormalizationService.normalizeJob(
+      await this.normalizeJobOrThrow(
         this.composeJobRawText({
           title: dto.title,
           description: dto.description,
           skills: storedSkills.skills,
           employmentType: dto.employmentType,
         }),
+        'AI parsing failed for this job. Please try again.',
       ),
       storedSkills.skills,
     );
@@ -111,11 +117,11 @@ export class JobsService {
 
     this.documentTextExtractorService.assertSupported(file);
 
-    const rawText = (
-      await this.documentTextExtractorService.extract(file, 'JD')
-    ).slice(0, DOCUMENT_MAX_TEXT_CHARS);
-    const normalization =
-      await this.aiNormalizationService.normalizeJob(rawText);
+    const rawText = await this.extractJobTextOrThrow(file);
+    const normalization = await this.normalizeJobOrThrow(
+      rawText,
+      'AI parsing failed for this JD. Upload a readable PDF or DOCX and try again.',
+    );
     const draft = this.mapUploadToDraft(
       normalization.profile,
       rawText,
@@ -268,13 +274,14 @@ export class JobsService {
       ? this.withNormalizationMeta(
           baseLocation,
           this.syncNormalizationSkills(
-            await this.aiNormalizationService.normalizeJob(
+            await this.normalizeJobOrThrow(
               this.composeJobRawText({
                 title: nextTitle,
                 description: nextDescription,
                 skills: nextSkillPayload.skills,
                 employmentType: nextEmploymentType,
               }),
+              'AI parsing failed for this job. Please try again.',
             ),
             nextSkillPayload.skills,
           ),
@@ -743,11 +750,60 @@ export class JobsService {
   }
 
   private normalizeParseStatus(value: unknown): ParseStatus {
-    return value === 'parsed_ok' ||
-      value === 'fallback' ||
-      value === 'needs_review'
+    return value === 'parsed_ok' || value === 'needs_review'
       ? value
       : 'needs_review';
+  }
+
+  private async extractJobTextOrThrow(
+    file: Express.Multer.File,
+  ): Promise<string> {
+    try {
+      return (
+        await this.documentTextExtractorService.extract(file, 'JD')
+      ).slice(0, DOCUMENT_MAX_TEXT_CHARS);
+    } catch (error) {
+      this.logger.warn(
+        `JD text extraction failed for "${file.originalname}": ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+      throw new UnprocessableEntityException({
+        code: 'AI_NORMALIZATION_FAILED',
+        message:
+          'AI parsing failed for this JD. Upload a readable PDF or DOCX and try again.',
+      });
+    }
+  }
+
+  private async normalizeJobOrThrow(
+    rawText: string,
+    message: string,
+  ): Promise<NormalizationResult> {
+    try {
+      return await this.aiNormalizationService.normalizeJob(rawText);
+    } catch (error) {
+      if (error instanceof AiNormalizationError) {
+        if (error.kind === 'service_unavailable') {
+          throw new ServiceUnavailableException({
+            code: error.code,
+            message:
+              'AI service is unavailable right now. Please try again later.',
+          });
+        }
+
+        throw new UnprocessableEntityException({
+          code: error.code,
+          message,
+        });
+      }
+
+      this.logger.warn(
+        `Job normalization failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+      throw new UnprocessableEntityException({
+        code: 'AI_NORMALIZATION_FAILED',
+        message,
+      });
+    }
   }
 
   private mapUploadToDraft(

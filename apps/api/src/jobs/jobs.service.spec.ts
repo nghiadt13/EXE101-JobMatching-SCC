@@ -1,4 +1,9 @@
-import { BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  ServiceUnavailableException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { JobStatus, UserRole } from '@prisma/client';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DocumentStorageService } from '../documents/services/document-storage.service';
@@ -6,6 +11,7 @@ import { DocumentTextExtractorService } from '../documents/services/document-tex
 import { SkillStorageAdapterService } from '../matching/services/skill-storage-adapter.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiNormalizationService } from '../normalization/ai-normalization.service';
+import { AiNormalizationError } from '../normalization/normalization.errors';
 import { JobsService } from './jobs.service';
 import { JobSlugService } from './services/job-slug.service';
 
@@ -51,7 +57,11 @@ describe('JobsService', () => {
         employmentType: 'FULL_TIME',
       },
     },
-    telemetry: { source: 'llm' as const, fallbackUsed: false, latencyMs: 100 },
+    telemetry: {
+      provider: 'gemini' as const,
+      model: 'gemini-3.1-flash-lite-preview',
+      latencyMs: 100,
+    },
   };
 
   beforeEach(async () => {
@@ -182,8 +192,8 @@ describe('JobsService', () => {
           schemaVersion: 'candidate_job_profile_v1',
           parseStatus: 'parsed_ok',
           parseTelemetry: {
-            source: 'llm',
-            fallbackUsed: false,
+            provider: 'gemini',
+            model: 'gemini-3.1-flash-lite-preview',
             latencyMs: 100,
           },
           normalizedProfile: normalizedJobResult.profile,
@@ -281,6 +291,40 @@ describe('JobsService', () => {
     );
   });
 
+  it('fails the JD upload when AI normalization fails', async () => {
+    documentTextExtractorService.extract.mockResolvedValue('Uploaded JD text');
+    aiNormalizationService.normalizeJob.mockRejectedValue(
+      new Error('llm failed'),
+    );
+
+    await expect(
+      service.createFromFile('recruiter-1', {
+        originalname: 'jd.pdf',
+        mimetype: 'application/pdf',
+        size: 100,
+        buffer: Buffer.from('jd content'),
+      } as Express.Multer.File),
+    ).rejects.toBeInstanceOf(UnprocessableEntityException);
+
+    expect(documentStorageService.save).not.toHaveBeenCalled();
+  });
+
+  it('returns service unavailable when the AI provider is unavailable', async () => {
+    documentTextExtractorService.extract.mockResolvedValue('Uploaded JD text');
+    aiNormalizationService.normalizeJob.mockRejectedValue(
+      new AiNormalizationError('service_unavailable', 'provider down'),
+    );
+
+    await expect(
+      service.createFromFile('recruiter-1', {
+        originalname: 'jd.pdf',
+        mimetype: 'application/pdf',
+        size: 100,
+        buffer: Buffer.from('jd content'),
+      } as Express.Multer.File),
+    ).rejects.toBeInstanceOf(ServiceUnavailableException);
+  });
+
   it('preserves uploaded JD provenance when recruiter edits the draft', async () => {
     prismaService.job.findFirst.mockResolvedValue({
       id: 'job-1',
@@ -317,8 +361,8 @@ describe('JobsService', () => {
           schemaVersion: 'candidate_job_profile_v1',
           parseStatus: 'parsed_ok',
           parseTelemetry: {
-            source: 'llm',
-            fallbackUsed: false,
+            provider: 'gemini',
+            model: 'gemini-3.1-flash-lite-preview',
             latencyMs: 100,
           },
           normalizedProfile: {

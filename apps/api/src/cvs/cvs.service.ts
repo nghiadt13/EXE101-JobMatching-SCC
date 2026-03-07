@@ -4,6 +4,8 @@ import {
   Logger,
   NotFoundException,
   PayloadTooLargeException,
+  ServiceUnavailableException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import {
@@ -17,6 +19,7 @@ import { CvView, CvsListResponse } from './cvs.types';
 import { SkillStorageAdapterService } from '../matching/services/skill-storage-adapter.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiNormalizationService } from '../normalization/ai-normalization.service';
+import { AiNormalizationError } from '../normalization/normalization.errors';
 import {
   NormalizationResult,
   NormalizedProfile,
@@ -28,8 +31,6 @@ import { CvTextExtractorService } from './services/cv-text-extractor.service';
 @Injectable()
 export class CvsService {
   private readonly logger = new Logger(CvsService.name);
-  private readonly parseFallbackSummary =
-    'CV uploaded successfully, but auto-parsing could not read the content. Please update summary and skills manually.';
 
   constructor(
     private readonly prisma: PrismaService,
@@ -90,16 +91,32 @@ export class CvsService {
       const result = await this.aiNormalizationService.normalizeCv(text);
       return this.toStoredCvData(result);
     } catch (error) {
+      if (error instanceof AiNormalizationError) {
+        if (error.kind === 'service_unavailable') {
+          throw new ServiceUnavailableException({
+            code: error.code,
+            message:
+              'AI service is unavailable right now. Please try uploading again later.',
+          });
+        }
+
+        throw new UnprocessableEntityException({
+          code: error.code,
+          message:
+            'AI parsing failed for this CV. Upload a readable PDF or DOCX and try again.',
+        });
+      }
+
       this.logger.warn(
-        `CV parse fallback used for "${file.originalname}": ${
+        `CV parse failed for "${file.originalname}": ${
           error instanceof Error ? error.message : 'Unknown error'
         }`,
       );
-      const fallbackResult = this.aiNormalizationService.forceFallbackCv(
-        this.parseFallbackSummary,
-        'extraction_failed',
-      );
-      return this.toStoredCvData(fallbackResult);
+      throw new UnprocessableEntityException({
+        code: 'AI_NORMALIZATION_FAILED',
+        message:
+          'AI parsing failed for this CV. Upload a readable PDF or DOCX and try again.',
+      });
     }
   }
 
@@ -437,9 +454,7 @@ export class CvsService {
   }
 
   private normalizeParseStatus(value: unknown): ParseStatus {
-    return value === 'parsed_ok' ||
-      value === 'fallback' ||
-      value === 'needs_review'
+    return value === 'parsed_ok' || value === 'needs_review'
       ? value
       : 'needs_review';
   }

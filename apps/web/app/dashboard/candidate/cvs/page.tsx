@@ -53,6 +53,9 @@ export default async function CandidateCvsPage({ searchParams }: PageProps) {
         if (error.status === 422) {
           redirect('/dashboard/candidate/cvs?error=parse-failed');
         }
+        if (error.status === 503) {
+          redirect('/dashboard/candidate/cvs?error=service-unavailable');
+        }
       }
       redirect('/dashboard/candidate/cvs?error=upload-failed');
     }
@@ -126,7 +129,9 @@ export default async function CandidateCvsPage({ searchParams }: PageProps) {
         : query.error === 'unsupported-file'
           ? 'Only PDF and DOCX files are supported.'
           : query.error === 'parse-failed'
-            ? 'Could not read this CV file. Please upload another PDF/DOCX.'
+            ? 'AI parsing failed for this CV. Upload a readable PDF or DOCX and try again.'
+            : query.error === 'service-unavailable'
+              ? 'AI service is temporarily unavailable. Please try uploading again later.'
             : query.error === 'upload-failed'
               ? 'Upload failed. Please try again.'
               : null;

@@ -1,5 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { GeminiClientService } from './gemini-client.service';
+import { LlmClient } from './llm-client.interface';
+import { AiNormalizationError } from './normalization.errors';
+import { OpenAiClientService } from './openai-client.service';
 import {
   NORMALIZED_SCHEMA_VERSION,
   NormalizationResult,
@@ -12,32 +15,11 @@ type Domain = 'cv' | 'job';
 @Injectable()
 export class AiNormalizationService {
   private readonly logger = new Logger(AiNormalizationService.name);
-  private readonly skillDictionary = [
-    'javascript',
-    'typescript',
-    'node',
-    'nestjs',
-    'react',
-    'next.js',
-    'nextjs',
-    'python',
-    'django',
-    'java',
-    'spring',
-    'sql',
-    'postgresql',
-    'mysql',
-    'docker',
-    'kubernetes',
-    'aws',
-    'gcp',
-    'azure',
-    'git',
-    'html',
-    'css',
-  ];
 
-  constructor(private readonly geminiClient: GeminiClientService) {}
+  constructor(
+    private readonly geminiClient: GeminiClientService,
+    private readonly openAiClient: OpenAiClientService,
+  ) {}
 
   async normalizeCv(rawText: string): Promise<NormalizationResult> {
     return this.normalize('cv', rawText);
@@ -47,61 +29,66 @@ export class AiNormalizationService {
     return this.normalize('job', rawText);
   }
 
-  forceFallbackCv(
-    rawText: string,
-    reason = 'fallback_parser',
-  ): NormalizationResult {
-    return this.createFallbackResult('cv', rawText, Date.now(), reason);
-  }
-
-  forceFallbackJob(
-    rawText: string,
-    reason = 'fallback_parser',
-  ): NormalizationResult {
-    return this.createFallbackResult('job', rawText, Date.now(), reason);
-  }
-
   private async normalize(
     domain: Domain,
     rawText: string,
   ): Promise<NormalizationResult> {
     const start = Date.now();
-    if (!process.env['GEMINI_API_KEY']) {
-      return this.createFallbackResult(domain, rawText, start);
-    }
-
+    const client = this.resolveClient();
     const prompt = this.buildPrompt(domain, rawText);
+
     try {
-      const first = await this.geminiClient.generateText(prompt);
+      const first = await client.generateText(prompt);
       const directJson = this.extractJson(first);
-      const parsed = directJson ?? (await this.tryRepairJson(first));
+      const parsed = directJson ?? (await this.tryRepairJson(client, first));
 
       if (!parsed) {
-        return this.createFallbackResult(
-          domain,
-          rawText,
-          start,
-          'invalid_json_from_llm',
+        throw new AiNormalizationError(
+          'parse_failed',
+          'AI normalization returned invalid JSON',
         );
       }
 
       const profile = this.normalizeProfile(parsed, domain, rawText);
       return {
         schemaVersion: NORMALIZED_SCHEMA_VERSION,
-        status: this.estimateStatus(profile, false),
+        status: this.estimateStatus(profile),
         profile,
         telemetry: {
-          source: 'llm',
-          fallbackUsed: false,
+          provider: client.provider,
+          model: client.getModelName(),
           latencyMs: Date.now() - start,
         },
       };
     } catch (error) {
       this.logger.warn(
-        `LLM normalization failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `LLM normalization failed (${client.provider}): ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
-      return this.createFallbackResult(domain, rawText, start);
+
+      if (error instanceof AiNormalizationError) {
+        throw error;
+      }
+      throw new AiNormalizationError(
+        'service_unavailable',
+        'AI provider request failed',
+      );
     }
+  }
+
+  private resolveClient(): LlmClient {
+    const provider = (process.env['LLM_PROVIDER'] ?? 'gemini')
+      .trim()
+      .toLowerCase();
+    if (provider === 'gemini') {
+      return this.geminiClient;
+    }
+    if (provider === 'openai') {
+      return this.openAiClient;
+    }
+    throw new AiNormalizationError(
+      'service_unavailable',
+      `Unsupported LLM provider: ${provider}`,
+    );
   }
 
   private buildPrompt(domain: Domain, rawText: string): string {
@@ -124,12 +111,15 @@ export class AiNormalizationService {
     ].join('\n');
   }
 
-  private async tryRepairJson(rawModelText: string): Promise<unknown> {
+  private async tryRepairJson(
+    client: LlmClient,
+    rawModelText: string,
+  ): Promise<unknown> {
     const repairPrompt = [
       'Fix this to valid JSON only. Keep original keys and values.',
       rawModelText,
     ].join('\n');
-    const repaired = await this.geminiClient.generateText(repairPrompt, 8000);
+    const repaired = await client.generateText(repairPrompt, 8000);
     return this.extractJson(repaired);
   }
 
@@ -144,69 +134,6 @@ export class AiNormalizationService {
     } catch {
       return null;
     }
-  }
-
-  private createFallbackResult(
-    domain: Domain,
-    rawText: string,
-    start: number,
-    reason = 'fallback_parser',
-  ): NormalizationResult {
-    const profile = this.fallbackProfile(domain, rawText, reason);
-    return {
-      schemaVersion: NORMALIZED_SCHEMA_VERSION,
-      status: this.estimateStatus(profile, true),
-      profile,
-      telemetry: {
-        source: 'fallback',
-        fallbackUsed: true,
-        latencyMs: Date.now() - start,
-      },
-    };
-  }
-
-  private fallbackProfile(
-    domain: Domain,
-    rawText: string,
-    reason: string,
-  ): NormalizedProfile {
-    const normalized = rawText.toLowerCase();
-    const skills = this.skillDictionary.filter((skill) =>
-      normalized.includes(skill),
-    );
-    const summary = rawText.slice(0, 600);
-    const title =
-      domain === 'job'
-        ? 'Unstructured job description'
-        : 'Unstructured candidate profile';
-
-    return {
-      schemaVersion: NORMALIZED_SCHEMA_VERSION,
-      language: this.detectLanguage(rawText),
-      title,
-      summary,
-      skills,
-      experience: [],
-      education: [],
-      certifications: [],
-      projects: [],
-      languages: [],
-      location: { city: '', country: '' },
-      rawQuality: {
-        score: skills.length >= 2 ? 70 : 45,
-        needsManualReview: true,
-        reason,
-      },
-      ...(domain === 'job'
-        ? {
-            jobMeta: {
-              requirements: [],
-              benefits: [],
-              employmentType: '',
-            },
-          }
-        : {}),
-    };
   }
 
   private normalizeProfile(
@@ -379,13 +306,7 @@ export class AiNormalizationService {
     return {};
   }
 
-  private estimateStatus(
-    profile: NormalizedProfile,
-    fallbackUsed: boolean,
-  ): ParseStatus {
-    if (fallbackUsed) {
-      return 'fallback';
-    }
+  private estimateStatus(profile: NormalizedProfile): ParseStatus {
     if (profile.rawQuality.needsManualReview || profile.rawQuality.score < 60) {
       return 'needs_review';
     }

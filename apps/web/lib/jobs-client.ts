@@ -12,10 +12,10 @@ export type JobItem = {
   description: string;
   skills: string[];
   inputMode: 'manual' | 'file_upload';
-  parseStatus: 'parsed_ok' | 'fallback' | 'needs_review';
+  parseStatus: 'parsed_ok' | 'needs_review';
   parseTelemetry: {
-    source: 'llm' | 'fallback';
-    fallbackUsed: boolean;
+    provider: 'gemini' | 'openai';
+    model: string;
     latencyMs: number;
   } | null;
   normalizedProfile: {

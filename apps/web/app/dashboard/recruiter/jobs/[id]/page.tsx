@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import { RecruiterJobForm } from '@/components/jobs/recruiter-job-form';
+import { ApiError } from '@/lib/api-client';
 import {
   composeJobDescription,
   getJobFormInitialValues,
@@ -12,6 +13,7 @@ import { getJobDetail, updateJob } from '@/lib/jobs-client';
 
 type PageProps = {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ error?: string }>;
 };
 
 function parseSkills(value: string): string[] {
@@ -38,23 +40,17 @@ function getParseMessage(
   if (parseStatus === 'parsed_ok') {
     return 'The uploaded JD was parsed successfully. Review the draft fields before publishing.';
   }
-  if (parseStatus === 'fallback') {
-    return 'Auto-normalization fell back to a degraded parse. Check title, description, skills, and requirements before publishing.';
-  }
-  return 'This draft needs manual review before publish. Verify the parsed summary, skills, and requirements.';
+  return 'This draft needs manual review before publish. Verify the parsed summary, skills, and requirements carefully.';
 }
 
 function getParseTone(parseStatus: string) {
   if (parseStatus === 'parsed_ok') {
     return 'border-emerald-200 bg-emerald-50 text-emerald-800';
   }
-  if (parseStatus === 'fallback') {
-    return 'border-amber-200 bg-amber-50 text-amber-800';
-  }
   return 'border-zinc-300 bg-zinc-100 text-zinc-800';
 }
 
-export default async function RecruiterJobDetailPage({ params }: PageProps) {
+export default async function RecruiterJobDetailPage({ params, searchParams }: PageProps) {
   const session = await auth();
   if (!session?.user || !session.accessToken) {
     redirect('/login');
@@ -64,6 +60,7 @@ export default async function RecruiterJobDetailPage({ params }: PageProps) {
   }
 
   const { id } = await params;
+  const query = await searchParams;
   const job = await getJobDetail(id, session.accessToken);
   const initialValues = getJobFormInitialValues(job);
 
@@ -80,21 +77,45 @@ export default async function RecruiterJobDetailPage({ params }: PageProps) {
     );
     const benefits = parseMultilineList(String(formData.get('benefits') ?? ''));
 
-    await updateJob(currentSession.accessToken, id, {
-      title: String(formData.get('title') ?? '').trim(),
-      description: composeJobDescription({
-        summary,
-        requirements,
-        benefits,
-      }),
-      skills: parseSkills(String(formData.get('skills') ?? '')),
-      employmentType: String(formData.get('employmentType') ?? '').trim(),
-      salaryMin: parseOptionalNumber(String(formData.get('salaryMin') ?? '')),
-      salaryMax: parseOptionalNumber(String(formData.get('salaryMax') ?? '')),
-    });
+    try {
+      await updateJob(currentSession.accessToken, id, {
+        title: String(formData.get('title') ?? '').trim(),
+        description: composeJobDescription({
+          summary,
+          requirements,
+          benefits,
+        }),
+        skills: parseSkills(String(formData.get('skills') ?? '')),
+        employmentType: String(formData.get('employmentType') ?? '').trim(),
+        salaryMin: parseOptionalNumber(String(formData.get('salaryMin') ?? '')),
+        salaryMax: parseOptionalNumber(String(formData.get('salaryMax') ?? '')),
+      });
+    } catch (error) {
+      if (error instanceof ApiError) {
+        if (error.status === 401) {
+          redirect('/login');
+        }
+        if (error.status === 422) {
+          redirect(`/dashboard/recruiter/jobs/${id}?error=parse-failed`);
+        }
+        if (error.status === 503) {
+          redirect(`/dashboard/recruiter/jobs/${id}?error=service-unavailable`);
+        }
+      }
+      redirect(`/dashboard/recruiter/jobs/${id}?error=save-failed`);
+    }
     revalidatePath(`/dashboard/recruiter/jobs/${id}`);
     revalidatePath('/dashboard/recruiter/jobs');
   }
+
+  const errorMessage =
+    query.error === 'parse-failed'
+      ? 'AI parsing failed while saving this job. Review the fields and try again.'
+      : query.error === 'service-unavailable'
+        ? 'AI service is temporarily unavailable. Please try saving again later.'
+      : query.error === 'save-failed'
+        ? 'Saving this job failed. Please try again.'
+        : null;
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col px-6 py-12">
@@ -108,6 +129,12 @@ export default async function RecruiterJobDetailPage({ params }: PageProps) {
         </Link>
       </header>
 
+      {errorMessage ? (
+        <p className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {errorMessage}
+        </p>
+      ) : null}
+
       <RecruiterJobForm
         submitLabel="Save changes"
         action={updateAction}
@@ -118,7 +145,7 @@ export default async function RecruiterJobDetailPage({ params }: PageProps) {
         <p className="mt-2">{getParseMessage(job.parseStatus, job.inputMode)}</p>
         {job.parseTelemetry ? (
           <p className="mt-2 text-xs opacity-80">
-            Source: {job.parseTelemetry.source} · Fallback used: {job.parseTelemetry.fallbackUsed ? 'yes' : 'no'}
+            Provider: {job.parseTelemetry.provider} · Model: {job.parseTelemetry.model}
           </p>
         ) : null}
       </section>

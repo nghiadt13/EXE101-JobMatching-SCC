@@ -28,7 +28,21 @@ export function CandidateApplicationsTable({ items }: CandidateApplicationsTable
                 <p className="text-xs text-zinc-500">{item.cv.fileName}</p>
               </td>
               <td className="px-4 py-3 text-zinc-700">{item.status}</td>
-              <td className="px-4 py-3 text-zinc-700">{Math.round(item.matchScore)}%</td>
+              <td className="px-4 py-3 text-zinc-700">
+                <p>{Math.round(item.matchScore)}%</p>
+                {item.matchingSnapshot?.warnings.length ? (
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {item.matchingSnapshot.warnings.slice(0, 2).map((warning) => (
+                      <span
+                        key={`${item.id}-${warning}`}
+                        className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] text-amber-800"
+                      >
+                        {warning}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+              </td>
               <td className="px-4 py-3 text-zinc-500">
                 {new Date(item.appliedAt).toLocaleDateString()}
               </td>

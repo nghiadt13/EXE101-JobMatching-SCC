@@ -49,6 +49,22 @@ describe('MatchingService', () => {
       id: 'cv-1',
       candidateId: 'cand-1',
       skills: ['TypeScript', 'NestJS'],
+      skillAtoms: [
+        {
+          raw: 'TypeScript',
+          label: 'TypeScript',
+          canonical: 'typescript',
+          group: null,
+          source: 'cv_parsed',
+        },
+        {
+          raw: 'NestJS',
+          label: 'NestJS',
+          canonical: 'nestjs',
+          group: null,
+          source: 'cv_parsed',
+        },
+      ],
       parsedData: { summary: 'Backend developer with NestJS' },
       candidate: { userId: 'candidate-1' },
     });
@@ -57,6 +73,29 @@ describe('MatchingService', () => {
       recruiterId: 'recruiter-1',
       description: 'Need a TypeScript backend engineer with NestJS.',
       skills: ['TypeScript', 'NestJS', 'Docker'],
+      skillAtoms: [
+        {
+          raw: 'TypeScript',
+          label: 'TypeScript',
+          canonical: 'typescript',
+          group: null,
+          source: 'job_parsed',
+        },
+        {
+          raw: 'NestJS',
+          label: 'NestJS',
+          canonical: 'nestjs',
+          group: null,
+          source: 'job_parsed',
+        },
+        {
+          raw: 'Docker',
+          label: 'Docker',
+          canonical: 'docker',
+          group: null,
+          source: 'job_parsed',
+        },
+      ],
       location: null,
       status: JobStatus.PUBLISHED,
     });
@@ -145,6 +184,15 @@ describe('MatchingService', () => {
       id: 'cv-4',
       candidateId: 'cand-4',
       skills: ['TypeScript'],
+      skillAtoms: [
+        {
+          raw: 'Docker',
+          label: 'Docker',
+          canonical: 'docker',
+          group: null,
+          source: 'cv_parsed',
+        },
+      ],
       parsedData: {
         normalizedProfile: {
           skills: ['TypeScript', 'Docker'],
@@ -158,6 +206,22 @@ describe('MatchingService', () => {
       recruiterId: 'recruiter-1',
       description: 'Imported draft job',
       skills: [],
+      skillAtoms: [
+        {
+          raw: 'Docker',
+          label: 'Docker',
+          canonical: 'docker',
+          group: null,
+          source: 'job_parsed',
+        },
+        {
+          raw: 'Kubernetes',
+          label: 'Kubernetes',
+          canonical: 'kubernetes',
+          group: null,
+          source: 'job_parsed',
+        },
+      ],
       location: {
         __normalization: {
           normalizedProfile: {
@@ -175,9 +239,7 @@ describe('MatchingService', () => {
 
     expect(result.breakdown.matchedSkills).toContain('Docker');
     expect(result.breakdown.missingSkills).toContain('Kubernetes');
-    expect(result.warnings).toContain(
-      'Using legacy skills fallback for matching',
-    );
+    expect(result.warnings).toEqual([]);
   });
 
   it('supports explicit legacy rollback mode', async () => {
@@ -225,7 +287,7 @@ describe('MatchingService', () => {
     expect(result.breakdown.matchedSkills).toEqual([]);
   });
 
-  it('flags v2 fallback when only one side has canonical atoms', async () => {
+  it('warns when one side is missing canonical atoms', async () => {
     prismaService.cV.findFirst.mockResolvedValue({
       id: 'cv-6',
       candidateId: 'cand-6',
@@ -259,11 +321,11 @@ describe('MatchingService', () => {
 
     expect(result.matchingVersion).toBe('v2');
     expect(result.warnings).toContain(
-      'Using legacy skills fallback for matching',
+      'Job canonical skills are missing. Reprocess the JD before relying on this match.',
     );
   });
 
-  it('matches single-item grouped legacy skills through the fallback path', async () => {
+  it('does not synthesize canonical atoms from legacy skill arrays', async () => {
     prismaService.cV.findFirst.mockResolvedValue({
       id: 'cv-7',
       candidateId: 'cand-7',
@@ -287,10 +349,13 @@ describe('MatchingService', () => {
       role: UserRole.CANDIDATE,
     });
 
-    expect(result.breakdown.matchedSkills).toContain('EC2');
-    expect(result.skillsScore).toBeGreaterThan(0);
-    expect(result.warnings).toContain(
-      'Using legacy skills fallback for matching',
+    expect(result.breakdown.matchedSkills).toEqual([]);
+    expect(result.skillsScore).toBe(0);
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([
+        'CV canonical skills are missing. Reprocess the CV before relying on this match.',
+        'Job canonical skills are missing. Reprocess the JD before relying on this match.',
+      ]),
     );
   });
 });
