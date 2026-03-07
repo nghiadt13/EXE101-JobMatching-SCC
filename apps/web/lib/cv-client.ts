@@ -2,6 +2,36 @@ import { createApiError } from './api-client';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api';
 
+export type CandidateProfile = {
+  version: 'candidate_profile_v1';
+  headline: string;
+  summary: string;
+  skills: string[];
+  experience: Array<{
+    role: string;
+    company: string;
+    startDate: string | null;
+    endDate: string | null;
+    tech: string[];
+  }>;
+  education: Array<{
+    school: string;
+    degree: string;
+    field: string;
+    startDate: string | null;
+    endDate: string | null;
+  }>;
+  certifications: string[];
+  languages: string[];
+  projects: Array<{
+    name: string;
+    description: string;
+    tech: string[];
+  }>;
+  location: { city: string; country: string } | null;
+  warnings: string[];
+};
+
 export type CvItem = {
   id: string;
   fileName: string;
@@ -28,6 +58,8 @@ export type CvItem = {
     education: Array<Record<string, unknown>>;
     location?: { city: string; country: string };
   } | null;
+  candidateProfile: CandidateProfile | null;
+  candidateProfileVersion: string | null;
   parsedData: {
     skills: string[];
     summary?: string;

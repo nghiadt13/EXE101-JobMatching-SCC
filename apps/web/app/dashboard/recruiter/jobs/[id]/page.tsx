@@ -191,6 +191,39 @@ export default async function RecruiterJobDetailPage({ params, searchParams }: P
             </ul>
           </div>
         ) : null}
+        {job.requirementsSchema ? (
+          <div className="mt-5 grid gap-4 border-t border-zinc-200 pt-4 md:grid-cols-2">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">
+                Must Have Requirements
+              </p>
+              <ul className="mt-2 space-y-1 text-sm text-zinc-700">
+                {job.requirementsSchema.mustHaves.slice(0, 8).map((item) => (
+                  <li key={item.id}>• {item.label}</li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">
+                Nice To Have Requirements
+              </p>
+              <ul className="mt-2 space-y-1 text-sm text-zinc-700">
+                {job.requirementsSchema.niceToHaves.slice(0, 8).map((item) => (
+                  <li key={item.id}>• {item.label}</li>
+                ))}
+              </ul>
+              {job.requirementsSchema.locationPreference ? (
+                <p className="mt-3 text-xs text-zinc-500">
+                  Location preference: {[
+                    job.requirementsSchema.locationPreference.city,
+                    job.requirementsSchema.locationPreference.country,
+                    job.requirementsSchema.locationPreference.remote ? 'Remote' : '',
+                  ].filter(Boolean).join(' • ')}
+                </p>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
       </section>
     </main>
   );

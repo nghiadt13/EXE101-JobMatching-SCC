@@ -4,208 +4,210 @@
 
 Tính điểm phù hợp (0-100%) giữa CV và Job Description.
 
-**Công thức:**
+**Phương pháp hiện tại (schema_v1):** Đánh giá CV so với structured requirements schema được extract từ JD, không dựa trên text similarity mà dựa trên requirement-level satisfaction từ candidate profile evidence.
+
+## Schema-Based Matching Pipeline (v1)
+
+### Architecture
 
 ```
-Final Score = (TF-IDF Score × 0.7) + (Skills Score × 0.3)
+JD Upload/Edit
+  ↓
+Extract RequirementsSchema v1
+  ├─ role title, summary
+  ├─ must-have requirements
+  ├─ nice-to-have requirements
+  ├─ experience/education/language constraints
+  └─ location preferences
+  ↓
+Persist on Job
+
+CV Upload/Edit
+  ↓
+Extract CandidateProfile v1
+  ├─ headline, target role
+  ├─ experience entries (with dates, tech, evidence)
+  ├─ education entries
+  ├─ skills (explicit evidence)
+  ├─ languages, certifications
+  └─ location/work-mode hints
+  ↓
+Persist on CV
+
+Application Create
+  ↓
+RequirementsEvaluator
+  ├─ Evaluate each must-have requirement against candidate profile
+  ├─ Evaluate nice-to-have requirements
+  ├─ Evaluate experience, education, language fit
+  ├─ Evaluate location preference match
+  └─ Produce requirement-level status: met|partial|missing|not_applicable
+  ↓
+DeterministicScorer
+  ├─ Weight must-haves, nice-to-haves, experience, education, location, languages
+  ├─ Apply explicit numeric weights (no ML/LLM)
+  └─ Generate final matchScore (0-100)
+  ↓
+MatchingSnapshot v1 persisted on Application
 ```
 
-## Canonical Skill Atoms (Foundation)
+### RequirementsSchema v1 Shape
 
-### Overview
-Skill atoms are **deterministic, normalized representations** of individual skills extracted from CV/Job during parsing. Each atoms includes:
-- `raw` - Original text from CV/Job
-- `label` - Normalized display name
-- `canonical` - Unique canonical identifier (e.g., 'python', 'django')
-- `group` - Category (PROGRAMMING, FRAMEWORK, DATABASE, TOOL, SOFT_SKILL)
-- `source` - Origin: `cv_parsed`, `cv_manual`, `job_parsed`, or `job_manual`
+```json
+{
+  "version": "requirements_schema_v1",
+  "roleTitle": "Senior Backend Engineer",
+  "summary": "Looking for experienced Node.js and TypeScript developer with PostgreSQL expertise",
+  "mustHaves": [
+    {
+      "id": "req-1",
+      "label": "3+ years TypeScript/Node.js backend",
+      "category": "experience",
+      "importance": "must_have",
+      "keywords": ["typescript", "node.js", "backend"],
+      "minimumMonths": 36
+    }
+  ],
+  "niceToHaves": [
+    {
+      "id": "req-2",
+      "label": "PostgreSQL optimization experience",
+      "category": "skill",
+      "importance": "nice_to_have",
+      "keywords": ["postgresql", "database", "sql"],
+      "minimumMonths": null
+    }
+  ],
+  "locationPreference": {
+    "city": "San Francisco",
+    "country": "USA",
+    "remote": true
+  },
+  "warnings": []
+}
+```
 
-### Deterministic Atomization
-All CVs and Jobs store **dual skill representations**:
-- `skills` (Json) - Display values for UI
-- `skillAtoms` (Json) - Canonical atoms for matching logic
+### CandidateProfile v1 Shape
 
-This ensures matching is deterministic and not affected by skill string variations (e.g., "Python", "python", "PYTHON" all canonicalize to `canonical: 'python'`).
+```json
+{
+  "version": "candidate_profile_v1",
+  "headline": "Full-stack JavaScript Developer",
+  "targetRole": "Backend Engineer",
+  "experience": [
+    {
+      "role": "Senior Developer",
+      "company": "Tech Corp",
+      "startDate": "2021-01",
+      "endDate": "2025-03",
+      "tech": ["typescript", "node.js", "postgresql", "react"]
+    }
+  ],
+  "education": [
+    {
+      "school": "State University",
+      "degree": "BS",
+      "field": "Computer Science",
+      "startDate": "2016-09",
+      "endDate": "2020-05"
+    }
+  ],
+  "skills": ["TypeScript", "Node.js", "PostgreSQL", "Docker"],
+  "languages": ["English"],
+  "location": { "city": "San Francisco", "country": "USA" },
+  "workMode": "remote",
+  "warnings": []
+}
+```
 
-### Canonical Requirement
-Matching v2 reads `skillAtoms` only. If canonical atoms are missing, matching emits warnings and the affected record should be reprocessed before recruiters rely on the score.
+### MatchingSnapshot v1 Shape
+
+```json
+{
+  "version": "schema_v1",
+  "scoreBreakdown": {
+    "mustHaves": 95,
+    "niceToHaves": 80,
+    "experience": 90,
+    "education": 100,
+    "location": 100,
+    "final": 92
+  },
+  "requirements": [
+    {
+      "id": "req-1",
+      "label": "3+ years TypeScript/Node.js backend",
+      "category": "experience",
+      "importance": "must_have",
+      "status": "met",
+      "evidence": ["Senior Developer at Tech Corp, 2021-2025 (4 years)"]
+    }
+  ],
+  "strengths": [
+    "Strong TypeScript and Node.js background",
+    "Relevant PostgreSQL optimization experience"
+  ],
+  "gaps": [
+    "No Kubernetes experience (nice-to-have)",
+    "Located in PST (job flexible on timezone)"
+  ],
+  "warnings": []
+}
+```
+
+### Deterministic Evaluation Rules
+
+**Scoring weights (configurable):**
+- Must-have requirements met: 50%
+- Nice-to-have requirements met: 15%
+- Experience fit (seniority, years): 20%
+- Education match: 10%
+- Location/language preference: 5%
+
+**Must-have evaluation:**
+- `met`: Evidence in candidate profile matches requirement keywords and duration
+- `partial`: Some keywords present but missing duration/depth
+- `missing`: No matching evidence found
+- `not_applicable`: Evaluator determined requirement doesn't apply to this candidate
+
+**Nice-to-have evaluation:**
+- Same statuses, but missing = 0 points (not penalized)
+
+**Experience evaluation:**
+- Candidate years in similar role ÷ Required minimum years
+- Capped at 100%
+
+**Final score:**
+- Weighted sum of component scores (0-100)
+- Rounded to nearest integer
 
 ## Version Routing
 
-Matching algorithm respects `MATCHING_VERSION` environment variable:
-- `MATCHING_VERSION=legacy` - Uses legacy string comparison (deprecated)
-- `MATCHING_VERSION=v2` (default) - Uses canonical skill atoms for deterministic matching
+Matching algorithm respects `MATCHING_VERSION` environment variable and Job/CV schema versions:
+- `matchingVersion: 'schema_v1'` → Uses schema-based evaluation (current)
+- Fallback for legacy data → Emits warnings, requires backfill
 
-## Phase 1: TF-IDF + Skills (MVP)
+## Legacy Approach (Removed)
 
-### 1. TF-IDF Score
+The previous TF-IDF + exact skill matching runtime has been removed from the active application flow. The system now scores through schema evaluation only.
 
-**Input:**
+## Key Differences from Previous Approach
 
-- CV text (full text từ parsed CV)
-- JD text (job description + requirements)
+| Aspect | Removed runtime | Current (Schema v1) |
+|--------|--------------------------|---------------------|
+| Scoring input | Text similarity + keyword match | Structured requirement evaluation |
+| Determinism | Text variation affects results | No text variation impact |
+| Transparency | Opaque component scores | Requirement-level breakdown visible |
+| Recruiter control | Scores only (no schema) | Recruiter defines schema upfront |
+| Candidate experience | Skills display on CV | Profile evidence structured for evaluation |
+| Matching algorithm | Statistical (word frequency) | Rule-based (requirement satisfaction) |
 
-**Process:**
+## Backend Services
 
-```typescript
-import natural from 'natural';
-
-function calculateTFIDF(cvText: string, jdText: string): number {
-  const TfIdf = natural.TfIdf;
-  const tfidf = new TfIdf();
-
-  // Add documents
-  tfidf.addDocument(cvText);
-  tfidf.addDocument(jdText);
-
-  // Calculate cosine similarity
-  const cvVector = tfidf.listTerms(0);
-  const jdVector = tfidf.listTerms(1);
-
-  const similarity = cosineSimilarity(cvVector, jdVector);
-  return similarity; // 0.0 - 1.0
-}
-```
-
-**Output:** Score từ 0.0 đến 1.0
-
-### 2. Skills Score (v2: Canonical Matching)
-
-**Input (v2):**
-
-- CV skillAtoms: `[{canonical: 'python'}, {canonical: 'django'}, {canonical: 'postgresql'}, {canonical: 'docker'}]`
-- Job skillAtoms: `[{canonical: 'python'}, {canonical: 'django'}, {canonical: 'postgresql'}, {canonical: 'kubernetes'}]`
-
-**Process:**
-
-```typescript
-function calculateSkillsScore(cvAtoms: SkillAtom[], jobAtoms: SkillAtom[]): number {
-  const cvSet = new Set(cvAtoms.map((a) => a.canonical));
-  const jobSet = new Set(jobAtoms.map((a) => a.canonical));
-
-  let matchCount = 0;
-  for (const canonical of jobSet) {
-    if (cvSet.has(canonical)) {
-      matchCount++;
-    }
-  }
-
-  return matchCount / jobSet.size; // 0.0 - 1.0
-}
-```
-
-**Example:**
-
-- Match: 3/4 = 0.75 (75%)
-- Matched (canonical): `python`, `django`, `postgresql`
-- Missing (canonical): `kubernetes`
-
-### 3. Final Score
-
-```typescript
-function calculateMatchScore(cvId: string, jobId: string) {
-  const cv = await getCVData(cvId);
-  const job = await getJobData(jobId);
-
-  // 1. TF-IDF
-  const cvText = extractCVText(cv);
-  const jdText = extractJDText(job);
-  const tfidfScore = calculateTFIDF(cvText, jdText);
-
-  // 2. Skills
-  const skillsScore = calculateSkillsScore(cv.skills, job.skills);
-
-  // 3. Weighted combination
-  const finalScore = tfidfScore * 0.7 + skillsScore * 0.3;
-
-  return {
-    score: Math.round(finalScore * 100), // 0-100
-    tfidfScore,
-    skillsScore,
-    breakdown: {
-      matchedSkills: getMatchedSkills(cv.skills, job.skills),
-      missingSkills: getMissingSkills(cv.skills, job.skills),
-    },
-  };
-}
-```
-
-## Phase 2: Semantic Embeddings (Bonus)
-
-Nếu còn thời gian, thêm Gemini embeddings:
-
-```typescript
-import { GoogleGenerativeAI } from '@google/generative-ai';
-
-async function calculateSemanticScore(cvText: string, jdText: string) {
-  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({
-    model: 'text-embedding-004',
-  });
-
-  // Generate embeddings
-  const cvResult = await model.embedContent(cvText);
-  const jdResult = await model.embedContent(jdText);
-
-  // Cosine similarity
-  const score = cosineSimilarity(
-    cvResult.embedding.values,
-    jdResult.embedding.values,
-  );
-
-  return score; // 0.0 - 1.0
-}
-
-// Updated final score
-const finalScore = tfidfScore * 0.4 + skillsScore * 0.2 + semanticScore * 0.4;
-```
-
-## Matching Snapshot
-
-Each application stores a **matching snapshot** (JSON) capturing the matching state at application time:
-
-```typescript
-interface MatchingSnapshot {
-  version: 'legacy' | 'v2';        // Routing version used
-  componentScores: {
-    tfidf: number;                 // 0.0 - 1.0
-    skills: number;                // 0.0 - 1.0
-    final: number;                 // 0-100 percent
-  };
-  topMatchedSkills: string[];       // Top 8 matched canonical names
-  missingSkills: string[];          // Missing canonical names
-  warnings: string[];               // Parse quality warnings
-}
-```
-
-This allows recruiter UI to:
-- Display rich matching breakdown
-- Track matching determinism (same snapshot on re-evaluate = bug-free)
-- Detect parsing quality issues or missing canonical skill data
-
-## UI Display
-
-### Match Score Card
-
-```
-┌─────────────────────────────────────┐
-│ Nguyễn Văn A                        │
-│ Match Score: 78% ⭐⭐⭐⭐           │
-│                                     │
-│ Skills Match: 3/4 (75%)             │
-│ ✓ Python, Django, PostgreSQL        │
-│ ✗ Kubernetes                        │
-│                                     │
-│ Text Similarity: 72%                │
-└─────────────────────────────────────┘
-```
-
-### Ranking
-
-```
-Top Candidates:
-
-1. 🥇 Nguyễn Văn A    - 78%
+- `JobRequirementsSchemaService` - Extracts and manages requirements schema for jobs
+- `CandidateProfileService` - Extracts and manages candidate profile for CVs
+- `SchemaMatchingEvaluatorService` - Evaluates candidate against requirements deterministically
+- `MatchingService` - Main orchestrator, handles routing, version support
 2. 🥈 Trần Thị B      - 72%
 3. 🥉 Lê Văn C        - 68%
 4.    Phạm Thị D      - 55%
@@ -213,13 +215,11 @@ Top Candidates:
 
 ## Performance
 
-- **TF-IDF:** ~50ms per match
-- **Skills:** <10ms per match
-- **Total:** ~60ms per match
-- **Batch 100 CVs:** ~6 seconds
+- **Schema evaluation:** low-millisecond CPU work after normalization data is available
+- **Total per match:** dominated by persistence and normalization quality, not text-similarity math
+- **Batch throughput:** scales linearly with number of evaluated applications
 
 ## Accuracy
 
-- **TF-IDF only:** 60-70%
-- **TF-IDF + Skills:** 70-80%
-- **With Embeddings:** 80-90%
+- **Schema evaluation:** better recruiter-facing explainability and more stable requirement-level judgments
+- **Operational goal:** consistency and auditability over opaque similarity scores

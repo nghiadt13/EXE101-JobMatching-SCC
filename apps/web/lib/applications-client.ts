@@ -10,15 +10,27 @@ export type ApplicationStatus =
   | 'REJECTED'
   | 'WITHDRAWN';
 
-export type MatchingSnapshot = {
-  version: 'legacy' | 'v2';
-  componentScores: {
-    tfidf: number;
-    skills: number;
+export type SchemaMatchingSnapshot = {
+  version: 'schema_v1';
+  scoreBreakdown: {
+    mustHave: number;
+    niceToHave: number;
+    experience: number;
+    education: number;
+    language: number;
+    location: number;
     final: number;
   };
-  topMatchedSkills: string[];
-  missingSkills: string[];
+  requirements: Array<{
+    id: string;
+    label: string;
+    category: string;
+    importance: 'must_have' | 'nice_to_have';
+    status: 'met' | 'partial' | 'missing' | 'not_applicable';
+    evidence: string[];
+  }>;
+  strengths: string[];
+  gaps: string[];
   warnings: string[];
 };
 
@@ -28,9 +40,7 @@ export type ApplicationItem = {
   candidateId: string;
   cvId: string;
   matchScore: number;
-  tfidfScore: number | null;
-  skillsScore: number | null;
-  matchingSnapshot: MatchingSnapshot | null;
+  matchingSnapshot: SchemaMatchingSnapshot | null;
   status: ApplicationStatus;
   notes: string | null;
   appliedAt: string;

@@ -1,0 +1,31 @@
+Model: gpt-5-mini
+Job title: DevOps Engineer Fresher
+
+=== MATCH RESULT ===
+Final deterministic score: 0.7251
+Final percent: 73%
+Strong matches: 0
+Partial matches: 20
+Missing matches: 0
+
+=== REQUIREMENT BREAKDOWN ===
+Bachelor degree in relevant field | status=partial | score=0.7150
+Linux / Ubuntu fundamentals | status=partial | score=0.7150
+Docker (image builds, multi-stage, Docker Compose) | status=partial | score=0.7150
+CI/CD concepts and pipeline exposure | status=partial | score=0.7150
+Git (version control) | status=partial | score=0.7150
+AWS fundamentals (multiple services) | status=partial | score=0.7960
+AWS EC2 | status=partial | score=0.7150
+AWS S3 | status=partial | score=0.7150
+AWS IAM (identity & access management) | status=partial | score=0.7150
+AWS Route 53 / DNS | status=partial | score=0.7150
+AWS CloudWatch / monitoring | status=partial | score=0.7150
+AWS Lambda (serverless) | status=partial | score=0.7150
+Backend stack exposure (at least one) | status=partial | score=0.8150
+Python (FastAPI) | status=partial | score=0.7150
+Java (Spring Boot) | status=partial | score=0.7150
+Relational databases (PostgreSQL or MySQL) | status=partial | score=0.7150
+Networking fundamentals (HTTP, DNS, IP, ports) | status=partial | score=0.7150
+Monitoring and incident triage | status=partial | score=0.7130
+Kubernetes concepts (Pods, Deployments, Services, Ingress) | status=partial | score=0.7150
+Infrastructure-as-code (CDK, CloudFormation) | status=partial | score=0.7150

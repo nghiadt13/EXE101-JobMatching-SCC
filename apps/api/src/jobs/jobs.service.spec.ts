@@ -8,6 +8,7 @@ import { JobStatus, UserRole } from '@prisma/client';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DocumentStorageService } from '../documents/services/document-storage.service';
 import { DocumentTextExtractorService } from '../documents/services/document-text-extractor.service';
+import { JobRequirementsSchemaService } from '../matching/services/job-requirements-schema.service';
 import { SkillStorageAdapterService } from '../matching/services/skill-storage-adapter.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiNormalizationService } from '../normalization/ai-normalization.service';
@@ -102,6 +103,7 @@ describe('JobsService', () => {
           provide: SkillStorageAdapterService,
           useValue: skillStorageAdapterService,
         },
+        JobRequirementsSchemaService,
         {
           provide: DocumentStorageService,
           useValue: documentStorageService,

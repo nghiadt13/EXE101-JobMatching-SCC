@@ -1,13 +1,10 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
-import { ApplicationStatus, UserRole } from '@prisma/client';
+import { ApplicationStatus, JobStatus, UserRole } from '@prisma/client';
 import { Test, TestingModule } from '@nestjs/testing';
-import { ScoreCombinerService } from '../matching/calculators/score-combiner.service';
-import { SkillsCalculatorService } from '../matching/calculators/skills-calculator.service';
-import { TfidfCalculatorService } from '../matching/calculators/tfidf-calculator.service';
+import { CandidateProfileService } from '../matching/services/candidate-profile.service';
+import { JobRequirementsSchemaService } from '../matching/services/job-requirements-schema.service';
+import { SchemaMatchingEvaluatorService } from '../matching/services/schema-matching-evaluator.service';
 import { MatchingService } from '../matching/matching.service';
-import { SkillAtomizerService } from '../matching/services/skill-atomizer.service';
-import { SkillCanonicalizerService } from '../matching/services/skill-canonicalizer.service';
-import { SkillStorageAdapterService } from '../matching/services/skill-storage-adapter.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ApplicationsService } from './applications.service';
 
@@ -49,22 +46,24 @@ describe('ApplicationsService', () => {
           useValue: {
             calculateIntegrationPayload: jest.fn().mockResolvedValue({
               finalScorePercent: 80,
-              tfidfScore: 0.75,
-              skillsScore: 0.9,
-              matchingVersion: 'v2',
+              matchingVersion: 'schema_v1',
               warnings: [],
               matchingSnapshot: {
-                version: 'v2',
-                componentScores: {
-                  tfidf: 0.75,
-                  skills: 0.9,
+                version: 'schema_v1',
+                scoreBreakdown: {
+                  mustHave: 80,
+                  niceToHave: 70,
+                  experience: 80,
+                  education: 100,
+                  language: 100,
+                  location: 100,
                   final: 80,
                 },
-                topMatchedSkills: ['TypeScript'],
-                missingSkills: [],
+                requirements: [],
+                strengths: ['TypeScript'],
+                gaps: [],
                 warnings: [],
               },
-              breakdown: { matchedSkills: ['TypeScript'], missingSkills: [] },
             }),
           },
         },
@@ -88,7 +87,7 @@ describe('ApplicationsService', () => {
     ).rejects.toBeInstanceOf(ConflictException);
   });
 
-  it('persists matching snapshot on successful application creation', async () => {
+  it('persists schema snapshot on successful application creation', async () => {
     prismaService.candidate.findFirst.mockResolvedValue({ id: 'cand-1' });
     prismaService.cV.findFirst.mockResolvedValue({ id: 'cv-1' });
     prismaService.job.findFirst.mockResolvedValue({ id: 'job-1' });
@@ -98,17 +97,20 @@ describe('ApplicationsService', () => {
       candidateId: 'cand-1',
       cvId: 'cv-1',
       matchScore: 80,
-      tfidfScore: 0.75,
-      skillsScore: 0.9,
       matchingSnapshot: {
-        version: 'v2',
-        componentScores: {
-          tfidf: 0.75,
-          skills: 0.9,
+        version: 'schema_v1',
+        scoreBreakdown: {
+          mustHave: 80,
+          niceToHave: 70,
+          experience: 80,
+          education: 100,
+          language: 100,
+          location: 100,
           final: 80,
         },
-        topMatchedSkills: ['TypeScript'],
-        missingSkills: [],
+        requirements: [],
+        strengths: ['TypeScript'],
+        gaps: [],
         warnings: [],
       },
       status: ApplicationStatus.APPLIED,
@@ -131,8 +133,8 @@ describe('ApplicationsService', () => {
     const createCalls = prismaService.application.create.mock.calls as Array<
       [{ data: { matchingSnapshot: { version: string } } }]
     >;
-    expect(createCalls[0]?.[0].data.matchingSnapshot.version).toBe('v2');
-    expect(result.matchingSnapshot?.version).toBe('v2');
+    expect(createCalls[0]?.[0].data.matchingSnapshot.version).toBe('schema_v1');
+    expect(result.matchingSnapshot?.version).toBe('schema_v1');
   });
 
   it('rejects invalid recruiter status transition', async () => {
@@ -161,8 +163,6 @@ describe('ApplicationsService', () => {
       candidateId: 'cand-1',
       cvId: 'cv-1',
       matchScore: 75,
-      tfidfScore: 0.7,
-      skillsScore: 0.8,
       matchingSnapshot: null,
       status: ApplicationStatus.REVIEWING,
       notes: null,
@@ -202,7 +202,7 @@ describe('ApplicationsService', () => {
     expect(findManyCall.where.status).toBe(ApplicationStatus.APPLIED);
   });
 
-  it('computes and persists a v2 snapshot while flagging missing canonical atoms', async () => {
+  it('computes and persists a schema_v1 snapshot in integration mode', async () => {
     const integrationPrisma = {
       candidate: { findFirst: jest.fn().mockResolvedValue({ id: 'cand-2' }) },
       cV: {
@@ -212,9 +212,31 @@ describe('ApplicationsService', () => {
           .mockResolvedValueOnce({
             id: 'cv-2',
             candidateId: 'cand-2',
-            skills: ['AWS: EC2'],
-            skillAtoms: null,
-            parsedData: { summary: 'Cloud engineer' },
+            skills: ['AWS', 'EC2'],
+            candidateProfile: null,
+            parsedData: {
+              summary: 'Cloud engineer',
+              normalizedProfile: {
+                title: 'Cloud engineer',
+                summary: 'Cloud engineer',
+                skills: ['AWS', 'EC2'],
+                experience: [
+                  {
+                    role: 'Cloud Engineer',
+                    company: 'ACME',
+                    startDate: '2022-01',
+                    endDate: '2025-01',
+                    tech: ['AWS', 'EC2'],
+                  },
+                ],
+                education: [],
+                certifications: [],
+                projects: [],
+                languages: [],
+                location: { city: '', country: '' },
+                rawQuality: { score: 90, needsManualReview: false, reason: '' },
+              },
+            },
             candidate: { userId: 'candidate-2' },
           }),
       },
@@ -225,11 +247,22 @@ describe('ApplicationsService', () => {
           .mockResolvedValueOnce({
             id: 'job-2',
             recruiterId: 'recruiter-1',
+            title: 'Cloud role',
             description: 'Need AWS EC2 experience',
-            skills: ['EC2'],
-            skillAtoms: null,
-            location: null,
-            status: 'PUBLISHED',
+            skills: ['AWS', 'EC2'],
+            requirementsSchema: null,
+            location: {
+              __normalization: {
+                normalizedProfile: {
+                  summary: 'Need AWS EC2 experience',
+                  jobMeta: {
+                    requirements: ['3+ years AWS EC2 experience'],
+                  },
+                  rawQuality: { score: 90, needsManualReview: false, reason: '' },
+                },
+              },
+            },
+            status: JobStatus.PUBLISHED,
           }),
       },
       application: {
@@ -237,8 +270,6 @@ describe('ApplicationsService', () => {
           (input: {
             data: {
               matchScore: number;
-              tfidfScore: number | null;
-              skillsScore: number | null;
               matchingSnapshot: unknown;
             };
           }) => ({
@@ -247,8 +278,6 @@ describe('ApplicationsService', () => {
             candidateId: 'cand-2',
             cvId: 'cv-2',
             matchScore: input.data.matchScore,
-            tfidfScore: input.data.tfidfScore,
-            skillsScore: input.data.skillsScore,
             matchingSnapshot: input.data.matchingSnapshot,
             status: ApplicationStatus.APPLIED,
             notes: null,
@@ -270,12 +299,9 @@ describe('ApplicationsService', () => {
     };
     const integrationMatchingService = new MatchingService(
       integrationPrisma as unknown as PrismaService,
-      new TfidfCalculatorService(),
-      new SkillsCalculatorService(),
-      new ScoreCombinerService(),
-      new SkillStorageAdapterService(
-        new SkillAtomizerService(new SkillCanonicalizerService()),
-      ),
+      new JobRequirementsSchemaService(),
+      new CandidateProfileService(),
+      new SchemaMatchingEvaluatorService(),
     );
     const integrationService = new ApplicationsService(
       integrationPrisma as unknown as PrismaService,
@@ -287,13 +313,7 @@ describe('ApplicationsService', () => {
       { cvId: 'cv-2', jobId: 'job-2' },
     );
 
-    expect(result.matchingSnapshot?.version).toBe('v2');
-    expect(result.matchingSnapshot?.topMatchedSkills).toEqual([]);
-    expect(result.matchingSnapshot?.warnings).toEqual(
-      expect.arrayContaining([
-        'CV canonical skills are missing. Reprocess the CV before relying on this match.',
-        'Job canonical skills are missing. Reprocess the JD before relying on this match.',
-      ]),
-    );
+    expect(result.matchingSnapshot?.version).toBe('schema_v1');
+    expect(result.matchScore).toBeGreaterThanOrEqual(0);
   });
 });

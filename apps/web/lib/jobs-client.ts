@@ -4,6 +4,29 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/a
 
 export type JobStatus = 'DRAFT' | 'PUBLISHED' | 'CLOSED' | 'ARCHIVED';
 
+export type RequirementItem = {
+  id: string;
+  label: string;
+  category: 'skill' | 'experience' | 'education' | 'language' | 'location' | 'certification' | 'general';
+  importance: 'must_have' | 'nice_to_have';
+  keywords: string[];
+  minimumMonths: number | null;
+};
+
+export type RequirementsSchema = {
+  version: 'requirements_schema_v1';
+  roleTitle: string;
+  summary: string;
+  mustHaves: RequirementItem[];
+  niceToHaves: RequirementItem[];
+  locationPreference: {
+    city: string;
+    country: string;
+    remote: boolean;
+  } | null;
+  warnings: string[];
+};
+
 export type JobItem = {
   id: string;
   recruiterId: string;
@@ -28,6 +51,8 @@ export type JobItem = {
       employmentType: string;
     };
   } | null;
+  requirementsSchema: RequirementsSchema | null;
+  requirementsSchemaVersion: string | null;
   location: Record<string, unknown> | null;
   salaryMin: number | null;
   salaryMax: number | null;

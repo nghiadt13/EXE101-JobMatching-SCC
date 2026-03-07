@@ -84,10 +84,11 @@ export default async function RecruiterJobsPage({ searchParams }: PageProps) {
     if (!currentSession?.user || !currentSession.accessToken) redirect('/login');
     if (currentSession.user.role !== 'RECRUITER') redirect('/dashboard');
 
+    let createdId: string;
+
     try {
       const created = await uploadJobFile(currentSession.accessToken, formData);
-      revalidatePath('/dashboard/recruiter/jobs');
-      redirect(`/dashboard/recruiter/jobs/${created.id}`);
+      createdId = created.id;
     } catch (error) {
       if (error instanceof ApiError) {
         if (error.status === 401) {
@@ -97,6 +98,9 @@ export default async function RecruiterJobsPage({ searchParams }: PageProps) {
       }
       redirect('/dashboard/recruiter/jobs?error=upload-failed');
     }
+
+    revalidatePath('/dashboard/recruiter/jobs');
+    redirect(`/dashboard/recruiter/jobs/${createdId}`);
   }
 
   async function publishAction(formData: FormData) {

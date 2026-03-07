@@ -1,23 +1,26 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { JobStatus, Prisma, UserRole } from '@prisma/client';
+import type { NormalizedProfile } from '../normalization/normalization.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { JOB_LOCATION_NORMALIZATION_KEY } from '../normalization/normalization.types';
-import { ScoreCombinerService } from './calculators/score-combiner.service';
-import { SkillsCalculatorService } from './calculators/skills-calculator.service';
-import { TfidfCalculatorService } from './calculators/tfidf-calculator.service';
-import { SkillStorageAdapterService } from './services/skill-storage-adapter.service';
 import {
   MatchingActor,
   MatchingIntegrationPayload,
   MatchingResult,
 } from './matching.types';
-import { MatchingVersion, SkillAtom } from './types/skill-canonical.types';
+import { CandidateProfileService } from './services/candidate-profile.service';
+import { JobRequirementsSchemaService } from './services/job-requirements-schema.service';
+import { SchemaMatchingEvaluatorService } from './services/schema-matching-evaluator.service';
+import {
+  CandidateProfileV1,
+  RequirementsSchemaV1,
+} from './types/schema-matching.types';
 
 type CvRecord = {
   id: string;
   candidateId: string;
   skills: Prisma.JsonValue;
-  skillAtoms: Prisma.JsonValue | null;
+  candidateProfile: Prisma.JsonValue | null;
   parsedData: Prisma.JsonValue;
   candidate: { userId: string };
 };
@@ -25,9 +28,10 @@ type CvRecord = {
 type JobRecord = {
   id: string;
   recruiterId: string;
+  title: string;
   description: string;
   skills: Prisma.JsonValue;
-  skillAtoms: Prisma.JsonValue | null;
+  requirementsSchema: Prisma.JsonValue | null;
   location: Prisma.JsonValue | null;
   status: JobStatus;
 };
@@ -36,10 +40,9 @@ type JobRecord = {
 export class MatchingService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly tfidfCalculator: TfidfCalculatorService,
-    private readonly skillsCalculator: SkillsCalculatorService,
-    private readonly scoreCombiner: ScoreCombinerService,
-    private readonly skillStorageAdapter: SkillStorageAdapterService,
+    private readonly jobRequirementsSchemaService: JobRequirementsSchemaService,
+    private readonly candidateProfileService: CandidateProfileService,
+    private readonly schemaMatchingEvaluator: SchemaMatchingEvaluatorService,
   ) {}
 
   async calculateForCvAndJob(
@@ -49,57 +52,27 @@ export class MatchingService {
   ): Promise<MatchingResult> {
     const cv = await this.getCvOrThrow(cvId, actor);
     const job = await this.getJobOrThrow(jobId, actor);
-    const matchingVersion = this.readConfiguredMatchingVersion();
-    const legacyInputs =
-      matchingVersion === 'legacy'
-        ? this.buildLegacySkillInputs(cv, job)
-        : null;
-    const v2Inputs =
-      matchingVersion === 'v2' ? this.buildV2SkillInputs(cv, job) : null;
-    const inputs = legacyInputs ?? v2Inputs;
-    if (!inputs) {
-      throw new NotFoundException('Resource not found');
-    }
-    const canonicalWarnings = {
-      missingCvAtoms: v2Inputs?.missingCvAtoms ?? false,
-      missingJobAtoms: v2Inputs?.missingJobAtoms ?? false,
-    };
-    const cvSkills = this.toSkillLabels(inputs.cvSkills);
-    const jobSkills = this.toSkillLabels(inputs.jobSkills);
-    const cvText = this.extractCvText(cv.parsedData, cvSkills);
-    const jobText = this.extractJobText(
-      job.description,
-      jobSkills,
-      job.location,
+    const candidateProfile = this.resolveCandidateProfile(cv);
+    const requirementsSchema = this.resolveRequirementsSchema(job);
+    const evaluation = this.schemaMatchingEvaluator.evaluate(
+      requirementsSchema,
+      candidateProfile,
     );
-
-    const tfidfScore = this.scoreCombiner.normalizeUnit(
-      this.tfidfCalculator.calculateTfidfScore(cvText, jobText),
-    );
-    const skillsScore = this.scoreCombiner.normalizeUnit(
-      this.skillsCalculator.calculateSkillsScore(
-        inputs.cvSkills,
-        inputs.jobSkills,
-      ),
-    );
-    const breakdown = this.skillsCalculator.calculateBreakdown(
-      inputs.cvSkills,
-      inputs.jobSkills,
-    );
-    const warnings = this.buildWarnings(
-      cv.parsedData,
-      job.location,
-      canonicalWarnings.missingCvAtoms,
-      canonicalWarnings.missingJobAtoms,
+    const warnings = Array.from(
+      new Set([
+        ...evaluation.snapshot.warnings,
+        ...this.buildWarnings(cv.parsedData, job.location),
+      ]),
     );
 
     return {
-      score: this.scoreCombiner.calculateFinalScore(tfidfScore, skillsScore),
-      tfidfScore,
-      skillsScore,
-      breakdown,
-      matchingVersion,
+      score: evaluation.finalScorePercent,
+      matchingVersion: 'schema_v1',
       warnings,
+      matchingSnapshot: {
+        ...evaluation.snapshot,
+        warnings,
+      },
     };
   }
 
@@ -111,22 +84,9 @@ export class MatchingService {
     const result = await this.calculateForCvAndJob(cvId, jobId, actor);
     return {
       finalScorePercent: result.score,
-      tfidfScore: result.tfidfScore,
-      skillsScore: result.skillsScore,
-      breakdown: result.breakdown,
       matchingVersion: result.matchingVersion,
       warnings: result.warnings,
-      matchingSnapshot: {
-        version: result.matchingVersion,
-        componentScores: {
-          tfidf: result.tfidfScore,
-          skills: result.skillsScore,
-          final: result.score,
-        },
-        topMatchedSkills: result.breakdown.matchedSkills.slice(0, 8),
-        missingSkills: result.breakdown.missingSkills,
-        warnings: result.warnings,
-      },
+      matchingSnapshot: result.matchingSnapshot,
     };
   }
 
@@ -140,7 +100,7 @@ export class MatchingService {
         id: true,
         candidateId: true,
         skills: true,
-        skillAtoms: true,
+        candidateProfile: true,
         parsedData: true,
         candidate: { select: { userId: true } },
       },
@@ -161,9 +121,10 @@ export class MatchingService {
       select: {
         id: true,
         recruiterId: true,
+        title: true,
         description: true,
         skills: true,
-        skillAtoms: true,
+        requirementsSchema: true,
         location: true,
         status: true,
       },
@@ -186,123 +147,63 @@ export class MatchingService {
       return true;
     }
     if (actor.role === UserRole.RECRUITER) {
-      return (
-        job.status === JobStatus.PUBLISHED || job.recruiterId === actor.sub
-      );
+      return job.status === JobStatus.PUBLISHED || job.recruiterId === actor.sub;
     }
     return job.status === JobStatus.PUBLISHED;
   }
 
-  private extractCvText(
-    parsedData: Prisma.JsonValue,
-    skills: string[],
-  ): string {
-    const root = this.readJsonObject(parsedData);
-    const chunks = [
-      this.readJsonString(root.summary),
-      this.readJsonString(root.contact),
-      this.readJsonString(root.experience),
-      this.readJsonString(root.education),
-      skills.join(' '),
-    ];
-    return chunks.filter(Boolean).join(' ');
-  }
-
-  private extractJobText(
-    description: string,
-    skills: string[],
-    location: Prisma.JsonValue | null,
-  ): string {
-    const normalized = this.extractNormalizedProfileFromLocation(location);
-    if (normalized) {
-      const root = this.readJsonObject(normalized);
-      const chunks = [
-        this.readJsonString(root.summary),
-        this.readJsonString(root.title),
-        this.readJsonString(root.jobMeta),
-        skills.join(' '),
-      ];
-      return chunks.filter(Boolean).join(' ');
+  private resolveCandidateProfile(cv: CvRecord): CandidateProfileV1 {
+    const stored = this.readJsonObject(cv.candidateProfile);
+    if (Object.keys(stored).length > 0) {
+      return stored as unknown as CandidateProfileV1;
     }
-    return `${description} ${skills.join(' ')}`.trim();
+
+    const parsedData = this.readJsonObject(cv.parsedData);
+    const normalizedProfile = this.readJsonObject(
+      parsedData.normalizedProfile,
+    );
+    return this.candidateProfileService.create({
+      normalizedProfile:
+        Object.keys(normalizedProfile).length > 0
+          ? (normalizedProfile as unknown as NormalizedProfile)
+          : null,
+      parsedData: parsedData as Record<string, unknown>,
+      skills: this.readJsonStringArray(cv.skills),
+    });
   }
 
-  private extractCvNormalizedProfile(parsedData: Prisma.JsonValue): string[] {
-    const root = this.readJsonObject(parsedData);
-    const normalized = this.readJsonObject(root.normalizedProfile);
-    return this.readJsonStringArray(normalized.skills);
-  }
-
-  private extractCvSkillAtoms(cv: CvRecord): SkillAtom[] {
-    return this.skillStorageAdapter.readSkillAtoms(cv.skillAtoms);
-  }
-
-  private extractJobNormalizedProfile(
-    location: Prisma.JsonValue | null,
-  ): string[] {
-    const normalized = this.extractNormalizedProfileFromLocation(location);
-    if (!normalized) {
-      return [];
+  private resolveRequirementsSchema(job: JobRecord): RequirementsSchemaV1 {
+    const stored = this.readJsonObject(job.requirementsSchema);
+    if (Object.keys(stored).length > 0) {
+      return stored as unknown as RequirementsSchemaV1;
     }
-    return this.readJsonStringArray(this.readJsonObject(normalized).skills);
-  }
 
-  private extractJobSkillAtoms(job: JobRecord): SkillAtom[] {
-    return this.skillStorageAdapter.readSkillAtoms(job.skillAtoms);
-  }
+    const normalizedProfile = this.readJsonObject(
+      this.extractNormalizedProfileFromLocation(job.location),
+    );
 
-  private buildLegacySkillInputs(cv: CvRecord, job: JobRecord) {
-    const cvSkills = this.extractCvNormalizedProfile(cv.parsedData);
-    const jobSkills = this.extractJobNormalizedProfile(job.location);
-
-    return {
-      cvSkills:
-        cvSkills.length > 0 ? cvSkills : this.readJsonStringArray(cv.skills),
-      jobSkills:
-        jobSkills.length > 0 ? jobSkills : this.readJsonStringArray(job.skills),
-      usedLegacyFallback: false,
-    };
-  }
-
-  private buildV2SkillInputs(cv: CvRecord, job: JobRecord) {
-    const cvSkills = this.extractCvSkillAtoms(cv);
-    const jobSkills = this.extractJobSkillAtoms(job);
-
-    return {
-      cvSkills,
-      jobSkills,
-      missingCvAtoms: cvSkills.length === 0,
-      missingJobAtoms: jobSkills.length === 0,
-    };
+    return this.jobRequirementsSchemaService.create({
+      title: job.title,
+      summary: this.readJsonString(normalizedProfile.summary),
+      skills: this.readJsonStringArray(job.skills),
+      description: job.description,
+      normalizedProfile:
+        Object.keys(normalizedProfile).length > 0
+          ? (normalizedProfile as unknown as NormalizedProfile)
+          : null,
+      location: this.readLocationObject(job.location),
+    });
   }
 
   private buildWarnings(
     parsedData: Prisma.JsonValue,
     location: Prisma.JsonValue | null,
-    missingCvAtoms: boolean,
-    missingJobAtoms: boolean,
   ): string[] {
     const warnings: string[] = [];
-    if (missingCvAtoms) {
-      warnings.push(
-        'CV canonical skills are missing. Reprocess the CV before relying on this match.',
-      );
-    }
-    if (missingJobAtoms) {
-      warnings.push(
-        'Job canonical skills are missing. Reprocess the JD before relying on this match.',
-      );
-    }
-    if (
-      this.needsManualReview(this.readJsonObject(parsedData).normalizedProfile)
-    ) {
+    if (this.needsManualReview(this.readJsonObject(parsedData).normalizedProfile)) {
       warnings.push('CV parsing needs manual review');
     }
-    if (
-      this.needsManualReview(
-        this.extractNormalizedProfileFromLocation(location),
-      )
-    ) {
+    if (this.needsManualReview(this.extractNormalizedProfileFromLocation(location))) {
       warnings.push('Job parsing needs manual review');
     }
     return warnings;
@@ -317,24 +218,24 @@ export class MatchingService {
     return rawQuality.needsManualReview === true;
   }
 
-  private readConfiguredMatchingVersion(): MatchingVersion {
-    return process.env['MATCHING_VERSION'] === 'legacy' ? 'legacy' : 'v2';
-  }
-
-  private toSkillLabels(skills: Array<string | SkillAtom>): string[] {
-    return skills.map((entry) =>
-      typeof entry === 'string' ? entry.trim() : entry.label,
-    );
-  }
-
   private extractNormalizedProfileFromLocation(
     location: Prisma.JsonValue | null,
   ): Prisma.JsonValue | null {
     const root = this.readJsonObject(location);
-    const normalization = this.readJsonObject(
-      root[JOB_LOCATION_NORMALIZATION_KEY],
-    );
+    const normalization = this.readJsonObject(root[JOB_LOCATION_NORMALIZATION_KEY]);
     return normalization.normalizedProfile ?? null;
+  }
+
+  private readLocationObject(
+    value: Prisma.JsonValue | null,
+  ): Record<string, unknown> | null {
+    const root = this.readJsonObject(value) as Record<string, unknown>;
+    if (!Object.keys(root).length) {
+      return null;
+    }
+    const clean = { ...root } as Record<string, unknown>;
+    delete clean[JOB_LOCATION_NORMALIZATION_KEY];
+    return Object.keys(clean).length ? clean : null;
   }
 
   private readJsonStringArray(value: Prisma.JsonValue): string[] {
@@ -348,7 +249,7 @@ export class MatchingService {
   }
 
   private readJsonObject(
-    value: Prisma.JsonValue,
+    value: Prisma.JsonValue | null | undefined,
   ): Record<string, Prisma.JsonValue> {
     return value && typeof value === 'object' && !Array.isArray(value)
       ? (value as Record<string, Prisma.JsonValue>)
@@ -357,15 +258,16 @@ export class MatchingService {
 
   private readJsonString(value: Prisma.JsonValue | undefined): string {
     if (typeof value === 'string') {
-      return value;
+      return value.trim();
     }
     if (Array.isArray(value)) {
-      return value.filter((entry) => typeof entry === 'string').join(' ');
+      return value.filter((entry) => typeof entry === 'string').join(' ').trim();
     }
     if (value && typeof value === 'object') {
       return Object.values(value)
         .filter((entry) => typeof entry === 'string')
-        .join(' ');
+        .join(' ')
+        .trim();
     }
     return '';
   }

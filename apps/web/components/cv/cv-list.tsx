@@ -100,10 +100,32 @@ export function CvList({
   return (
     <section className="space-y-4">
       {items.map((cv) => {
-        const location = cv.normalizedProfile?.location;
+        const location = cv.candidateProfile?.location ?? cv.normalizedProfile?.location;
         const locationStr = location
           ? [location.city, location.country].filter(Boolean).join(', ')
           : null;
+        const summary =
+          cv.candidateProfile?.summary ??
+          cv.normalizedProfile?.summary ??
+          (typeof cv.parsedData.summary === 'string' ? cv.parsedData.summary : '');
+        const skills = preferStringArray(
+          cv.candidateProfile?.skills ?? [],
+          preferStringArray(cv.normalizedProfile?.skills ?? [], cv.skills),
+        );
+        const languages = preferStringArray(
+          cv.candidateProfile?.languages ?? [],
+          preferStringArray(
+            cv.normalizedProfile?.languages ?? [],
+            toStringArray(cv.parsedData.languages),
+          ),
+        );
+        const certifications = preferStringArray(
+          cv.candidateProfile?.certifications ?? [],
+          preferStringArray(
+            cv.normalizedProfile?.certifications ?? [],
+            toStringArray(cv.parsedData.certifications),
+          ),
+        );
 
         return (
           <article key={cv.id} className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
@@ -111,9 +133,9 @@ export function CvList({
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="flex-1">
                 <p className="font-medium text-zinc-900">{cv.fileName}</p>
-                {cv.normalizedProfile?.title && (
+                {(cv.candidateProfile?.headline || cv.normalizedProfile?.title) && (
                   <p className="mt-0.5 text-sm font-medium text-zinc-700">
-                    {cv.normalizedProfile.title}
+                    {cv.candidateProfile?.headline || cv.normalizedProfile?.title}
                     {locationStr && <span className="text-zinc-500"> • {locationStr}</span>}
                   </p>
                 )}
@@ -144,21 +166,14 @@ export function CvList({
             </div>
 
             {/* Summary */}
-            {(cv.normalizedProfile?.summary ?? cv.parsedData.summary) && (
-              <ExpandableSummary
-                text={cv.normalizedProfile?.summary ?? String(cv.parsedData.summary)}
-              />
-            )}
+            {summary ? <ExpandableSummary text={summary} /> : null}
 
             {/* Skills Section */}
             <div className="mt-4">
               <ChipsSection
                 title="Skills"
                 categorize={true}
-                items={preferStringArray(
-                  cv.normalizedProfile?.skills ?? [],
-                  cv.skills,
-                )}
+                items={skills}
               />
             </div>
 
@@ -166,22 +181,16 @@ export function CvList({
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               <ChipsSection
                 title="Languages"
-                items={preferStringArray(
-                  cv.normalizedProfile?.languages ?? [],
-                  toStringArray(cv.parsedData.languages),
-                )}
+                items={languages}
               />
               <ChipsSection
                 title="Certifications"
-                items={preferStringArray(
-                  cv.normalizedProfile?.certifications ?? [],
-                  toStringArray(cv.parsedData.certifications),
-                )}
+                items={certifications}
               />
               <ObjectSection
                 title="Experience"
                 rows={preferRecordArray(
-                  (cv.normalizedProfile?.experience ?? []).map((exp) => ({
+                  (cv.candidateProfile?.experience ?? cv.normalizedProfile?.experience ?? []).map((exp) => ({
                     role: exp.role,
                     company: exp.company,
                     startDate: exp.startDate,
@@ -208,7 +217,7 @@ export function CvList({
               <ObjectSection
                 title="Education"
                 rows={preferRecordArray(
-                  cv.normalizedProfile?.education ?? [],
+                  cv.candidateProfile?.education ?? cv.normalizedProfile?.education ?? [],
                   toRecordArray(cv.parsedData.education),
                 )}
                 pickTitle={(row) => String(row.degree ?? row.school ?? '')}
@@ -228,7 +237,7 @@ export function CvList({
               <ObjectSection
                 title="Projects"
                 rows={preferRecordArray(
-                  (cv.normalizedProfile?.projects ?? []).map((project) => ({
+                  (cv.candidateProfile?.projects ?? cv.normalizedProfile?.projects ?? []).map((project) => ({
                     name: project.name,
                     description: project.description,
                     tech: project.tech,

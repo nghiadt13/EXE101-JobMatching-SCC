@@ -20,6 +20,7 @@ import {
 } from '../documents/document-upload.constants';
 import { DocumentStorageService } from '../documents/services/document-storage.service';
 import { DocumentTextExtractorService } from '../documents/services/document-text-extractor.service';
+import { JobRequirementsSchemaService } from '../matching/services/job-requirements-schema.service';
 import { SkillStorageAdapterService } from '../matching/services/skill-storage-adapter.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiNormalizationService } from '../normalization/ai-normalization.service';
@@ -61,6 +62,7 @@ export class JobsService {
     private readonly jobSlugService: JobSlugService,
     private readonly documentStorageService: DocumentStorageService,
     private readonly documentTextExtractorService: DocumentTextExtractorService,
+    private readonly jobRequirementsSchemaService: JobRequirementsSchemaService,
     private readonly skillStorageAdapter: SkillStorageAdapterService,
   ) {}
 
@@ -82,6 +84,15 @@ export class JobsService {
       ),
       storedSkills.skills,
     );
+    const location = this.withNormalizationMeta(dto.location, normalization, {
+      inputMode: 'manual',
+    });
+    const requirementsSchema = this.buildRequirementsSchema({
+      title: dto.title,
+      description: dto.description,
+      skills: storedSkills.skills,
+      location,
+    });
 
     return this.withUniqueJobSlug(dto.title, async (slug) => {
       const created = await this.prisma.job.create({
@@ -93,9 +104,10 @@ export class JobsService {
           skills: storedSkills.skills as Prisma.InputJsonValue,
           skillAtoms:
             storedSkills.skillAtoms as unknown as Prisma.InputJsonValue,
-          location: this.withNormalizationMeta(dto.location, normalization, {
-            inputMode: 'manual',
-          }),
+          location,
+          requirementsSchema:
+            requirementsSchema as unknown as Prisma.InputJsonValue,
+          requirementsSchemaVersion: requirementsSchema.version,
           salaryMin: dto.salaryMin ?? null,
           salaryMax: dto.salaryMax ?? null,
           employmentType: dto.employmentType,
@@ -148,6 +160,20 @@ export class JobsService {
       normalization,
       storedSkills.skills,
     );
+    const location = this.withNormalizationMeta(null, syncedNormalization, {
+      inputMode: 'file_upload',
+      sourceDocument: {
+        fileName: file.originalname,
+        mimeType: file.mimetype,
+        fileSize: file.size,
+      },
+    });
+    const requirementsSchema = this.buildRequirementsSchema({
+      title: draft.title,
+      description: draft.description,
+      skills: storedSkills.skills,
+      location,
+    });
     const storedPath = await this.documentStorageService.save(
       'jobs',
       recruiterId,
@@ -168,15 +194,10 @@ export class JobsService {
               skills: storedSkills.skills as Prisma.InputJsonValue,
               skillAtoms:
                 storedSkills.skillAtoms as unknown as Prisma.InputJsonValue,
-              location: this.withNormalizationMeta(null, syncedNormalization, {
-                inputMode: 'file_upload',
-                sourceDocument: {
-                  fileName: file.originalname,
-                  mimeType: file.mimetype,
-                  fileSize: file.size,
-                  storedPath,
-                },
-              }),
+              location: this.withStoredDocumentPath(location, storedPath),
+              requirementsSchema:
+                requirementsSchema as unknown as Prisma.InputJsonValue,
+              requirementsSchemaVersion: requirementsSchema.version,
               salaryMin: null,
               salaryMax: null,
               employmentType: draft.employmentType,
@@ -309,6 +330,8 @@ export class JobsService {
       dto.description !== undefined ||
       dto.skills !== undefined ||
       dto.employmentType !== undefined;
+    const shouldRefreshRequirementsSchema =
+      shouldRenormalize || dto.location !== undefined;
 
     const nextSkills =
       dto.skills !== undefined
@@ -355,6 +378,14 @@ export class JobsService {
       : dto.location !== undefined
         ? this.preserveNormalizationMeta(baseLocation, existing.location)
         : undefined;
+    const requirementsSchema = shouldRefreshRequirementsSchema
+      ? this.buildRequirementsSchema({
+          title: nextTitle,
+          description: nextDescription,
+          skills: nextSkillPayload.skills,
+          location: nextLocation ?? existing.location,
+        })
+      : null;
 
     if (dto.title === undefined) {
       const updated = await this.prisma.job.update({
@@ -371,6 +402,13 @@ export class JobsService {
               }
             : {}),
           ...(nextLocation !== undefined ? { location: nextLocation } : {}),
+          ...(requirementsSchema
+            ? {
+                requirementsSchema:
+                  requirementsSchema as unknown as Prisma.InputJsonValue,
+                requirementsSchemaVersion: requirementsSchema.version,
+              }
+            : {}),
           ...(dto.salaryMin !== undefined ? { salaryMin: dto.salaryMin } : {}),
           ...(dto.salaryMax !== undefined ? { salaryMax: dto.salaryMax } : {}),
           ...(dto.employmentType !== undefined
@@ -402,6 +440,13 @@ export class JobsService {
                 }
               : {}),
             ...(nextLocation !== undefined ? { location: nextLocation } : {}),
+            ...(requirementsSchema
+              ? {
+                  requirementsSchema:
+                    requirementsSchema as unknown as Prisma.InputJsonValue,
+                  requirementsSchemaVersion: requirementsSchema.version,
+                }
+              : {}),
             ...(dto.salaryMin !== undefined
               ? { salaryMin: dto.salaryMin }
               : {}),
@@ -492,6 +537,8 @@ export class JobsService {
         skills: true,
         skillAtoms: true,
         location: true,
+        requirementsSchema: true,
+        requirementsSchemaVersion: true,
         employmentType: true,
         status: true,
       },
@@ -606,6 +653,8 @@ export class JobsService {
     description: string;
     skills: Prisma.JsonValue;
     location: Prisma.JsonValue | null;
+    requirementsSchema: Prisma.JsonValue | null;
+    requirementsSchemaVersion: string | null;
     salaryMin: number | null;
     salaryMax: number | null;
     employmentType: string;
@@ -626,6 +675,16 @@ export class JobsService {
     );
     const parseTelemetry = this.asRecord(normalization['parseTelemetry']);
     const normalizedProfile = this.asRecord(normalization['normalizedProfile']);
+    const requirementsSchema = this.asRecord(item.requirementsSchema);
+    const resolvedRequirementsSchema =
+      Object.keys(requirementsSchema).length > 0
+        ? requirementsSchema
+        : this.buildRequirementsSchema({
+            title: item.title,
+            description: item.description,
+            skills: this.readPersistedOrNormalizedSkills(item.skills, item.location),
+            location: item.location,
+          });
 
     return {
       ...item,
@@ -638,6 +697,14 @@ export class JobsService {
         Object.keys(normalizedProfile).length > 0
           ? (normalizedProfile as unknown as NormalizedProfile)
           : null,
+      requirementsSchema:
+        Object.keys(this.asRecord(resolvedRequirementsSchema)).length > 0
+          ? (resolvedRequirementsSchema as JobView['requirementsSchema'])
+          : null,
+      requirementsSchemaVersion:
+        item.requirementsSchemaVersion ??
+        (resolvedRequirementsSchema as { version?: string }).version ??
+        null,
       parseTelemetry:
         Object.keys(parseTelemetry).length > 0
           ? (parseTelemetry as unknown as JobView['parseTelemetry'])
@@ -655,6 +722,8 @@ export class JobsService {
       skills: true,
       skillAtoms: true,
       location: true,
+      requirementsSchema: true,
+      requirementsSchemaVersion: true,
       salaryMin: true,
       salaryMax: true,
       employmentType: true,
@@ -691,6 +760,37 @@ export class JobsService {
         skills,
       },
     };
+  }
+
+  private buildRequirementsSchema(input: {
+    title: string;
+    description: string;
+    skills: string[];
+    location: unknown;
+  }) {
+    const locationValue = input.location as
+      | Prisma.JsonValue
+      | Record<string, unknown>
+      | null
+      | undefined;
+    const normalization = this.readNormalizationMeta(locationValue);
+    const normalizedProfile = this.asRecord(
+      normalization['normalizedProfile'],
+    );
+    return this.jobRequirementsSchemaService.create({
+      title: input.title,
+      summary:
+        typeof normalizedProfile['summary'] === 'string'
+          ? normalizedProfile['summary']
+          : '',
+      skills: input.skills,
+      description: input.description,
+      normalizedProfile:
+        Object.keys(normalizedProfile).length > 0
+          ? (normalizedProfile as unknown as NormalizedProfile)
+          : null,
+      location: this.stripNormalizationMeta(locationValue),
+    });
   }
 
   private withNormalizationMeta(
@@ -754,6 +854,25 @@ export class JobsService {
           [JOB_LOCATION_NORMALIZATION_KEY]: existingNormalization,
         } as unknown as Prisma.InputJsonValue)
       : (base as unknown as Prisma.InputJsonValue);
+  }
+
+  private withStoredDocumentPath(
+    value: Prisma.InputJsonValue,
+    storedPath: string,
+  ): Prisma.InputJsonValue {
+    const root = this.asRecord(value);
+    const normalization = this.asRecord(root[JOB_LOCATION_NORMALIZATION_KEY]);
+    const sourceDocument = this.asRecord(normalization['sourceDocument']);
+    return {
+      ...root,
+      [JOB_LOCATION_NORMALIZATION_KEY]: {
+        ...normalization,
+        sourceDocument: {
+          ...sourceDocument,
+          storedPath,
+        },
+      },
+    } as unknown as Prisma.InputJsonValue;
   }
 
   private readNormalizationMeta(

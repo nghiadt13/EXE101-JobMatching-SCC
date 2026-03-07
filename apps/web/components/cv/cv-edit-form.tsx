@@ -7,11 +7,14 @@ type CvEditFormProps = {
 
 export function CvEditForm({ cv, updateAction }: CvEditFormProps) {
   const summary =
+    cv.candidateProfile?.summary ??
     cv.normalizedProfile?.summary ??
     (typeof cv.parsedData.summary === 'string' ? cv.parsedData.summary : '');
   const languages =
-    cv.normalizedProfile?.languages?.length
-      ? cv.normalizedProfile.languages
+    cv.candidateProfile?.languages?.length
+      ? cv.candidateProfile.languages
+      : cv.normalizedProfile?.languages?.length
+        ? cv.normalizedProfile.languages
       : (Array.isArray(cv.parsedData.languages)
           ? cv.parsedData.languages.filter((item): item is string => typeof item === 'string')
           : []);
@@ -25,7 +28,7 @@ export function CvEditForm({ cv, updateAction }: CvEditFormProps) {
         </span>
         <textarea
           name="skills"
-          defaultValue={(cv.normalizedProfile?.skills ?? cv.skills).join('\n')}
+          defaultValue={(cv.candidateProfile?.skills ?? cv.normalizedProfile?.skills ?? cv.skills).join('\n')}
           className="min-h-24 w-full rounded-md border border-zinc-300 px-2 py-2 text-sm leading-relaxed"
         />
       </label>

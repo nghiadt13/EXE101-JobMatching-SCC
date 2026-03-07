@@ -38,8 +38,6 @@ type ApplicationRecord = {
   candidateId: string;
   cvId: string;
   matchScore: number;
-  tfidfScore: number | null;
-  skillsScore: number | null;
   matchingSnapshot: Prisma.JsonValue | null;
   status: ApplicationStatus;
   notes: string | null;
@@ -87,8 +85,6 @@ export class ApplicationsService {
           candidateId: candidate.id,
           cvId: cv.id,
           matchScore: matching.finalScorePercent,
-          tfidfScore: matching.tfidfScore,
-          skillsScore: matching.skillsScore,
           matchingSnapshot:
             matching.matchingSnapshot as unknown as Prisma.InputJsonValue,
         },
@@ -231,8 +227,6 @@ export class ApplicationsService {
       candidateId: item.candidateId,
       cvId: item.cvId,
       matchScore: item.matchScore,
-      tfidfScore: item.tfidfScore,
-      skillsScore: item.skillsScore,
       matchingSnapshot:
         item.matchingSnapshot &&
         typeof item.matchingSnapshot === 'object' &&
@@ -260,8 +254,6 @@ export class ApplicationsService {
       candidateId: true,
       cvId: true,
       matchScore: true,
-      tfidfScore: true,
-      skillsScore: true,
       matchingSnapshot: true,
       status: true,
       notes: true,

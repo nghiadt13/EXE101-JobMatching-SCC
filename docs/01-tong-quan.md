@@ -11,7 +11,7 @@ Xây dựng platform tuyển dụng với AI matching tự động giữa CV ứ
 - Authentication với 3 roles
 - CV management + AI parsing
 - Job posting management
-- Matching algorithm (TF-IDF + skills)
+- Matching algorithm theo schema yêu cầu + đánh giá deterministic
 - Application flow
 - Dashboard đơn giản
 
@@ -86,10 +86,11 @@ Xây dựng platform tuyển dụng với AI matching tự động giữa CV ứ
 1. Candidate tìm job
 2. Click "Apply"
 3. System tính match score:
-   - TF-IDF: so sánh full text CV vs JD (70%)
-   - Skills overlap: đếm skills match (30%)
+   - Dựng `candidateProfile` từ CV
+   - Dựng `requirementsSchema` từ JD
+   - Đánh giá từng requirement: met / partial / missing
    - Final score: 0-100%
-4. Lưu application với score
+4. Lưu application với `matchScore` + `matchingSnapshot`
 5. Recruiter xem applications, sort by score
 ```
 
@@ -120,5 +121,5 @@ Thiết kế cho phép mở rộng sau:
 
 - Skills: JSONB → normalized tables
 - Storage: Local → Cloudflare R2
-- Matching: TF-IDF → Semantic embeddings
+- Matching: deterministic schema evaluation → richer ranking / semantic assist nếu cần
 - Features: Email notifications, analytics, team management

@@ -1,34 +1,21 @@
 import { UserRole } from '@prisma/client';
-import {
-  MatchingSnapshot,
-  MatchingVersion,
-} from './types/skill-canonical.types';
+import { SchemaMatchingSnapshot } from './types/schema-matching.types';
 
 export type MatchingActor = {
   sub: string;
   role: UserRole;
 };
 
-export type MatchingBreakdown = {
-  matchedSkills: string[];
-  missingSkills: string[];
-};
-
 export type MatchingResult = {
   score: number;
-  tfidfScore: number;
-  skillsScore: number;
-  breakdown: MatchingBreakdown;
-  matchingVersion: MatchingVersion;
+  matchingVersion: 'schema_v1';
   warnings: string[];
+  matchingSnapshot: SchemaMatchingSnapshot;
 };
 
 export type MatchingIntegrationPayload = {
   finalScorePercent: number;
-  tfidfScore: number;
-  skillsScore: number;
-  breakdown: MatchingBreakdown;
-  matchingVersion: MatchingVersion;
+  matchingVersion: 'schema_v1';
   warnings: string[];
-  matchingSnapshot: MatchingSnapshot;
+  matchingSnapshot: SchemaMatchingSnapshot;
 };

@@ -16,6 +16,7 @@ import {
 import { QueryCvsDto } from './dto/query-cvs.dto';
 import { UpdateCvDto } from './dto/update-cv.dto';
 import { CvView, CvsListResponse } from './cvs.types';
+import { CandidateProfileService } from '../matching/services/candidate-profile.service';
 import { SkillStorageAdapterService } from '../matching/services/skill-storage-adapter.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiNormalizationService } from '../normalization/ai-normalization.service';
@@ -39,6 +40,7 @@ export class CvsService {
     private readonly aiNormalizationService: AiNormalizationService,
     private readonly cvStorageService: CvStorageService,
     private readonly cvTextExtractorService: CvTextExtractorService,
+    private readonly candidateProfileService: CandidateProfileService,
     private readonly skillStorageAdapter: SkillStorageAdapterService,
   ) {}
 
@@ -90,6 +92,9 @@ export class CvsService {
           parsedData: normalized.parsedData as unknown as Prisma.InputJsonValue,
           skills: normalized.skills as Prisma.InputJsonValue,
           skillAtoms: normalized.skillAtoms as unknown as Prisma.InputJsonValue,
+          candidateProfile:
+            normalized.candidateProfile as unknown as Prisma.InputJsonValue,
+          candidateProfileVersion: normalized.candidateProfile.version,
           isPrimary: activeCount === 0,
         },
         select: this.cvViewSelect,
@@ -250,6 +255,13 @@ export class CvsService {
             ...incomingParsedData,
           }
         : { ...currentParsedData };
+    const effectiveSkills = normalizedSkillsPayload
+      ? normalizedSkillsPayload.skills
+      : Array.isArray(current.skills)
+        ? current.skills.filter(
+            (entry): entry is string => typeof entry === 'string',
+          )
+        : [];
 
     if (normalizedSkillsPayload) {
       mergedParsedData['skills'] = normalizedSkillsPayload.skills;
@@ -288,6 +300,11 @@ export class CvsService {
       }
     }
 
+    const candidateProfile = this.buildCandidateProfile(
+      mergedParsedData,
+      effectiveSkills,
+    );
+
     const updated = await this.prisma.cV.update({
       where: { id: cvId },
       data: {
@@ -301,6 +318,8 @@ export class CvsService {
                 normalizedSkillsPayload.skillAtoms as unknown as Prisma.InputJsonValue,
             }
           : {}),
+        candidateProfile: candidateProfile as unknown as Prisma.InputJsonValue,
+        candidateProfileVersion: candidateProfile.version,
       },
       select: this.cvViewSelect,
     });
@@ -392,6 +411,7 @@ export class CvsService {
     isPrimary: boolean;
     filePath: string;
     parsedData: Prisma.JsonValue;
+    skills: Prisma.JsonValue;
   }> {
     const cv = await this.prisma.cV.findFirst({
       where: {
@@ -404,6 +424,7 @@ export class CvsService {
         isPrimary: true,
         filePath: true,
         parsedData: true,
+        skills: true,
       },
     });
 
@@ -444,6 +465,8 @@ export class CvsService {
     mimeType: string;
     parsedData: Prisma.JsonValue;
     skills: Prisma.JsonValue;
+    candidateProfile: Prisma.JsonValue | null;
+    candidateProfileVersion: string | null;
     isPrimary: boolean;
     createdAt: Date;
     updatedAt: Date;
@@ -454,8 +477,17 @@ export class CvsService {
     const normalizedProfile = this.asRecord(
       parsedData.normalizedProfile,
     ) as unknown as NormalizedProfile;
+    const candidateProfile = this.asRecord(item.candidateProfile);
     const parseTelemetry = this.asRecord(parsedData.parseTelemetry);
     const parseStatus = this.normalizeParseStatus(parsedData.parseStatus);
+    const skills = Array.isArray(item.skills) ? (item.skills as string[]) : [];
+    const resolvedCandidateProfile =
+      Object.keys(candidateProfile).length > 0
+        ? candidateProfile
+        : this.buildCandidateProfile(
+            parsedData as unknown as Record<string, unknown>,
+            skills,
+          );
 
     return {
       id: item.id,
@@ -463,12 +495,20 @@ export class CvsService {
       fileSize: item.fileSize,
       mimeType: item.mimeType,
       parsedData,
-      skills: Array.isArray(item.skills) ? (item.skills as string[]) : [],
+      skills,
       parseStatus,
       normalizedProfile:
         Object.keys(this.asRecord(normalizedProfile)).length > 0
           ? normalizedProfile
           : null,
+      candidateProfile:
+        Object.keys(this.asRecord(resolvedCandidateProfile)).length > 0
+          ? (resolvedCandidateProfile as CvView['candidateProfile'])
+          : null,
+      candidateProfileVersion:
+        item.candidateProfileVersion ??
+        (resolvedCandidateProfile as { version?: string }).version ??
+        null,
       parseTelemetry:
         Object.keys(parseTelemetry).length > 0
           ? (parseTelemetry as unknown as CvView['parseTelemetry'])
@@ -487,6 +527,8 @@ export class CvsService {
       mimeType: true,
       parsedData: true,
       skills: true,
+      candidateProfile: true,
+      candidateProfileVersion: true,
       isPrimary: true,
       createdAt: true,
       updatedAt: true,
@@ -498,6 +540,7 @@ export class CvsService {
     parsedData: Record<string, unknown>;
     skills: string[];
     skillAtoms: unknown[];
+    candidateProfile: ReturnType<CandidateProfileService['create']>;
   } {
     const storedSkills = this.skillStorageAdapter.toStoredSkills(
       result.profile.skills,
@@ -525,7 +568,23 @@ export class CvsService {
       parsedData,
       skills: storedSkills.skills,
       skillAtoms: storedSkills.skillAtoms,
+      candidateProfile: this.buildCandidateProfile(parsedData, storedSkills.skills),
     };
+  }
+
+  private buildCandidateProfile(
+    parsedData: Record<string, unknown>,
+    skills: string[],
+  ) {
+    const normalizedProfile = this.asRecord(parsedData['normalizedProfile']);
+    return this.candidateProfileService.create({
+      normalizedProfile:
+        Object.keys(normalizedProfile).length > 0
+          ? (normalizedProfile as unknown as NormalizedProfile)
+          : null,
+      parsedData,
+      skills,
+    });
   }
 
   private asRecord(value: unknown): Record<string, unknown> {

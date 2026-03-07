@@ -2,6 +2,21 @@
 
 Timeline: **1-2 tuần** (14 ngày)
 
+## Schema-Based Matching Migration (Current Phase)
+
+See [Migration Plan](../plans/260307-1841-schema-based-matching-pipeline-migration/) for detailed status and progress.
+
+**Completed Phases:**
+- [x] Phase 1: Cleanup, inventory, and rollout lock
+- [x] Phase 2: Data model, schema contract, and migration path
+- [x] Phase 3: JD requirements extraction and recruiter upload flow
+- [x] Phase 4: CV profile extraction and candidate upload flow
+- [x] Phase 5: Deterministic evaluation, scoring, and application compatibility
+- [x] Phase 6: Frontend UX cleanup, review surfaces, and compatibility adapters
+
+**In Progress:**
+- [ ] Phase 7: Backfill, validation, rollout, and docs sync
+
 ## Week 1: Foundation (Ngày 1-7)
 
 ### Ngày 1-2: Project Setup
@@ -61,8 +76,8 @@ Timeline: **1-2 tuần** (14 ngày)
 
 ### Ngày 10-11: Matching Algorithm
 
-- [x] Install natural.js (TF-IDF)
-- [x] Implement TF-IDF calculation
+- [x] Remove TF-IDF/exact-skill runtime from active matching flow
+- [x] Converge application persistence to `matchScore` + `matchingSnapshot`
 - [x] Implement skills matching
 - [x] Implement final score calculation
 - [x] Create matching service

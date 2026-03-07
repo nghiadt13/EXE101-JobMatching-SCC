@@ -74,6 +74,8 @@ model CV {
   parsedData  Json
   skills      Json
   skillAtoms  Json?
+  candidateProfile Json?
+  candidateProfileVersion String?
   isPrimary   Boolean   @default(false)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -95,6 +97,8 @@ model Job {
   description    String    @db.Text
   skills         Json
   skillAtoms     Json?
+  requirementsSchema Json?
+  requirementsSchemaVersion String?
   location       Json?
   salaryMin      Int?
   salaryMax      Int?
@@ -124,8 +128,6 @@ model Application {
   cvId        String
   cv          CV                @relation(fields: [cvId], references: [id], onDelete: Restrict)
   matchScore  Float
-  tfidfScore  Float?
-  skillsScore Float?
   matchingSnapshot Json?
   status      ApplicationStatus @default(APPLIED)
   notes       String?           @db.Text

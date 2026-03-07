@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
-import { ScoreCombinerService } from './calculators/score-combiner.service';
-import { SkillsCalculatorService } from './calculators/skills-calculator.service';
-import { TfidfCalculatorService } from './calculators/tfidf-calculator.service';
 import { MatchingController } from './matching.controller';
 import { MatchingService } from './matching.service';
+import { CandidateProfileService } from './services/candidate-profile.service';
+import { JobRequirementsSchemaService } from './services/job-requirements-schema.service';
+import { SchemaMatchingEvaluatorService } from './services/schema-matching-evaluator.service';
 import { SkillAtomizerService } from './services/skill-atomizer.service';
 import { SkillCanonicalizerService } from './services/skill-canonicalizer.service';
 import { SkillStorageAdapterService } from './services/skill-storage-adapter.service';
@@ -12,13 +12,19 @@ import { SkillStorageAdapterService } from './services/skill-storage-adapter.ser
   controllers: [MatchingController],
   providers: [
     MatchingService,
-    TfidfCalculatorService,
-    SkillsCalculatorService,
-    ScoreCombinerService,
     SkillCanonicalizerService,
     SkillAtomizerService,
     SkillStorageAdapterService,
+    JobRequirementsSchemaService,
+    CandidateProfileService,
+    SchemaMatchingEvaluatorService,
   ],
-  exports: [MatchingService, SkillStorageAdapterService],
+  exports: [
+    MatchingService,
+    SkillStorageAdapterService,
+    JobRequirementsSchemaService,
+    CandidateProfileService,
+    SchemaMatchingEvaluatorService,
+  ],
 })
 export class MatchingModule {}

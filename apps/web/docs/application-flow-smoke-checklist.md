@@ -21,7 +21,7 @@
 
 ## API
 
-- `POST /applications` creates record and persists `matchScore`, `tfidfScore`, `skillsScore`.
+- `POST /applications` creates record and persists `matchScore` + `matchingSnapshot` (`schema_v1`).
 - `POST /applications` rejects non-candidate role and non-published jobs.
 - `GET /applications` respects role visibility.
 - `PATCH /applications/:id/status` enforces transition matrix.

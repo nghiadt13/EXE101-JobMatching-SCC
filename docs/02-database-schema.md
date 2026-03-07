@@ -76,6 +76,10 @@ model CV {
   skills      Json     // ["Python", "Django", ...] - display names
   skillAtoms  Json?    // [{raw, label, canonical, group, source}] - canonical atoms for matching
 
+  // Schema-based matching contract (v1)
+  candidateProfile Json?            // CandidateProfileV1 - structured evidence for evaluation
+  candidateProfileVersion String?   // 'candidate_profile_v1'
+
   isPrimary   Boolean  @default(false)
 
   createdAt   DateTime @default(now())
@@ -84,7 +88,7 @@ model CV {
 }
 ```
 
-**Note:** `skillAtoms` stores deterministic normalized skill atoms. If missing, system derives from `skills` array with `source: 'legacy'`.
+**Note:** `candidateProfile` stores structured candidate profile for schema-based matching. Includes summarized experience, explicit skill evidence, education, languages, and location hints.
 
 ### 4. jobs
 
@@ -106,6 +110,10 @@ model Job {
   salaryMax   Int?
   employmentType String // FULL_TIME, PART_TIME, CONTRACT
 
+  // Schema-based matching contract (v1)
+  requirementsSchema Json?            // RequirementsSchemaV1 - role title, must-haves, nice-to-haves, constraints
+  requirementsSchemaVersion String?   // 'requirements_schema_v1'
+
   status      JobStatus @default(DRAFT)
   publishedAt DateTime?
   closedAt    DateTime?
@@ -125,6 +133,8 @@ enum JobStatus {
 }
 ```
 
+**Note:** `requirementsSchema` stores extracted recruiter-centric requirements including must-haves, nice-to-haves, experience/education/location/language constraints, and location preferences.
+
 ### 5. applications
 
 ```prisma
@@ -138,9 +148,7 @@ model Application {
 
   // Matching scores
   matchScore  Float    // 0-100
-  tfidfScore  Float?
-  skillsScore Float?
-  matchingSnapshot Json? // {version, componentScores, topMatchedSkills, missingSkills, warnings}
+  matchingSnapshot Json? // {version, scoreBreakdown, requirements[], strengths[], gaps[], warnings[]} - see schema_v1 format below
 
   status      ApplicationStatus @default(APPLIED)
   notes       String?  @db.Text

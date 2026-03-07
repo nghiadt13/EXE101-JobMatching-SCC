@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { AiNormalizationError } from '../normalization/normalization.errors';
 import { Test, TestingModule } from '@nestjs/testing';
+import { CandidateProfileService } from '../matching/services/candidate-profile.service';
 import { SkillStorageAdapterService } from '../matching/services/skill-storage-adapter.service';
 import { AppLogger } from '../common/logging/app-logger.service';
 import { CvsService } from './cvs.service';
@@ -81,6 +82,7 @@ describe('CvsService', () => {
           provide: SkillStorageAdapterService,
           useValue: skillStorageAdapterService,
         },
+        CandidateProfileService,
         { provide: CvStorageService, useValue: cvStorageService },
         { provide: CvTextExtractorService, useValue: cvTextExtractorService },
         {

@@ -4,6 +4,8 @@ import { ApplicationStatus, JobStatus, UserRole } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
+import { AiNormalizationService } from '../src/normalization/ai-normalization.service';
+import { NORMALIZED_SCHEMA_VERSION } from '../src/normalization/normalization.types';
 import { PrismaService } from '../src/prisma/prisma.service';
 
 type MockUser = {
@@ -66,8 +68,7 @@ type MockApplication = {
   candidateId: string;
   cvId: string;
   matchScore: number;
-  tfidfScore: number | null;
-  skillsScore: number | null;
+  matchingSnapshot: Record<string, unknown> | null;
   status: ApplicationStatus;
   notes: string | null;
   appliedAt: Date;
@@ -881,8 +882,12 @@ describe('Auth and User/Profile (e2e)', () => {
             candidateId: String(data.candidateId),
             cvId: String(data.cvId),
             matchScore: Number(data.matchScore ?? 0),
-            tfidfScore: Number(data.tfidfScore ?? 0),
-            skillsScore: Number(data.skillsScore ?? 0),
+            matchingSnapshot:
+              data.matchingSnapshot &&
+              typeof data.matchingSnapshot === 'object' &&
+              !Array.isArray(data.matchingSnapshot)
+                ? (data.matchingSnapshot as Record<string, unknown>)
+                : null,
             status: ApplicationStatus.APPLIED,
             notes: null,
             appliedAt: new Date(),
@@ -988,6 +993,68 @@ describe('Auth and User/Profile (e2e)', () => {
     })
       .overrideProvider(PrismaService)
       .useValue(prismaMock)
+      .overrideProvider(AiNormalizationService)
+      .useValue({
+        normalizeCv: jest.fn(async (rawText: string) => ({
+          schemaVersion: NORMALIZED_SCHEMA_VERSION,
+          status: 'parsed_ok',
+          profile: {
+            schemaVersion: NORMALIZED_SCHEMA_VERSION,
+            language: 'en',
+            title: 'Candidate Profile',
+            summary: rawText.slice(0, 200),
+            skills: ['TypeScript', 'NestJS'],
+            experience: [],
+            education: [],
+            certifications: [],
+            projects: [],
+            languages: ['English'],
+            location: { city: 'HCM', country: 'Vietnam' },
+            rawQuality: {
+              score: 90,
+              needsManualReview: false,
+              reason: '',
+            },
+          },
+          telemetry: {
+            provider: 'gemini',
+            model: 'stub',
+            latencyMs: 1,
+          },
+        })),
+        normalizeJob: jest.fn(async (rawText: string) => ({
+          schemaVersion: NORMALIZED_SCHEMA_VERSION,
+          status: 'parsed_ok',
+          profile: {
+            schemaVersion: NORMALIZED_SCHEMA_VERSION,
+            language: 'en',
+            title: 'Job Profile',
+            summary: rawText.slice(0, 200),
+            skills: ['Communication', 'Sourcing', 'TypeScript', 'NestJS'],
+            experience: [],
+            education: [],
+            certifications: [],
+            projects: [],
+            languages: ['English'],
+            location: { city: 'HCM', country: 'Vietnam' },
+            rawQuality: {
+              score: 90,
+              needsManualReview: false,
+              reason: '',
+            },
+            jobMeta: {
+              requirements: ['Need recruiter with at least 3 years of experience.'],
+              benefits: [],
+              employmentType: 'FULL_TIME',
+            },
+          },
+          telemetry: {
+            provider: 'gemini',
+            model: 'stub',
+            latencyMs: 1,
+          },
+        })),
+      })
       .compile();
 
     app = moduleFixture.createNestApplication();
@@ -1228,13 +1295,18 @@ describe('Auth and User/Profile (e2e)', () => {
 
     const body = response.body as {
       score: number;
-      tfidfScore: number;
-      skillsScore: number;
-      breakdown: { matchedSkills: string[]; missingSkills: string[] };
+      matchingVersion: 'schema_v1';
+      matchingSnapshot: {
+        version: 'schema_v1';
+        strengths: string[];
+        requirements: Array<{ label: string }>;
+      };
     };
     expect(body.score).toBeGreaterThanOrEqual(0);
     expect(body.score).toBeLessThanOrEqual(100);
-    expect(body.breakdown.matchedSkills).toContain('TypeScript');
+    expect(body.matchingVersion).toBe('schema_v1');
+    expect(body.matchingSnapshot.requirements.length).toBeGreaterThan(0);
+    expect(body.matchingSnapshot.version).toBe('schema_v1');
   });
 
   it('rejects invalid matching payload', async () => {

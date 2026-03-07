@@ -236,6 +236,37 @@ List CVs của candidate hiện tại với pagination:
 
 Get CV detail
 
+```json
+Response:
+{
+  "id": "uuid",
+  "candidateId": "uuid",
+  "fileName": "resume.pdf",
+  "filePath": "uploads/...",
+  "fileSize": 245600,
+  "mimeType": "application/pdf",
+  "skills": ["TypeScript", "NestJS"],
+  "skillAtoms": [...],
+  "parsedData": { "summary": "...", "experience": [...], "education": [...] },
+  "candidateProfile": {
+    "version": "candidate_profile_v1",
+    "headline": "Full-Stack Engineer",
+    "experience": [...],
+    "education": [...],
+    "skills": ["TypeScript", "NestJS"],
+    "languages": ["English"],
+    "location": { "city": "Ho Chi Minh" },
+    "warnings": []
+  },
+  "candidateProfileVersion": "candidate_profile_v1",
+  "isPrimary": true,
+  "createdAt": "2026-03-07T10:00:00Z",
+  "updatedAt": "2026-03-07T10:00:00Z"
+}
+```
+
+**Note:** `candidateProfile` contains structured candidate data for schema-based matching. This field is populated when CV is uploaded or edited.
+
 ### PATCH /cvs/:id
 
 Update parsed data (sau khi review)
@@ -298,6 +329,18 @@ Response:
     {"raw": "django", "label": "Django", "canonical": "django", "group": "FRAMEWORK", "source": "job_manual"},
     {"raw": "postgresql", "label": "PostgreSQL", "canonical": "postgresql", "group": "DATABASE", "source": "job_manual"}
   ],
+  "requirementsSchema": {
+    "version": "requirements_schema_v1",
+    "roleTitle": "Senior Backend Developer",
+    "summary": "Looking for experienced Python/Django developer with PostgreSQL expertise",
+    "mustHaves": [
+      {"id": "req-1", "label": "3+ years Python", "category": "experience", "keywords": ["python"], "minimumMonths": 36}
+    ],
+    "niceToHaves": [...],
+    "locationPreference": {"city": "Ho Chi Minh", "country": "Vietnam", "remote": false},
+    "warnings": []
+  },
+  "requirementsSchemaVersion": "requirements_schema_v1",
   "inputMode": "manual",
   "employmentType": "FULL_TIME",
   "status": "DRAFT",
@@ -393,6 +436,31 @@ List jobs
 ### GET /jobs/:id
 
 Get job detail theo `id` hoặc `slug`
+
+```json
+Response:
+{
+  "id": "uuid",
+  "title": "Senior Backend Developer",
+  "description": "...",
+  "skills": ["Python", "Django", "PostgreSQL"],
+  "requirementsSchema": {
+    "version": "requirements_schema_v1",
+    "roleTitle": "Senior Backend Developer",
+    "summary": "...",
+    "mustHaves": [...],
+    "niceToHaves": [...],
+    "locationPreference": { ... },
+    "warnings": []
+  },
+  "requirementsSchemaVersion": "requirements_schema_v1",
+  "location": { "city": "Ho Chi Minh", "remote": false },
+  "status": "DRAFT",
+  "publishedAt": null,
+  "createdAt": "2026-03-07T10:00:00Z",
+  "updatedAt": "2026-03-07T10:00:00Z"
+}
+```
 
 - Public/Candidate: chỉ truy cập được job `PUBLISHED`
 - Recruiter: truy cập được own jobs mọi status
@@ -493,29 +561,42 @@ Response:
   "jobId": "uuid",
   "candidateId": "uuid",
   "cvId": "uuid",
-  "matchScore": 78,
-  "tfidfScore": 0.72,
-  "skillsScore": 0.85,
+  "matchScore": 92,
   "matchingSnapshot": {
-    "version": "v2",
-    "componentScores": {
-      "tfidf": 0.72,
-      "skills": 0.85,
-      "final": 78
+    "version": "schema_v1",
+    "scoreBreakdown": {
+      "mustHave": 95,
+      "niceToHave": 80,
+      "experience": 90,
+      "education": 100,
+      "language": 100,
+      "location": 100,
+      "final": 92
     },
-    "topMatchedSkills": ["python", "django", "postgresql"],
-    "missingSkills": ["kubernetes"],
+    "requirements": [
+      {
+        "id": "req-1",
+        "label": "3+ years Python",
+        "category": "experience",
+        "importance": "must_have",
+        "status": "met",
+        "evidence": ["Senior Backend Engineer at Corp, 2021-2025 (4 years)"]
+      }
+    ],
+    "strengths": ["Strong Python and Django background"],
+    "gaps": ["No PostgreSQL optimization experience"],
     "warnings": []
   },
-  "status": "APPLIED"
+  "status": "APPLIED",
+  "appliedAt": "2026-03-07T10:00:00Z"
 }
 ```
 
-**Warnings in matchingSnapshot:**
-- Empty array `[]` if both CV and Job have canonical skillAtoms
-- Contains `"CV skills missing canonical atoms"` if CV lacks skillAtoms (matching used fallback derivation)
-- Contains `"Job skills missing canonical atoms"` if Job lacks skillAtoms (matching used fallback derivation)
-- Recruiters should reprocess CVs/Jobs with warnings before relying on the matching score for hiring decisions
+**Schema-based matching (v1):**
+- `matchingSnapshot.version: 'schema_v1'` indicates requirement-level evaluation
+- `matchingSnapshot.scoreBreakdown` shows component scores for transparency
+- `matchingSnapshot.requirements` lists evaluation results for each requirement
+- Applications now persist only `matchScore` plus a `schema_v1` `matchingSnapshot`
 
 ### GET /applications (Candidate: own, Recruiter: own jobs)
 
@@ -573,30 +654,38 @@ Request:
 
 Response:
 {
-  "finalScorePercent": 78.5,
-  "tfidfScore": 0.72,
-  "skillsScore": 0.85,
-  "matchingVersion": "v2",
+  "score": 78.5,
+  "matchingVersion": "schema_v1",
   "warnings": [],
-  "breakdown": {
-    "matchedSkills": ["python", "django"],
-    "missingSkills": ["kubernetes"]
-  },
   "matchingSnapshot": {
-    "version": "v2",
-    "componentScores": {
-      "tfidf": 0.72,
-      "skills": 0.85,
+    "version": "schema_v1",
+    "scoreBreakdown": {
+      "mustHave": 80,
+      "niceToHave": 70,
+      "experience": 75,
+      "education": 100,
+      "language": 100,
+      "location": 100,
       "final": 78.5
     },
-    "topMatchedSkills": ["python", "django", "postgresql"],
-    "missingSkills": ["kubernetes"],
+    "requirements": [
+      {
+        "id": "req-1",
+        "label": "Python + Django",
+        "category": "skill",
+        "importance": "must_have",
+        "status": "met",
+        "evidence": ["Python", "Django"]
+      }
+    ],
+    "strengths": ["Strong Python and Django background"],
+    "gaps": ["No Kubernetes production evidence"],
     "warnings": []
   }
 }
 ```
 
-**Note:** Response includes `matchingSnapshot` for audit trail and UI display. The `matchingVersion` field indicates algorithm version used (legacy or v2).
+**Note:** Response includes `matchingSnapshot` for audit trail and UI display. The `matchingVersion` field is currently always `schema_v1`.
 
 ### Matching Error Codes
 

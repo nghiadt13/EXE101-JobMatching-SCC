@@ -64,7 +64,17 @@ export default async function CandidateCvsPage({ searchParams }: PageProps) {
     if (!cvId) {
       return;
     }
-    await setPrimaryCv(currentSession.accessToken, cvId);
+    try {
+      await setPrimaryCv(currentSession.accessToken, cvId);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        if (error.status === 401) {
+          redirect('/login');
+        }
+        redirect(buildErrorRedirectPath('/dashboard/candidate/cvs', error, 'set-primary-failed'));
+      }
+      redirect('/dashboard/candidate/cvs?error=set-primary-failed');
+    }
     revalidatePath('/dashboard/candidate/cvs');
   }
 
@@ -78,7 +88,17 @@ export default async function CandidateCvsPage({ searchParams }: PageProps) {
     if (!cvId) {
       return;
     }
-    await deleteCv(currentSession.accessToken, cvId);
+    try {
+      await deleteCv(currentSession.accessToken, cvId);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        if (error.status === 401) {
+          redirect('/login');
+        }
+        redirect(buildErrorRedirectPath('/dashboard/candidate/cvs', error, 'delete-failed'));
+      }
+      redirect('/dashboard/candidate/cvs?error=delete-failed');
+    }
     revalidatePath('/dashboard/candidate/cvs');
   }
 
@@ -103,13 +123,23 @@ export default async function CandidateCvsPage({ searchParams }: PageProps) {
       .map((item) => item.trim())
       .filter(Boolean);
 
-    await updateCv(currentSession.accessToken, cvId, {
-      skills,
-      parsedData: {
-        summary,
-        languages,
-      },
-    });
+    try {
+      await updateCv(currentSession.accessToken, cvId, {
+        skills,
+        parsedData: {
+          summary,
+          languages,
+        },
+      });
+    } catch (error) {
+      if (error instanceof ApiError) {
+        if (error.status === 401) {
+          redirect('/login');
+        }
+        redirect(buildErrorRedirectPath('/dashboard/candidate/cvs', error, 'update-failed'));
+      }
+      redirect('/dashboard/candidate/cvs?error=update-failed');
+    }
     revalidatePath('/dashboard/candidate/cvs');
   }
 
@@ -120,6 +150,9 @@ export default async function CandidateCvsPage({ searchParams }: PageProps) {
     'DOCUMENT_UNSUPPORTED_TYPE': 'Only PDF and DOCX files are supported.',
     'CV_PARSE_FAILED': 'AI parsing failed for this CV. Upload a readable PDF or DOCX and try again.',
     'AI_SERVICE_UNAVAILABLE': 'AI service is temporarily unavailable. Please try uploading again later.',
+    'set-primary-failed': 'Setting this CV as primary failed. Please try again.',
+    'delete-failed': 'Deleting this CV failed. Please try again.',
+    'update-failed': 'Saving CV changes failed. Please try again.',
     'upload-failed': 'Upload failed. Please try again.',
   });
 

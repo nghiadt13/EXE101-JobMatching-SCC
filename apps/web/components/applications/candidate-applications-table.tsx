@@ -30,6 +30,11 @@ export function CandidateApplicationsTable({ items }: CandidateApplicationsTable
               <td className="px-4 py-3 text-zinc-700">{item.status}</td>
               <td className="px-4 py-3 text-zinc-700">
                 <p>{Math.round(item.matchScore)}%</p>
+                {item.matchingSnapshot ? (
+                  <p className="mt-1 text-xs text-zinc-500">
+                    {item.matchingSnapshot.strengths.slice(0, 2).join(', ') || 'Profile review needed'}
+                  </p>
+                ) : null}
                 {item.matchingSnapshot?.warnings.length ? (
                   <div className="mt-2 flex flex-wrap gap-1">
                     {item.matchingSnapshot.warnings.slice(0, 2).map((warning) => (

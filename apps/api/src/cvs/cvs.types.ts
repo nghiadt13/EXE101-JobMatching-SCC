@@ -4,6 +4,7 @@ import {
   NormalizedProfile,
   ParseStatus,
 } from '../normalization/normalization.types';
+import { CandidateProfileV1 } from '../matching/types/schema-matching.types';
 
 export interface CvView {
   id: string;
@@ -14,6 +15,8 @@ export interface CvView {
   skills: string[];
   parseStatus: ParseStatus;
   normalizedProfile: NormalizedProfile | null;
+  candidateProfile: CandidateProfileV1 | null;
+  candidateProfileVersion: string | null;
   parseTelemetry: NormalizationTelemetry | null;
   isPrimary: boolean;
   createdAt: Date;

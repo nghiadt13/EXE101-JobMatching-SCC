@@ -17,7 +17,7 @@ Hệ thống tuyển dụng MVP với AI matching giữa CV và Job Description.
 - User/Profile management
 - CV upload/parsing/edit/primary selection
 - Job management lifecycle (Draft/Published/Closed)
-- TF-IDF + skills matching
+- Schema-based recruiter-facing matching with deterministic scoring
 - Application flow (apply/review/status transitions)
 - Role-based dashboard stats
 
