@@ -25,6 +25,7 @@ describe('JobsService', () => {
   let prismaService: {
     job: {
       create: jest.Mock;
+      delete: jest.Mock;
       findMany: jest.Mock;
       count: jest.Mock;
       findFirst: jest.Mock;
@@ -73,6 +74,7 @@ describe('JobsService', () => {
     prismaService = {
       job: {
         create: jest.fn(),
+        delete: jest.fn(),
         findMany: jest.fn(),
         count: jest.fn(),
         findFirst: jest.fn(),
@@ -289,6 +291,133 @@ describe('JobsService', () => {
       'jobs',
       'recruiter-1/jd.pdf',
     );
+  });
+
+  it('rolls back the created job if response mapping fails after persistence', async () => {
+    documentTextExtractorService.extract.mockResolvedValue(
+      'Senior Backend Engineer with TypeScript and NestJS',
+    );
+    documentStorageService.save.mockResolvedValue('recruiter-1/jd.pdf');
+    prismaService.job.create.mockResolvedValue({
+      id: 'job-1',
+      recruiterId: 'recruiter-1',
+      title: 'Job',
+      slug: 'job-1',
+      description: 'Summary',
+      skills: ['TypeScript'],
+      location: {
+        __normalization: {
+          schemaVersion: 'candidate_job_profile_v1',
+          parseStatus: 'parsed_ok',
+          parseTelemetry: {
+            provider: 'gemini',
+            model: 'gemini-3.1-flash-lite-preview',
+            latencyMs: 100,
+          },
+          normalizedProfile: normalizedJobResult.profile,
+          inputMode: 'file_upload',
+          sourceDocument: {
+            fileName: 'jd.pdf',
+            mimeType: 'application/pdf',
+            fileSize: 100,
+            storedPath: 'recruiter-1/jd.pdf',
+          },
+        },
+      },
+      salaryMin: null,
+      salaryMax: null,
+      employmentType: 'FULL_TIME',
+      status: JobStatus.DRAFT,
+      publishedAt: null,
+      closedAt: null,
+      createdAt: new Date('2026-03-07T00:00:00.000Z'),
+      updatedAt: new Date('2026-03-07T00:00:00.000Z'),
+    });
+    prismaService.job.delete.mockResolvedValue({ id: 'job-1' });
+    jest
+      .spyOn(service as never, 'toView' as never)
+      .mockImplementation(() => {
+        throw new Error('view failure');
+      });
+
+    await expect(
+      service.createFromFile('recruiter-1', {
+        originalname: 'jd.pdf',
+        mimetype: 'application/pdf',
+        size: 100,
+        buffer: Buffer.from('jd content'),
+      } as Express.Multer.File),
+    ).rejects.toThrow('view failure');
+
+    expect(prismaService.job.delete).toHaveBeenCalledWith({
+      where: { id: 'job-1' },
+    });
+    expect(documentStorageService.remove).toHaveBeenCalledWith(
+      'jobs',
+      'recruiter-1/jd.pdf',
+    );
+  });
+
+  it('keeps the stored JD file when job rollback fails after persistence', async () => {
+    documentTextExtractorService.extract.mockResolvedValue(
+      'Senior Backend Engineer with TypeScript and NestJS',
+    );
+    documentStorageService.save.mockResolvedValue('recruiter-1/jd.pdf');
+    prismaService.job.create.mockResolvedValue({
+      id: 'job-1',
+      recruiterId: 'recruiter-1',
+      title: 'Job',
+      slug: 'job-1',
+      description: 'Summary',
+      skills: ['TypeScript'],
+      location: {
+        __normalization: {
+          schemaVersion: 'candidate_job_profile_v1',
+          parseStatus: 'parsed_ok',
+          parseTelemetry: {
+            provider: 'gemini',
+            model: 'gemini-3.1-flash-lite-preview',
+            latencyMs: 100,
+          },
+          normalizedProfile: normalizedJobResult.profile,
+          inputMode: 'file_upload',
+          sourceDocument: {
+            fileName: 'jd.pdf',
+            mimeType: 'application/pdf',
+            fileSize: 100,
+            storedPath: 'recruiter-1/jd.pdf',
+          },
+        },
+      },
+      salaryMin: null,
+      salaryMax: null,
+      employmentType: 'FULL_TIME',
+      status: JobStatus.DRAFT,
+      publishedAt: null,
+      closedAt: null,
+      createdAt: new Date('2026-03-07T00:00:00.000Z'),
+      updatedAt: new Date('2026-03-07T00:00:00.000Z'),
+    });
+    prismaService.job.delete.mockRejectedValue(new Error('rollback failed'));
+    jest
+      .spyOn(service as never, 'toView' as never)
+      .mockImplementation(() => {
+        throw new Error('view failure');
+      });
+
+    await expect(
+      service.createFromFile('recruiter-1', {
+        originalname: 'jd.pdf',
+        mimetype: 'application/pdf',
+        size: 100,
+        buffer: Buffer.from('jd content'),
+      } as Express.Multer.File),
+    ).rejects.toThrow('view failure');
+
+    expect(prismaService.job.delete).toHaveBeenCalledWith({
+      where: { id: 'job-1' },
+    });
+    expect(documentStorageService.remove).not.toHaveBeenCalled();
   });
 
   it('fails the JD upload when AI normalization fails', async () => {

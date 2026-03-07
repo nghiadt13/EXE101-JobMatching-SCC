@@ -140,6 +140,7 @@ export class JobsService {
       recruiterId,
       file,
     );
+    let createdJobId: string | null = null;
 
     try {
       const created = await this.withUniqueJobSlug(
@@ -172,10 +173,31 @@ export class JobsService {
           });
         },
       );
+      createdJobId = created.id;
 
       return this.toView(created);
     } catch (error) {
-      await this.documentStorageService.remove('jobs', storedPath);
+      this.logger.error(
+        `JD upload failed for recruiter ${recruiterId} and file "${file.originalname}"`,
+        error instanceof Error ? error.stack : undefined,
+      );
+
+      let rolledBackJob = !createdJobId;
+      if (createdJobId) {
+        try {
+          await this.prisma.job.delete({ where: { id: createdJobId } });
+          rolledBackJob = true;
+        } catch (cleanupError) {
+          this.logger.error(
+            `Failed to roll back uploaded JD draft ${createdJobId}`,
+            cleanupError instanceof Error ? cleanupError.stack : undefined,
+          );
+        }
+      }
+
+      if (rolledBackJob) {
+        await this.documentStorageService.remove('jobs', storedPath);
+      }
       throw error;
     }
   }
@@ -782,6 +804,9 @@ export class JobsService {
       return await this.aiNormalizationService.normalizeJob(rawText);
     } catch (error) {
       if (error instanceof AiNormalizationError) {
+        this.logger.warn(
+          `Job normalization rejected: ${error.code} (${error.message})`,
+        );
         if (error.kind === 'service_unavailable') {
           throw new ServiceUnavailableException({
             code: error.code,
