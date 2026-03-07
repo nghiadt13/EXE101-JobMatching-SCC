@@ -10,6 +10,18 @@ export type ApplicationStatus =
   | 'REJECTED'
   | 'WITHDRAWN';
 
+export type MatchingSnapshot = {
+  version: 'legacy' | 'v2';
+  componentScores: {
+    tfidf: number;
+    skills: number;
+    final: number;
+  };
+  topMatchedSkills: string[];
+  missingSkills: string[];
+  warnings: string[];
+};
+
 export type ApplicationItem = {
   id: string;
   jobId: string;
@@ -18,6 +30,7 @@ export type ApplicationItem = {
   matchScore: number;
   tfidfScore: number | null;
   skillsScore: number | null;
+  matchingSnapshot: MatchingSnapshot | null;
   status: ApplicationStatus;
   notes: string | null;
   appliedAt: string;

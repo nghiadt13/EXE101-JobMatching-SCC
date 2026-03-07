@@ -3,6 +3,7 @@ import { JobStatus, UserRole } from '@prisma/client';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DocumentStorageService } from '../documents/services/document-storage.service';
 import { DocumentTextExtractorService } from '../documents/services/document-text-extractor.service';
+import { SkillStorageAdapterService } from '../matching/services/skill-storage-adapter.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiNormalizationService } from '../normalization/ai-normalization.service';
 import { JobsService } from './jobs.service';
@@ -25,6 +26,7 @@ describe('JobsService', () => {
     };
   };
   let aiNormalizationService: { normalizeJob: jest.Mock };
+  let skillStorageAdapterService: { toStoredSkills: jest.Mock };
   let generateUniqueSlug: jest.Mock;
 
   const normalizedJobResult = {
@@ -70,6 +72,12 @@ describe('JobsService', () => {
     aiNormalizationService = {
       normalizeJob: jest.fn().mockResolvedValue(normalizedJobResult),
     };
+    skillStorageAdapterService = {
+      toStoredSkills: jest.fn((skills: string[]) => ({
+        skills,
+        skillAtoms: [],
+      })),
+    };
     generateUniqueSlug = jest.fn().mockResolvedValue('job-1');
 
     const module: TestingModule = await Test.createTestingModule({
@@ -77,6 +85,10 @@ describe('JobsService', () => {
         JobsService,
         { provide: PrismaService, useValue: prismaService },
         { provide: AiNormalizationService, useValue: aiNormalizationService },
+        {
+          provide: SkillStorageAdapterService,
+          useValue: skillStorageAdapterService,
+        },
         {
           provide: DocumentStorageService,
           useValue: documentStorageService,
@@ -211,6 +223,42 @@ describe('JobsService', () => {
     expect(result.parseStatus).toBe('parsed_ok');
   });
 
+  it('falls back to normalized-profile skills when legacy jobs have empty skills arrays', async () => {
+    prismaService.job.findFirst.mockResolvedValue({
+      id: 'job-legacy-view',
+      recruiterId: 'recruiter-1',
+      title: 'Legacy imported job',
+      slug: 'legacy-imported-job',
+      description: 'Imported description',
+      skills: [],
+      location: {
+        __normalization: {
+          parseStatus: 'parsed_ok',
+          normalizedProfile: {
+            ...normalizedJobResult.profile,
+            skills: ['Docker', 'Kubernetes'],
+          },
+          inputMode: 'file_upload',
+        },
+      },
+      salaryMin: null,
+      salaryMax: null,
+      employmentType: 'FULL_TIME',
+      status: JobStatus.DRAFT,
+      publishedAt: null,
+      closedAt: null,
+      createdAt: new Date('2026-03-07T00:00:00.000Z'),
+      updatedAt: new Date('2026-03-07T00:00:00.000Z'),
+    });
+
+    const result = await service.getByIdOrSlug(
+      { sub: 'recruiter-1', role: UserRole.RECRUITER },
+      'job-legacy-view',
+    );
+
+    expect(result.skills).toEqual(['Docker', 'Kubernetes']);
+  });
+
   it('removes stored JD file if draft creation fails', async () => {
     documentTextExtractorService.extract.mockResolvedValue(
       'Senior Backend Engineer with TypeScript and NestJS',
@@ -333,6 +381,159 @@ describe('JobsService', () => {
 
     expect(normalization['inputMode']).toBe('file_upload');
     expect(sourceDocument['fileName']).toBe('jd.pdf');
+  });
+
+  it('does not renormalize uploaded jobs for salary-only updates', async () => {
+    prismaService.job.findFirst.mockResolvedValue({
+      id: 'job-1',
+      recruiterId: 'recruiter-1',
+      slug: 'job-1',
+      title: 'Existing title',
+      description: 'Existing description',
+      skills: ['TypeScript'],
+      location: {
+        city: 'Ho Chi Minh City',
+        __normalization: {
+          inputMode: 'file_upload',
+          parseStatus: 'parsed_ok',
+          normalizedProfile: normalizedJobResult.profile,
+          sourceDocument: {
+            fileName: 'jd.pdf',
+            mimeType: 'application/pdf',
+            fileSize: 100,
+            storedPath: 'recruiter-1/jd.pdf',
+          },
+        },
+      },
+      employmentType: 'FULL_TIME',
+      status: JobStatus.DRAFT,
+    });
+    prismaService.job.update.mockResolvedValue({
+      id: 'job-1',
+      recruiterId: 'recruiter-1',
+      title: 'Existing title',
+      slug: 'job-1',
+      description: 'Existing description',
+      skills: ['TypeScript'],
+      location: {
+        city: 'Ho Chi Minh City',
+        __normalization: {
+          inputMode: 'file_upload',
+          parseStatus: 'parsed_ok',
+          normalizedProfile: normalizedJobResult.profile,
+          sourceDocument: {
+            fileName: 'jd.pdf',
+            mimeType: 'application/pdf',
+            fileSize: 100,
+            storedPath: 'recruiter-1/jd.pdf',
+          },
+        },
+      },
+      salaryMin: 1000,
+      salaryMax: 2000,
+      employmentType: 'FULL_TIME',
+      status: JobStatus.DRAFT,
+      publishedAt: null,
+      closedAt: null,
+      createdAt: new Date('2026-03-07T00:00:00.000Z'),
+      updatedAt: new Date('2026-03-07T00:00:00.000Z'),
+    });
+
+    await service.update('recruiter-1', 'job-1', {
+      salaryMin: 1000,
+      salaryMax: 2000,
+    });
+
+    expect(aiNormalizationService.normalizeJob).not.toHaveBeenCalled();
+    const updateCalls = prismaService.job.update.mock.calls as Array<
+      [{ data: Record<string, unknown> }]
+    >;
+    expect(updateCalls[0]?.[0].data).not.toHaveProperty('skills');
+    expect(updateCalls[0]?.[0].data).not.toHaveProperty('skillAtoms');
+  });
+
+  it('reuses normalized-profile skills when legacy uploaded jobs have empty skills columns', async () => {
+    skillStorageAdapterService.toStoredSkills.mockReturnValue({
+      skills: ['Docker', 'Kubernetes'],
+      skillAtoms: [
+        {
+          raw: 'Docker',
+          label: 'Docker',
+          canonical: 'docker',
+          group: null,
+          source: 'job_parsed',
+        },
+        {
+          raw: 'Kubernetes',
+          label: 'Kubernetes',
+          canonical: 'kubernetes',
+          group: null,
+          source: 'job_parsed',
+        },
+      ],
+    });
+    prismaService.job.findFirst.mockResolvedValue({
+      id: 'job-legacy',
+      recruiterId: 'recruiter-1',
+      slug: 'job-legacy',
+      title: 'Imported title',
+      description: 'Imported description',
+      skills: [],
+      location: {
+        __normalization: {
+          inputMode: 'file_upload',
+          normalizedProfile: {
+            ...normalizedJobResult.profile,
+            skills: ['Docker', 'Kubernetes'],
+          },
+        },
+      },
+      employmentType: 'FULL_TIME',
+      status: JobStatus.DRAFT,
+    });
+    prismaService.job.update.mockResolvedValue({
+      id: 'job-legacy',
+      recruiterId: 'recruiter-1',
+      title: 'Imported title',
+      slug: 'job-legacy',
+      description: 'Edited description',
+      skills: ['Docker', 'Kubernetes'],
+      location: {
+        __normalization: {
+          inputMode: 'file_upload',
+          normalizedProfile: {
+            ...normalizedJobResult.profile,
+            skills: ['Docker', 'Kubernetes'],
+          },
+        },
+      },
+      salaryMin: null,
+      salaryMax: null,
+      employmentType: 'FULL_TIME',
+      status: JobStatus.DRAFT,
+      publishedAt: null,
+      closedAt: null,
+      createdAt: new Date('2026-03-07T00:00:00.000Z'),
+      updatedAt: new Date('2026-03-07T00:00:00.000Z'),
+    });
+
+    await service.update('recruiter-1', 'job-legacy', {
+      description: 'Edited description',
+    });
+
+    expect(aiNormalizationService.normalizeJob).toHaveBeenCalledWith(
+      expect.stringContaining('Skills: Docker, Kubernetes'),
+    );
+    const updateCalls = prismaService.job.update.mock.calls as Array<
+      [{ data: { skills: string[]; skillAtoms: Array<{ canonical: string }> } }]
+    >;
+    expect(updateCalls[0]?.[0].data.skills).toEqual(['Docker', 'Kubernetes']);
+    expect(updateCalls[0]?.[0].data.skillAtoms).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ canonical: 'docker' }),
+        expect.objectContaining({ canonical: 'kubernetes' }),
+      ]),
+    );
   });
 
   it('removes uploaded JD file when recruiter deletes the job', async () => {

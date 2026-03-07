@@ -1,5 +1,6 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { SkillStorageAdapterService } from '../matching/services/skill-storage-adapter.service';
 import { CvsService } from './cvs.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiNormalizationService } from '../normalization/ai-normalization.service';
@@ -13,7 +14,11 @@ describe('CvsService', () => {
     assertSupported: jest.Mock;
     extract: jest.Mock;
   };
-  let aiNormalizationService: { normalizeCv: jest.Mock };
+  let aiNormalizationService: {
+    normalizeCv: jest.Mock;
+    forceFallbackCv: jest.Mock;
+  };
+  let skillStorageAdapterService: { toStoredSkills: jest.Mock };
   let prismaService: {
     candidate: { findFirst: jest.Mock };
     cV: {
@@ -30,7 +35,16 @@ describe('CvsService', () => {
   beforeEach(async () => {
     cvStorageService = { save: jest.fn(), remove: jest.fn() };
     cvTextExtractorService = { assertSupported: jest.fn(), extract: jest.fn() };
-    aiNormalizationService = { normalizeCv: jest.fn() };
+    aiNormalizationService = {
+      normalizeCv: jest.fn(),
+      forceFallbackCv: jest.fn(),
+    };
+    skillStorageAdapterService = {
+      toStoredSkills: jest.fn((skills: string[]) => ({
+        skills,
+        skillAtoms: [],
+      })),
+    };
 
     prismaService = {
       candidate: { findFirst: jest.fn() },
@@ -58,6 +72,10 @@ describe('CvsService', () => {
         CvsService,
         { provide: PrismaService, useValue: prismaService },
         { provide: AiNormalizationService, useValue: aiNormalizationService },
+        {
+          provide: SkillStorageAdapterService,
+          useValue: skillStorageAdapterService,
+        },
         { provide: CvStorageService, useValue: cvStorageService },
         { provide: CvTextExtractorService, useValue: cvTextExtractorService },
       ],
@@ -93,7 +111,7 @@ describe('CvsService', () => {
     cvTextExtractorService.extract.mockRejectedValue(
       new Error('parser failed'),
     );
-    aiNormalizationService.normalizeCv.mockResolvedValue({
+    aiNormalizationService.forceFallbackCv.mockReturnValue({
       schemaVersion: 'candidate_job_profile_v1',
       status: 'fallback',
       profile: {
@@ -141,10 +159,160 @@ describe('CvsService', () => {
       buffer: Buffer.from('content'),
     } as Express.Multer.File);
 
-    expect(aiNormalizationService.normalizeCv).toHaveBeenCalledWith(
+    expect(aiNormalizationService.forceFallbackCv).toHaveBeenCalledWith(
       'CV uploaded successfully, but auto-parsing could not read the content. Please update summary and skills manually.',
+      'extraction_failed',
     );
     expect(result.id).toBe('cv-1');
     expect(result.skills).toEqual([]);
+  });
+
+  it('forces fallback when normalization fails after extraction succeeds', async () => {
+    prismaService.candidate.findFirst.mockResolvedValue({ id: 'candidate-1' });
+    prismaService.cV.count.mockResolvedValue(0);
+    cvTextExtractorService.extract.mockResolvedValue('Extracted CV text');
+    aiNormalizationService.normalizeCv.mockRejectedValue(
+      new Error('llm failed'),
+    );
+    aiNormalizationService.forceFallbackCv.mockReturnValue({
+      schemaVersion: 'candidate_job_profile_v1',
+      status: 'fallback',
+      profile: {
+        schemaVersion: 'candidate_job_profile_v1',
+        language: 'en',
+        title: 'Unstructured candidate profile',
+        summary:
+          'CV uploaded successfully, but auto-parsing could not read the content. Please update summary and skills manually.',
+        skills: [],
+        experience: [],
+        education: [],
+        certifications: [],
+        projects: [],
+        languages: [],
+        location: { city: '', country: '' },
+        rawQuality: { score: 45, needsManualReview: true, reason: 'fallback' },
+      },
+      telemetry: { source: 'fallback', fallbackUsed: true, latencyMs: 10 },
+    });
+    cvStorageService.save.mockResolvedValue('candidate-1/file.pdf');
+    prismaService.cV.create.mockResolvedValue({
+      id: 'cv-1',
+      fileName: 'cv.pdf',
+      fileSize: 100,
+      mimeType: 'application/pdf',
+      parsedData: {
+        skills: [],
+        experience: [],
+        education: [],
+        contact: {},
+        summary:
+          'CV uploaded successfully, but auto-parsing could not read the content. Please update summary and skills manually.',
+      },
+      skills: [],
+      isPrimary: true,
+      createdAt: new Date('2026-03-06T00:00:00.000Z'),
+      updatedAt: new Date('2026-03-06T00:00:00.000Z'),
+      filePath: 'candidate-1/file.pdf',
+    });
+
+    await service.upload('candidate-user', {
+      originalname: 'cv.pdf',
+      mimetype: 'application/pdf',
+      size: 100,
+      buffer: Buffer.from('content'),
+    } as Express.Multer.File);
+
+    expect(aiNormalizationService.normalizeCv).toHaveBeenCalledWith(
+      'Extracted CV text',
+    );
+    expect(aiNormalizationService.forceFallbackCv).toHaveBeenCalled();
+  });
+
+  it('keeps parsed data, normalized profile, and canonical atoms in sync on manual skill edits', async () => {
+    skillStorageAdapterService.toStoredSkills.mockReturnValue({
+      skills: ['Docker', 'Kubernetes'],
+      skillAtoms: [
+        {
+          raw: 'Docker',
+          label: 'Docker',
+          canonical: 'docker',
+          group: null,
+          source: 'cv_manual',
+        },
+        {
+          raw: 'Kubernetes',
+          label: 'Kubernetes',
+          canonical: 'kubernetes',
+          group: null,
+          source: 'cv_manual',
+        },
+      ],
+    });
+    prismaService.candidate.findFirst.mockResolvedValue({ id: 'candidate-1' });
+    prismaService.cV.findFirst.mockResolvedValue({
+      id: 'cv-1',
+      isPrimary: true,
+      filePath: 'candidate-1/file.pdf',
+      parsedData: {
+        summary: 'Existing summary',
+        normalizedProfile: {
+          summary: 'Existing summary',
+          skills: ['TypeScript'],
+          languages: ['English'],
+        },
+      },
+    });
+    prismaService.cV.update.mockResolvedValue({
+      id: 'cv-1',
+      fileName: 'cv.pdf',
+      fileSize: 100,
+      mimeType: 'application/pdf',
+      parsedData: {
+        summary: 'Existing summary',
+        normalizedProfile: {
+          summary: 'Existing summary',
+          skills: ['Docker', 'Kubernetes'],
+          languages: ['English'],
+        },
+      },
+      skills: ['Docker', 'Kubernetes'],
+      isPrimary: true,
+      createdAt: new Date('2026-03-06T00:00:00.000Z'),
+      updatedAt: new Date('2026-03-06T00:00:00.000Z'),
+      filePath: 'candidate-1/file.pdf',
+    });
+
+    await service.update('candidate-user', 'cv-1', {
+      skills: ['Docker', 'Kubernetes'],
+    });
+
+    const updateCalls = prismaService.cV.update.mock.calls as Array<
+      [
+        {
+          data: {
+            parsedData: {
+              skills: string[];
+              normalizedProfile: { skills: string[] };
+            };
+            skills: string[];
+            skillAtoms: Array<{ canonical: string }>;
+          };
+        },
+      ]
+    >;
+    expect(updateCalls[0]?.[0].data.parsedData.skills).toEqual([
+      'Docker',
+      'Kubernetes',
+    ]);
+    expect(
+      updateCalls[0]?.[0].data.parsedData.normalizedProfile.skills,
+    ).toEqual(['Docker', 'Kubernetes']);
+    expect(updateCalls[0]?.[0].data.skills).toEqual(['Docker', 'Kubernetes']);
+    expect(updateCalls[0]?.[0].data.skillAtoms).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ canonical: 'docker' }),
+        expect.objectContaining({ canonical: 'kubernetes' }),
+      ]),
+    );
   });
 });

@@ -10,6 +10,32 @@ Tính điểm phù hợp (0-100%) giữa CV và Job Description.
 Final Score = (TF-IDF Score × 0.7) + (Skills Score × 0.3)
 ```
 
+## Canonical Skill Atoms (Foundation)
+
+### Overview
+Skill atoms are **deterministic, normalized representations** of individual skills extracted from CV/Job during parsing. Each atoms includes:
+- `raw` - Original text from CV/Job
+- `label` - Normalized display name
+- `canonical` - Unique canonical identifier (e.g., 'python', 'django')
+- `group` - Category (PROGRAMMING, FRAMEWORK, DATABASE, TOOL, SOFT_SKILL)
+- `source` - Origin: `cv_parsed`, `cv_manual`, `job_parsed`, `job_manual`, or `legacy` (fallback)
+
+### Deterministic Atomization
+All CVs and Jobs store **dual skill representations**:
+- `skills` (Json) - Display values for UI
+- `skillAtoms` (Json) - Canonical atoms for matching logic
+
+This ensures matching is deterministic and not affected by skill string variations (e.g., "Python", "python", "PYTHON" all canonicalize to `canonical: 'python'`).
+
+### Fallback Handling
+When `skillAtoms` is missing, system automatically derives from legacy `skills` array with `source: 'legacy'` to maintain backward compatibility.
+
+## Version Routing
+
+Matching algorithm respects `MATCHING_VERSION` environment variable:
+- `MATCHING_VERSION=legacy` - Uses legacy string comparison (deprecated)
+- `MATCHING_VERSION=v2` (default) - Uses canonical skill atoms for deterministic matching
+
 ## Phase 1: TF-IDF + Skills (MVP)
 
 ### 1. TF-IDF Score
@@ -43,23 +69,23 @@ function calculateTFIDF(cvText: string, jdText: string): number {
 
 **Output:** Score từ 0.0 đến 1.0
 
-### 2. Skills Score
+### 2. Skills Score (v2: Canonical Matching)
 
-**Input:**
+**Input (v2):**
 
-- CV skills: `["Python", "Django", "PostgreSQL", "Docker"]`
-- Job skills: `["Python", "Django", "PostgreSQL", "Kubernetes"]`
+- CV skillAtoms: `[{canonical: 'python'}, {canonical: 'django'}, {canonical: 'postgresql'}, {canonical: 'docker'}]`
+- Job skillAtoms: `[{canonical: 'python'}, {canonical: 'django'}, {canonical: 'postgresql'}, {canonical: 'kubernetes'}]`
 
 **Process:**
 
 ```typescript
-function calculateSkillsScore(cvSkills: string[], jobSkills: string[]): number {
-  const cvSet = new Set(cvSkills.map((s) => s.toLowerCase()));
-  const jobSet = new Set(jobSkills.map((s) => s.toLowerCase()));
+function calculateSkillsScore(cvAtoms: SkillAtom[], jobAtoms: SkillAtom[]): number {
+  const cvSet = new Set(cvAtoms.map((a) => a.canonical));
+  const jobSet = new Set(jobAtoms.map((a) => a.canonical));
 
   let matchCount = 0;
-  for (const skill of jobSet) {
-    if (cvSet.has(skill)) {
+  for (const canonical of jobSet) {
+    if (cvSet.has(canonical)) {
       matchCount++;
     }
   }
@@ -71,6 +97,8 @@ function calculateSkillsScore(cvSkills: string[], jobSkills: string[]): number {
 **Example:**
 
 - Match: 3/4 = 0.75 (75%)
+- Matched (canonical): `python`, `django`, `postgresql`
+- Missing (canonical): `kubernetes`
 
 ### 3. Final Score
 
@@ -131,6 +159,29 @@ async function calculateSemanticScore(cvText: string, jdText: string) {
 // Updated final score
 const finalScore = tfidfScore * 0.4 + skillsScore * 0.2 + semanticScore * 0.4;
 ```
+
+## Matching Snapshot
+
+Each application stores a **matching snapshot** (JSON) capturing the matching state at application time:
+
+```typescript
+interface MatchingSnapshot {
+  version: 'legacy' | 'v2';        // Routing version used
+  componentScores: {
+    tfidf: number;                 // 0.0 - 1.0
+    skills: number;                // 0.0 - 1.0
+    final: number;                 // 0-100 percent
+  };
+  topMatchedSkills: string[];       // Top 8 matched canonical names
+  missingSkills: string[];          // Missing canonical names
+  warnings: string[];               // Parse quality warnings
+}
+```
+
+This allows recruiter UI to:
+- Display rich matching breakdown
+- Track matching determinism (same snapshot on re-evaluate = bug-free)
+- Detect parsing quality issues
 
 ## UI Display
 

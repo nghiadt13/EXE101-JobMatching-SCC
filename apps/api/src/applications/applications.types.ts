@@ -1,4 +1,5 @@
 import { ApplicationStatus } from '@prisma/client';
+import { MatchingSnapshot } from '../matching/types/skill-canonical.types';
 
 export type ApplicationView = {
   id: string;
@@ -8,6 +9,7 @@ export type ApplicationView = {
   matchScore: number;
   tfidfScore: number | null;
   skillsScore: number | null;
+  matchingSnapshot: MatchingSnapshot | null;
   status: ApplicationStatus;
   notes: string | null;
   appliedAt: Date;

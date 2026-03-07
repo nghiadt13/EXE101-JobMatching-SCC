@@ -1,19 +1,27 @@
 import { Injectable } from '@nestjs/common';
 import { MatchingBreakdown } from '../matching.types';
+import { SkillAtom } from '../types/skill-canonical.types';
 import { normalizeSkillsInput } from '../utils/text-normalizer';
+
+type SkillInput = string | SkillAtom;
 
 @Injectable()
 export class SkillsCalculatorService {
-  calculateSkillsScore(cvSkills: string[], jobSkills: string[]): number {
-    const normalizedCvSkills = new Set(normalizeSkillsInput(cvSkills));
-    const normalizedJobSkills = normalizeSkillsInput(jobSkills);
+  calculateSkillsScore(
+    cvSkills: SkillInput[],
+    jobSkills: SkillInput[],
+  ): number {
+    const normalizedCvSkills = new Set(
+      this.toComparableSkills(cvSkills).map((entry) => entry.canonical),
+    );
+    const normalizedJobSkills = this.toComparableSkills(jobSkills);
     if (normalizedJobSkills.length === 0) {
       return 0;
     }
 
     let matched = 0;
     for (const skill of normalizedJobSkills) {
-      if (normalizedCvSkills.has(skill)) {
+      if (normalizedCvSkills.has(skill.canonical)) {
         matched += 1;
       }
     }
@@ -22,15 +30,16 @@ export class SkillsCalculatorService {
   }
 
   calculateBreakdown(
-    cvSkills: string[],
-    jobSkills: string[],
+    cvSkills: SkillInput[],
+    jobSkills: SkillInput[],
   ): MatchingBreakdown {
-    const cvSet = new Set(normalizeSkillsInput(cvSkills));
+    const cvSet = new Set(
+      this.toComparableSkills(cvSkills).map((entry) => entry.canonical),
+    );
     const jobCanonicalMap = new Map<string, string>();
-    for (const skill of jobSkills) {
-      const normalized = normalizeSkillsInput([skill])[0];
-      if (normalized && !jobCanonicalMap.has(normalized)) {
-        jobCanonicalMap.set(normalized, skill.trim());
+    for (const skill of this.toComparableSkills(jobSkills)) {
+      if (!jobCanonicalMap.has(skill.canonical)) {
+        jobCanonicalMap.set(skill.canonical, skill.label);
       }
     }
 
@@ -45,5 +54,24 @@ export class SkillsCalculatorService {
     }
 
     return { matchedSkills, missingSkills };
+  }
+
+  private toComparableSkills(skills: SkillInput[]) {
+    return skills
+      .map((skill) => {
+        if (typeof skill === 'string') {
+          const canonical = normalizeSkillsInput([skill])[0] ?? '';
+          return {
+            canonical,
+            label: skill.trim(),
+          };
+        }
+
+        return {
+          canonical: skill.canonical.trim(),
+          label: skill.label.trim(),
+        };
+      })
+      .filter((entry) => entry.canonical && entry.label);
   }
 }

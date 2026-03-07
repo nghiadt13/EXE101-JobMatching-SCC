@@ -73,6 +73,7 @@ model CV {
   mimeType    String
   parsedData  Json
   skills      Json
+  skillAtoms  Json?
   isPrimary   Boolean   @default(false)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -93,6 +94,7 @@ model Job {
   slug           String    @unique
   description    String    @db.Text
   skills         Json
+  skillAtoms     Json?
   location       Json?
   salaryMin      Int?
   salaryMax      Int?
@@ -124,6 +126,7 @@ model Application {
   matchScore  Float
   tfidfScore  Float?
   skillsScore Float?
+  matchingSnapshot Json?
   status      ApplicationStatus @default(APPLIED)
   notes       String?           @db.Text
   appliedAt   DateTime          @default(now())

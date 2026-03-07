@@ -342,6 +342,7 @@ Close job (chỉ `PUBLISHED -> CLOSED`)
 Apply vào job
 
 ```json
+Request:
 {
   "jobId": "uuid",
   "cvId": "uuid"
@@ -356,6 +357,17 @@ Response:
   "matchScore": 78,
   "tfidfScore": 0.72,
   "skillsScore": 0.85,
+  "matchingSnapshot": {
+    "version": "v2",
+    "componentScores": {
+      "tfidf": 0.72,
+      "skills": 0.85,
+      "final": 78
+    },
+    "topMatchedSkills": ["python", "django", "postgresql"],
+    "missingSkills": ["kubernetes"],
+    "warnings": []
+  },
   "status": "APPLIED"
 }
 ```
@@ -408,6 +420,7 @@ Calculate match score (authenticated internal use)
 - `ADMIN`: tính được với mọi CV/Job active
 
 ```json
+Request:
 {
   "cvId": "uuid",
   "jobId": "uuid"
@@ -415,15 +428,30 @@ Calculate match score (authenticated internal use)
 
 Response:
 {
-  "score": 78.5,
+  "finalScorePercent": 78.5,
   "tfidfScore": 0.72,
   "skillsScore": 0.85,
+  "matchingVersion": "v2",
+  "warnings": [],
   "breakdown": {
-    "matchedSkills": ["Python", "Django"],
-    "missingSkills": ["Kubernetes"]
+    "matchedSkills": ["python", "django"],
+    "missingSkills": ["kubernetes"]
+  },
+  "matchingSnapshot": {
+    "version": "v2",
+    "componentScores": {
+      "tfidf": 0.72,
+      "skills": 0.85,
+      "final": 78.5
+    },
+    "topMatchedSkills": ["python", "django", "postgresql"],
+    "missingSkills": ["kubernetes"],
+    "warnings": []
   }
 }
 ```
+
+**Note:** Response includes `matchingSnapshot` for audit trail and UI display. The `matchingVersion` field indicates algorithm version used (legacy or v2).
 
 ### Matching Error Codes
 

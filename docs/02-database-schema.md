@@ -73,7 +73,8 @@ model CV {
 
   // Parsed data từ Gemini
   parsedData  Json     // { skills, experience, education, contact }
-  skills      Json     // ["Python", "Django", ...]
+  skills      Json     // ["Python", "Django", ...] - display names
+  skillAtoms  Json?    // [{raw, label, canonical, group, source}] - canonical atoms for matching
 
   isPrimary   Boolean  @default(false)
 
@@ -82,6 +83,8 @@ model CV {
   deletedAt   DateTime?
 }
 ```
+
+**Note:** `skillAtoms` stores deterministic normalized skill atoms. If missing, system derives from `skills` array with `source: 'legacy'`.
 
 ### 4. jobs
 
@@ -96,7 +99,8 @@ model Job {
   description String   @db.Text
 
   // Job details
-  skills      Json     // ["Python", "Django", ...]
+  skills      Json     // ["Python", "Django", ...] - display names
+  skillAtoms  Json?    // [{raw, label, canonical, group, source}] - canonical atoms for matching
   location    Json?    // { city, country, remote }
   salaryMin   Int?
   salaryMax   Int?
@@ -136,6 +140,7 @@ model Application {
   matchScore  Float    // 0-100
   tfidfScore  Float?
   skillsScore Float?
+  matchingSnapshot Json? // {version, componentScores, topMatchedSkills, missingSkills, warnings}
 
   status      ApplicationStatus @default(APPLIED)
   notes       String?  @db.Text

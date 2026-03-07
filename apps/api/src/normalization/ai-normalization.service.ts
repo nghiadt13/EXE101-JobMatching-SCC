@@ -47,6 +47,20 @@ export class AiNormalizationService {
     return this.normalize('job', rawText);
   }
 
+  forceFallbackCv(
+    rawText: string,
+    reason = 'fallback_parser',
+  ): NormalizationResult {
+    return this.createFallbackResult('cv', rawText, Date.now(), reason);
+  }
+
+  forceFallbackJob(
+    rawText: string,
+    reason = 'fallback_parser',
+  ): NormalizationResult {
+    return this.createFallbackResult('job', rawText, Date.now(), reason);
+  }
+
   private async normalize(
     domain: Domain,
     rawText: string,
@@ -96,7 +110,7 @@ export class AiNormalizationService {
       'Analyze the following raw text extracted from a ' +
         (domain === 'cv' ? 'candidate CV' : 'Job Description') +
         '.',
-      'CRITICAL INSTRUCTION: Read the ENTIRE document from start to finish. Extract ALL technical skills, tools, frameworks, and programming languages you can find into the "skills" array. Group related granular skills under a parent category string, e.g., "AWS: EC2, S3, Lambda" or "Networking: OSI Model, Layer 3, IP" instead of separating them into individual elements. DO NOT summarize or omit any technical keywords.',
+      'CRITICAL INSTRUCTION: Read the ENTIRE document from start to finish. Extract ALL technical skills, tools, frameworks, platforms, protocols, and programming languages you can find into the "skills" array. Prefer atomic skill items like "AWS", "EC2", "S3", "Lambda" instead of grouped category strings. DO NOT summarize or omit technical keywords.',
       'For Experience and Education: Connect the dates, company/school names, and job titles even if they appear on separate or disjointed lines in the raw text.',
       '',
       'Return STRICT JSON ONLY. No markdown formatted blocks (e.g. no ```json), no explanations, no preamble.',

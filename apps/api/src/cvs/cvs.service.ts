@@ -14,6 +14,7 @@ import {
 import { QueryCvsDto } from './dto/query-cvs.dto';
 import { UpdateCvDto } from './dto/update-cv.dto';
 import { CvView, CvsListResponse } from './cvs.types';
+import { SkillStorageAdapterService } from '../matching/services/skill-storage-adapter.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiNormalizationService } from '../normalization/ai-normalization.service';
 import {
@@ -35,6 +36,7 @@ export class CvsService {
     private readonly aiNormalizationService: AiNormalizationService,
     private readonly cvStorageService: CvStorageService,
     private readonly cvTextExtractorService: CvTextExtractorService,
+    private readonly skillStorageAdapter: SkillStorageAdapterService,
   ) {}
 
   async upload(userId: string, file: Express.Multer.File): Promise<CvView> {
@@ -67,6 +69,7 @@ export class CvsService {
           mimeType: file.mimetype,
           parsedData: normalized.parsedData as unknown as Prisma.InputJsonValue,
           skills: normalized.skills as Prisma.InputJsonValue,
+          skillAtoms: normalized.skillAtoms as unknown as Prisma.InputJsonValue,
           isPrimary: activeCount === 0,
         },
         select: this.cvViewSelect,
@@ -92,8 +95,9 @@ export class CvsService {
           error instanceof Error ? error.message : 'Unknown error'
         }`,
       );
-      const fallbackResult = await this.aiNormalizationService.normalizeCv(
+      const fallbackResult = this.aiNormalizationService.forceFallbackCv(
         this.parseFallbackSummary,
+        'extraction_failed',
       );
       return this.toStoredCvData(fallbackResult);
     }
@@ -158,9 +162,10 @@ export class CvsService {
     const candidate = await this.getCandidateOrThrow(userId);
     const current = await this.ensureCvOwnership(candidate.id, cvId);
 
-    const normalizedSkills = dto.skills
-      ?.map((item) => item.trim())
-      .filter(Boolean);
+    const normalizedSkillsPayload =
+      dto.skills !== undefined
+        ? this.skillStorageAdapter.toStoredSkills(dto.skills, 'cv_manual')
+        : null;
     const currentParsedData = this.asRecord(current.parsedData);
     const incomingParsedData =
       dto.parsedData !== undefined ? this.asRecord(dto.parsedData) : {};
@@ -172,15 +177,15 @@ export class CvsService {
           }
         : { ...currentParsedData };
 
-    if (normalizedSkills !== undefined) {
-      mergedParsedData['skills'] = normalizedSkills;
+    if (normalizedSkillsPayload) {
+      mergedParsedData['skills'] = normalizedSkillsPayload.skills;
       const normalizedProfile = this.asRecord(
         mergedParsedData['normalizedProfile'],
       );
       if (Object.keys(normalizedProfile).length > 0) {
         mergedParsedData['normalizedProfile'] = {
           ...normalizedProfile,
-          skills: normalizedSkills,
+          skills: normalizedSkillsPayload.skills,
         };
       }
     }
@@ -212,11 +217,15 @@ export class CvsService {
     const updated = await this.prisma.cV.update({
       where: { id: cvId },
       data: {
-        ...(dto.parsedData !== undefined || normalizedSkills !== undefined
+        ...(dto.parsedData !== undefined || normalizedSkillsPayload !== null
           ? { parsedData: mergedParsedData as Prisma.InputJsonValue }
           : {}),
-        ...(normalizedSkills !== undefined
-          ? { skills: normalizedSkills as Prisma.InputJsonValue }
+        ...(normalizedSkillsPayload
+          ? {
+              skills: normalizedSkillsPayload.skills as Prisma.InputJsonValue,
+              skillAtoms:
+                normalizedSkillsPayload.skillAtoms as unknown as Prisma.InputJsonValue,
+            }
           : {}),
       },
       select: this.cvViewSelect,
@@ -389,10 +398,18 @@ export class CvsService {
   private toStoredCvData(result: NormalizationResult): {
     parsedData: Record<string, unknown>;
     skills: string[];
+    skillAtoms: unknown[];
   } {
-    const profile = result.profile;
+    const storedSkills = this.skillStorageAdapter.toStoredSkills(
+      result.profile.skills,
+      'cv_parsed',
+    );
+    const profile = {
+      ...result.profile,
+      skills: storedSkills.skills,
+    };
     const parsedData = {
-      skills: profile.skills,
+      skills: storedSkills.skills,
       summary: profile.summary,
       experience: profile.experience,
       education: profile.education,
@@ -407,7 +424,8 @@ export class CvsService {
     };
     return {
       parsedData,
-      skills: profile.skills,
+      skills: storedSkills.skills,
+      skillAtoms: storedSkills.skillAtoms,
     };
   }
 

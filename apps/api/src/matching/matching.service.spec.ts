@@ -6,6 +6,9 @@ import { ScoreCombinerService } from './calculators/score-combiner.service';
 import { SkillsCalculatorService } from './calculators/skills-calculator.service';
 import { TfidfCalculatorService } from './calculators/tfidf-calculator.service';
 import { MatchingService } from './matching.service';
+import { SkillAtomizerService } from './services/skill-atomizer.service';
+import { SkillCanonicalizerService } from './services/skill-canonicalizer.service';
+import { SkillStorageAdapterService } from './services/skill-storage-adapter.service';
 
 describe('MatchingService', () => {
   let service: MatchingService;
@@ -15,6 +18,7 @@ describe('MatchingService', () => {
   };
 
   beforeEach(async () => {
+    delete process.env.MATCHING_VERSION;
     prismaService = {
       cV: { findFirst: jest.fn() },
       job: { findFirst: jest.fn() },
@@ -26,11 +30,18 @@ describe('MatchingService', () => {
         TfidfCalculatorService,
         SkillsCalculatorService,
         ScoreCombinerService,
+        SkillCanonicalizerService,
+        SkillAtomizerService,
+        SkillStorageAdapterService,
         { provide: PrismaService, useValue: prismaService },
       ],
     }).compile();
 
     service = module.get<MatchingService>(MatchingService);
+  });
+
+  afterEach(() => {
+    delete process.env.MATCHING_VERSION;
   });
 
   it('returns deterministic score for candidate own cv and published job', async () => {
@@ -164,5 +175,122 @@ describe('MatchingService', () => {
 
     expect(result.breakdown.matchedSkills).toContain('Docker');
     expect(result.breakdown.missingSkills).toContain('Kubernetes');
+    expect(result.warnings).toContain(
+      'Using legacy skills fallback for matching',
+    );
+  });
+
+  it('supports explicit legacy rollback mode', async () => {
+    process.env.MATCHING_VERSION = 'legacy';
+    prismaService.cV.findFirst.mockResolvedValue({
+      id: 'cv-5',
+      candidateId: 'cand-5',
+      skills: ['AWS: EC2, S3, Lambda'],
+      skillAtoms: [
+        {
+          raw: 'AWS: EC2, S3, Lambda',
+          label: 'EC2',
+          canonical: 'ec2',
+          group: 'AWS',
+          source: 'cv_parsed',
+        },
+      ],
+      parsedData: { summary: 'Cloud engineer' },
+      candidate: { userId: 'candidate-5' },
+    });
+    prismaService.job.findFirst.mockResolvedValue({
+      id: 'job-legacy',
+      recruiterId: 'recruiter-1',
+      description: 'Need AWS EC2 experience',
+      skills: ['EC2'],
+      skillAtoms: [
+        {
+          raw: 'EC2',
+          label: 'EC2',
+          canonical: 'ec2',
+          group: null,
+          source: 'job_parsed',
+        },
+      ],
+      location: null,
+      status: JobStatus.PUBLISHED,
+    });
+
+    const result = await service.calculateForCvAndJob('cv-5', 'job-legacy', {
+      sub: 'candidate-5',
+      role: UserRole.CANDIDATE,
+    });
+
+    expect(result.matchingVersion).toBe('legacy');
+    expect(result.breakdown.matchedSkills).toEqual([]);
+  });
+
+  it('flags v2 fallback when only one side has canonical atoms', async () => {
+    prismaService.cV.findFirst.mockResolvedValue({
+      id: 'cv-6',
+      candidateId: 'cand-6',
+      skills: ['TypeScript'],
+      skillAtoms: [
+        {
+          raw: 'TypeScript',
+          label: 'TypeScript',
+          canonical: 'typescript',
+          group: null,
+          source: 'cv_parsed',
+        },
+      ],
+      parsedData: { summary: 'TypeScript engineer' },
+      candidate: { userId: 'candidate-6' },
+    });
+    prismaService.job.findFirst.mockResolvedValue({
+      id: 'job-6',
+      recruiterId: 'recruiter-1',
+      description: 'Need TypeScript',
+      skills: ['TypeScript'],
+      skillAtoms: null,
+      location: null,
+      status: JobStatus.PUBLISHED,
+    });
+
+    const result = await service.calculateForCvAndJob('cv-6', 'job-6', {
+      sub: 'candidate-6',
+      role: UserRole.CANDIDATE,
+    });
+
+    expect(result.matchingVersion).toBe('v2');
+    expect(result.warnings).toContain(
+      'Using legacy skills fallback for matching',
+    );
+  });
+
+  it('matches single-item grouped legacy skills through the fallback path', async () => {
+    prismaService.cV.findFirst.mockResolvedValue({
+      id: 'cv-7',
+      candidateId: 'cand-7',
+      skills: ['AWS: EC2'],
+      skillAtoms: null,
+      parsedData: { summary: 'Cloud engineer' },
+      candidate: { userId: 'candidate-7' },
+    });
+    prismaService.job.findFirst.mockResolvedValue({
+      id: 'job-7',
+      recruiterId: 'recruiter-1',
+      description: 'Need AWS EC2 experience',
+      skills: ['EC2'],
+      skillAtoms: null,
+      location: null,
+      status: JobStatus.PUBLISHED,
+    });
+
+    const result = await service.calculateForCvAndJob('cv-7', 'job-7', {
+      sub: 'candidate-7',
+      role: UserRole.CANDIDATE,
+    });
+
+    expect(result.breakdown.matchedSkills).toContain('EC2');
+    expect(result.skillsScore).toBeGreaterThan(0);
+    expect(result.warnings).toContain(
+      'Using legacy skills fallback for matching',
+    );
   });
 });

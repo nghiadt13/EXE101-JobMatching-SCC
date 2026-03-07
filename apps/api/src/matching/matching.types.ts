@@ -1,4 +1,8 @@
 import { UserRole } from '@prisma/client';
+import {
+  MatchingSnapshot,
+  MatchingVersion,
+} from './types/skill-canonical.types';
 
 export type MatchingActor = {
   sub: string;
@@ -15,6 +19,8 @@ export type MatchingResult = {
   tfidfScore: number;
   skillsScore: number;
   breakdown: MatchingBreakdown;
+  matchingVersion: MatchingVersion;
+  warnings: string[];
 };
 
 export type MatchingIntegrationPayload = {
@@ -22,4 +28,7 @@ export type MatchingIntegrationPayload = {
   tfidfScore: number;
   skillsScore: number;
   breakdown: MatchingBreakdown;
+  matchingVersion: MatchingVersion;
+  warnings: string[];
+  matchingSnapshot: MatchingSnapshot;
 };
