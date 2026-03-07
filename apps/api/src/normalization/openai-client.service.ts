@@ -10,7 +10,7 @@ export class OpenAiClientService implements LlmClient {
     return process.env['OPENAI_MODEL'] ?? 'gpt-4.1-mini';
   }
 
-  async generateText(prompt: string, timeoutMs = 45000): Promise<string> {
+  async generateText(prompt: string, timeoutMs = 60000): Promise<string> {
     const apiKey = process.env['OPENAI_API_KEY'];
     if (!apiKey) {
       throw new Error('OPENAI_API_KEY is required');

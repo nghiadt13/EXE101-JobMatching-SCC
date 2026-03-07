@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { AppLogger } from '../common/logging/app-logger.service';
 import { GeminiClientService } from './gemini-client.service';
 import { LlmClient } from './llm-client.interface';
+import { classifyLlmError } from './llm-error-classifier';
 import { AiNormalizationError } from './normalization.errors';
 import { OpenAiClientService } from './openai-client.service';
 import {
@@ -12,6 +13,9 @@ import {
 } from './normalization.types';
 
 type Domain = 'cv' | 'job';
+
+const MAX_NORMALIZATION_TIMEOUT_MS = 60_000;
+const REPAIR_TIMEOUT_CAP_MS = 8_000;
 
 @Injectable()
 export class AiNormalizationService {
@@ -34,13 +38,17 @@ export class AiNormalizationService {
     rawText: string,
   ): Promise<NormalizationResult> {
     const start = Date.now();
+    const deadline = start + this.readNormalizationTimeoutMs();
     const client = this.resolveClient();
     const prompt = this.buildPrompt(domain, rawText);
 
     try {
-      const first = await client.generateText(prompt);
+      const first = await client.generateText(
+        prompt,
+        this.readRemainingTimeMs(deadline),
+      );
       const directJson = this.extractJson(first);
-      const parsed = directJson ?? (await this.tryRepairJson(client, first));
+      const parsed = directJson ?? (await this.tryRepairJson(client, first, deadline));
 
       if (!parsed) {
         throw new AiNormalizationError(
@@ -61,12 +69,20 @@ export class AiNormalizationService {
         },
       };
     } catch (error) {
+      const failure =
+        error instanceof AiNormalizationError && error.details
+          ? error.details
+          : classifyLlmError(error);
       this.logger.warn('ai_normalization_failed', {
         domain,
         provider: client.provider,
         model: client.getModelName(),
         latencyMs: Date.now() - start,
-        reason: error instanceof Error ? error.message : 'Unknown error',
+        failureCategory: failure.category,
+        upstreamStatusCode: failure.statusCode ?? undefined,
+        upstreamCode: failure.providerCode ?? undefined,
+        retryable: failure.retryable,
+        reason: failure.reason,
       });
 
       if (error instanceof AiNormalizationError) {
@@ -75,6 +91,7 @@ export class AiNormalizationService {
       throw new AiNormalizationError(
         'service_unavailable',
         'AI provider request failed',
+        failure,
       );
     }
   }
@@ -118,13 +135,44 @@ export class AiNormalizationService {
   private async tryRepairJson(
     client: LlmClient,
     rawModelText: string,
+    deadline: number,
   ): Promise<unknown> {
     const repairPrompt = [
       'Fix this to valid JSON only. Keep original keys and values.',
       rawModelText,
     ].join('\n');
-    const repaired = await client.generateText(repairPrompt, 8000);
+    const repaired = await client.generateText(
+      repairPrompt,
+      Math.min(REPAIR_TIMEOUT_CAP_MS, this.readRemainingTimeMs(deadline)),
+    );
     return this.extractJson(repaired);
+  }
+
+  private readNormalizationTimeoutMs(): number {
+    const raw = Number(process.env['AI_NORMALIZATION_TIMEOUT_MS']);
+    if (!Number.isFinite(raw) || raw <= 0) {
+      return MAX_NORMALIZATION_TIMEOUT_MS;
+    }
+    return Math.min(Math.floor(raw), MAX_NORMALIZATION_TIMEOUT_MS);
+  }
+
+  private readRemainingTimeMs(deadline: number): number {
+    const remainingMs = deadline - Date.now();
+    if (remainingMs > 0) {
+      return remainingMs;
+    }
+
+    throw new AiNormalizationError(
+      'service_unavailable',
+      'AI normalization timed out',
+      {
+        category: 'timeout',
+        statusCode: 408,
+        providerCode: 'NORMALIZATION_TIMEOUT',
+        reason: 'AI normalization timed out',
+        retryable: true,
+      },
+    );
   }
 
   private extractJson(text: string): unknown {

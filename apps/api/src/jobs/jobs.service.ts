@@ -1009,7 +1009,11 @@ export class JobsService {
         this.logger.warn('job_normalization_rejected', {
           errorCode: error.code,
           kind: error.kind,
-          reason: error.message,
+          failureCategory: error.details?.category,
+          upstreamStatusCode: error.details?.statusCode ?? undefined,
+          upstreamCode: error.details?.providerCode ?? undefined,
+          retryable: error.details?.retryable,
+          reason: error.details?.reason ?? error.message,
         });
         if (error.kind === 'service_unavailable') {
           throw new ServiceUnavailableException({

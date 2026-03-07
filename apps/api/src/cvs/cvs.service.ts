@@ -144,6 +144,11 @@ export class CvsService {
           fileName: file.originalname,
           errorCode: error.code,
           kind: error.kind,
+          failureCategory: error.details?.category,
+          upstreamStatusCode: error.details?.statusCode ?? undefined,
+          upstreamCode: error.details?.providerCode ?? undefined,
+          retryable: error.details?.retryable,
+          reason: error.details?.reason ?? error.message,
         });
         if (error.kind === 'service_unavailable') {
           throw new ServiceUnavailableException({

@@ -125,4 +125,47 @@ describe('AiNormalizationService', () => {
     expect(result.profile.skills).toEqual(['Docker', 'Kubernetes']);
     expect(geminiClient.generateText).not.toHaveBeenCalled();
   });
+
+  it('classifies timeout failures with retryable details', async () => {
+    geminiClient.generateText.mockRejectedValue(new Error('Timeout after 60000ms'));
+
+    await expect(service.normalizeCv('slow cv text')).rejects.toMatchObject({
+      code: 'AI_SERVICE_UNAVAILABLE',
+      kind: 'service_unavailable',
+      details: expect.objectContaining({
+        category: 'timeout',
+        providerCode: null,
+        retryable: true,
+      }),
+    });
+
+    expect(logger.warn).toHaveBeenCalledWith(
+      'ai_normalization_failed',
+      expect.objectContaining({
+        failureCategory: 'timeout',
+        retryable: true,
+      }),
+    );
+  });
+
+  it('classifies 429 failures with upstream metadata', async () => {
+    process.env.LLM_PROVIDER = 'openai';
+    openAiClient.generateText.mockRejectedValue(
+      Object.assign(new Error('Rate limit exceeded'), {
+        status: 429,
+        code: 'rate_limit_exceeded',
+      }),
+    );
+
+    await expect(service.normalizeCv('rate limited cv text')).rejects.toMatchObject({
+      code: 'AI_SERVICE_UNAVAILABLE',
+      kind: 'service_unavailable',
+      details: expect.objectContaining({
+        category: 'rate_limited',
+        statusCode: 429,
+        providerCode: 'rate_limit_exceeded',
+        retryable: true,
+      }),
+    });
+  });
 });
