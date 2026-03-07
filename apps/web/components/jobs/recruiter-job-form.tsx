@@ -1,9 +1,13 @@
+import { formatMultilineList } from '@/lib/job-description-format';
+
 type RecruiterJobFormProps = {
   submitLabel: string;
   action: (formData: FormData) => Promise<void>;
   initialValues?: {
     title?: string;
-    description?: string;
+    summary?: string;
+    requirements?: string[];
+    benefits?: string[];
     skills?: string[];
     employmentType?: string;
     salaryMin?: number | null;
@@ -30,13 +34,29 @@ export function RecruiterJobForm({
           />
         </label>
         <label className="space-y-1 sm:col-span-2">
-          <span className="text-sm font-medium text-zinc-700">Description</span>
+          <span className="text-sm font-medium text-zinc-700">Summary</span>
           <textarea
-            name="description"
-            defaultValue={initialValues?.description ?? ''}
+            name="summary"
+            defaultValue={initialValues?.summary ?? ''}
             className="min-h-28 w-full rounded-lg border border-zinc-300 px-3 py-2"
             minLength={10}
             required
+          />
+        </label>
+        <label className="space-y-1 sm:col-span-2">
+          <span className="text-sm font-medium text-zinc-700">Requirements (one per line)</span>
+          <textarea
+            name="requirements"
+            defaultValue={formatMultilineList(initialValues?.requirements)}
+            className="min-h-28 w-full rounded-lg border border-zinc-300 px-3 py-2"
+          />
+        </label>
+        <label className="space-y-1 sm:col-span-2">
+          <span className="text-sm font-medium text-zinc-700">Benefits (one per line)</span>
+          <textarea
+            name="benefits"
+            defaultValue={formatMultilineList(initialValues?.benefits)}
+            className="min-h-24 w-full rounded-lg border border-zinc-300 px-3 py-2"
           />
         </label>
         <label className="space-y-1 sm:col-span-2">

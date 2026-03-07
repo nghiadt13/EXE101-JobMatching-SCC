@@ -44,6 +44,8 @@ type SourceDocumentMeta = {
 
 @Injectable()
 export class JobsService {
+  private readonly slugRetryAttempts = 3;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly aiNormalizationService: AiNormalizationService,
@@ -54,7 +56,6 @@ export class JobsService {
 
   async create(recruiterId: string, dto: CreateJobDto): Promise<JobView> {
     this.validateSalaryRange(dto.salaryMin, dto.salaryMax);
-    const slug = await this.jobSlugService.generateUniqueSlug(dto.title);
     const normalizedSkills = this.normalizeSkills(dto.skills);
     const normalization = await this.aiNormalizationService.normalizeJob(
       this.composeJobRawText({
@@ -65,7 +66,7 @@ export class JobsService {
       }),
     );
 
-    try {
+    return this.withUniqueJobSlug(dto.title, async (slug) => {
       const created = await this.prisma.job.create({
         data: {
           recruiterId,
@@ -84,12 +85,7 @@ export class JobsService {
       });
 
       return this.toView(created);
-    } catch (error) {
-      if (this.isUniqueViolation(error)) {
-        throw new ConflictException('Job slug already exists');
-      }
-      throw error;
-    }
+    });
   }
 
   async createFromFile(
@@ -115,7 +111,6 @@ export class JobsService {
       rawText,
       file.originalname,
     );
-    const slug = await this.jobSlugService.generateUniqueSlug(draft.title);
     const storedPath = await this.documentStorageService.save(
       'jobs',
       recruiterId,
@@ -123,36 +118,38 @@ export class JobsService {
     );
 
     try {
-      const created = await this.prisma.job.create({
-        data: {
-          recruiterId,
-          title: draft.title,
-          slug,
-          description: draft.description,
-          skills: draft.skills as Prisma.InputJsonValue,
-          location: this.withNormalizationMeta(null, normalization, {
-            inputMode: 'file_upload',
-            sourceDocument: {
-              fileName: file.originalname,
-              mimeType: file.mimetype,
-              fileSize: file.size,
-              storedPath,
+      const created = await this.withUniqueJobSlug(
+        draft.title,
+        async (slug) => {
+          return this.prisma.job.create({
+            data: {
+              recruiterId,
+              title: draft.title,
+              slug,
+              description: draft.description,
+              skills: draft.skills as Prisma.InputJsonValue,
+              location: this.withNormalizationMeta(null, normalization, {
+                inputMode: 'file_upload',
+                sourceDocument: {
+                  fileName: file.originalname,
+                  mimeType: file.mimetype,
+                  fileSize: file.size,
+                  storedPath,
+                },
+              }),
+              salaryMin: null,
+              salaryMax: null,
+              employmentType: draft.employmentType,
+              status: JobStatus.DRAFT,
             },
-          }),
-          salaryMin: null,
-          salaryMax: null,
-          employmentType: draft.employmentType,
-          status: JobStatus.DRAFT,
+            select: this.jobViewSelect,
+          });
         },
-        select: this.jobViewSelect,
-      });
+      );
 
       return this.toView(created);
     } catch (error) {
       await this.documentStorageService.remove('jobs', storedPath);
-      if (this.isUniqueViolation(error)) {
-        throw new ConflictException('Job slug already exists');
-      }
       throw error;
     }
   }
@@ -219,10 +216,6 @@ export class JobsService {
     const existing = await this.getRecruiterOwnedJobOrThrow(recruiterId, id);
     this.validateSalaryRange(dto.salaryMin, dto.salaryMax);
 
-    const slug =
-      dto.title !== undefined
-        ? await this.jobSlugService.generateUniqueSlug(dto.title, existing.id)
-        : existing.slug;
     const nextSkills =
       dto.skills !== undefined
         ? this.normalizeSkills(dto.skills)
@@ -244,11 +237,10 @@ export class JobsService {
         : this.stripNormalizationMeta(existing.location);
     const existingInputMode = this.readInputMode(existing.location) ?? 'manual';
 
-    try {
+    if (dto.title === undefined) {
       const updated = await this.prisma.job.update({
         where: { id },
         data: {
-          ...(dto.title !== undefined ? { title: dto.title, slug } : {}),
           ...(dto.description !== undefined
             ? { description: dto.description }
             : {}),
@@ -271,12 +263,45 @@ export class JobsService {
       });
 
       return this.toView(updated);
-    } catch (error) {
-      if (this.isUniqueViolation(error)) {
-        throw new ConflictException('Job slug already exists');
-      }
-      throw error;
     }
+
+    const updated = await this.withUniqueJobSlug(
+      dto.title,
+      async (slug) => {
+        return this.prisma.job.update({
+          where: { id },
+          data: {
+            title: dto.title,
+            slug,
+            ...(dto.description !== undefined
+              ? { description: dto.description }
+              : {}),
+            ...(dto.skills !== undefined
+              ? {
+                  skills: nextSkills as Prisma.InputJsonValue,
+                }
+              : {}),
+            location: this.withNormalizationMeta(baseLocation, normalization, {
+              existingLocation: existing.location,
+              inputMode: existingInputMode,
+            }),
+            ...(dto.salaryMin !== undefined
+              ? { salaryMin: dto.salaryMin }
+              : {}),
+            ...(dto.salaryMax !== undefined
+              ? { salaryMax: dto.salaryMax }
+              : {}),
+            ...(dto.employmentType !== undefined
+              ? { employmentType: dto.employmentType }
+              : {}),
+          },
+          select: this.jobViewSelect,
+        });
+      },
+      existing.id,
+    );
+
+    return this.toView(updated);
   }
 
   async softDelete(
@@ -422,6 +447,37 @@ export class JobsService {
   private isUniqueViolation(error: unknown): boolean {
     const maybeError = error as { code?: string };
     return maybeError?.code === 'P2002';
+  }
+
+  private async withUniqueJobSlug<T>(
+    title: string,
+    operation: (slug: string) => Promise<T>,
+    excludeJobId?: string,
+  ): Promise<T> {
+    let lastError: unknown;
+
+    for (let attempt = 0; attempt < this.slugRetryAttempts; attempt++) {
+      const slug = await this.jobSlugService.generateUniqueSlug(
+        title,
+        excludeJobId,
+      );
+
+      try {
+        return await operation(slug);
+      } catch (error) {
+        if (!this.isUniqueViolation(error)) {
+          throw error;
+        }
+
+        lastError = error;
+      }
+    }
+
+    if (this.isUniqueViolation(lastError)) {
+      throw new ConflictException('Job slug already exists');
+    }
+
+    throw lastError;
   }
 
   private toView(item: {

@@ -5,6 +5,7 @@ import { auth } from '@/auth';
 import { JdUploadForm } from '@/components/jobs/jd-upload-form';
 import { RecruiterJobForm } from '@/components/jobs/recruiter-job-form';
 import { RecruiterJobsTable } from '@/components/jobs/recruiter-jobs-table';
+import { composeJobDescription, parseMultilineList } from '@/lib/job-description-format';
 import { closeJob, createJob, deleteJob, getJobs, publishJob, uploadJobFile } from '@/lib/jobs-client';
 
 function parseSkills(input: FormDataEntryValue | null): string[] {
@@ -36,9 +37,19 @@ export default async function RecruiterJobsPage() {
     if (!currentSession?.user || !currentSession.accessToken) redirect('/login');
     if (currentSession.user.role !== 'RECRUITER') redirect('/dashboard');
 
+    const summary = String(formData.get('summary') ?? '').trim();
+    const requirements = parseMultilineList(
+      String(formData.get('requirements') ?? ''),
+    );
+    const benefits = parseMultilineList(String(formData.get('benefits') ?? ''));
+
     await createJob(currentSession.accessToken, {
       title: String(formData.get('title') ?? '').trim(),
-      description: String(formData.get('description') ?? '').trim(),
+      description: composeJobDescription({
+        summary,
+        requirements,
+        benefits,
+      }),
       skills: parseSkills(formData.get('skills')),
       employmentType: String(formData.get('employmentType') ?? '').trim(),
       salaryMin: parseOptionalNumber(formData.get('salaryMin')),
@@ -89,30 +100,59 @@ export default async function RecruiterJobsPage() {
   }
 
   const jobs = await getJobs({ page: 1, limit: 30 }, session.accessToken);
+  const draftCount = jobs.items.filter((job) => job.status === 'DRAFT').length;
+  const reviewCount = jobs.items.filter(
+    (job) => job.parseStatus !== 'parsed_ok',
+  ).length;
+  const visibleCount = jobs.items.length;
+  const totalCount = jobs.pagination.totalItems;
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-6 py-12">
+    <main className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-6 py-12">
       <header className="mb-6 flex items-center justify-between">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.15em] text-zinc-500">Recruiter</p>
           <h1 className="mt-1 text-2xl font-semibold text-zinc-900">Job Management</h1>
+          <p className="mt-2 max-w-2xl text-sm text-zinc-600">
+            Create jobs manually or upload a JD file, then review draft quality and publish when the role is ready.
+          </p>
         </div>
         <Link href="/dashboard/recruiter" className="text-sm font-medium text-zinc-700 underline">
           Back dashboard
         </Link>
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-[1.1fr_1.9fr]">
-        <div className="space-y-6">
-          <JdUploadForm uploadAction={uploadAction} />
-          <RecruiterJobForm submitLabel="Create job" action={createAction} />
+      <section className="mb-6 grid gap-4 md:grid-cols-3">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500">Total jobs</p>
+          <p className="mt-3 text-3xl font-semibold text-zinc-950">{totalCount}</p>
+          <p className="mt-2 text-sm text-zinc-600">All drafts, published jobs, and closed roles in your workspace.</p>
         </div>
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-amber-700">Visible drafts</p>
+          <p className="mt-3 text-3xl font-semibold text-amber-950">{draftCount}</p>
+          <p className="mt-2 text-sm text-amber-900/80">Draft jobs in the current list view that still need review or publishing.</p>
+        </div>
+        <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-blue-700">Visible attention</p>
+          <p className="mt-3 text-3xl font-semibold text-blue-950">{reviewCount}</p>
+          <p className="mt-2 text-sm text-blue-900/80">Jobs in the current list view where parsing fell back or still needs manual verification.</p>
+        </div>
+      </section>
+
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.65fr)_24rem] xl:items-start">
         <RecruiterJobsTable
           jobs={jobs.items}
+          totalItems={totalCount}
+          visibleItems={visibleCount}
           publishAction={publishAction}
           closeAction={closeAction}
           deleteAction={deleteAction}
         />
+        <div className="space-y-6 xl:sticky xl:top-6">
+          <JdUploadForm uploadAction={uploadAction} />
+          <RecruiterJobForm submitLabel="Create job" action={createAction} />
+        </div>
       </div>
     </main>
   );

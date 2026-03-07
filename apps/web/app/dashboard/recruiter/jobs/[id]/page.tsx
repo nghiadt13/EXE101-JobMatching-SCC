@@ -3,6 +3,11 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import { RecruiterJobForm } from '@/components/jobs/recruiter-job-form';
+import {
+  composeJobDescription,
+  getJobFormInitialValues,
+  parseMultilineList,
+} from '@/lib/job-description-format';
 import { getJobDetail, updateJob } from '@/lib/jobs-client';
 
 type PageProps = {
@@ -60,6 +65,7 @@ export default async function RecruiterJobDetailPage({ params }: PageProps) {
 
   const { id } = await params;
   const job = await getJobDetail(id, session.accessToken);
+  const initialValues = getJobFormInitialValues(job);
 
   async function updateAction(formData: FormData) {
     'use server';
@@ -68,9 +74,19 @@ export default async function RecruiterJobDetailPage({ params }: PageProps) {
       redirect('/login');
     }
 
+    const summary = String(formData.get('summary') ?? '').trim();
+    const requirements = parseMultilineList(
+      String(formData.get('requirements') ?? ''),
+    );
+    const benefits = parseMultilineList(String(formData.get('benefits') ?? ''));
+
     await updateJob(currentSession.accessToken, id, {
       title: String(formData.get('title') ?? '').trim(),
-      description: String(formData.get('description') ?? '').trim(),
+      description: composeJobDescription({
+        summary,
+        requirements,
+        benefits,
+      }),
       skills: parseSkills(String(formData.get('skills') ?? '')),
       employmentType: String(formData.get('employmentType') ?? '').trim(),
       salaryMin: parseOptionalNumber(String(formData.get('salaryMin') ?? '')),
@@ -95,14 +111,7 @@ export default async function RecruiterJobDetailPage({ params }: PageProps) {
       <RecruiterJobForm
         submitLabel="Save changes"
         action={updateAction}
-        initialValues={{
-          title: job.title,
-          description: job.description,
-          skills: job.skills,
-          employmentType: job.employmentType,
-          salaryMin: job.salaryMin,
-          salaryMax: job.salaryMax,
-        }}
+        initialValues={initialValues}
       />
       <section className={`mt-6 rounded-2xl border px-4 py-3 text-sm ${getParseTone(job.parseStatus)}`}>
         <p className="font-semibold uppercase tracking-[0.08em]">Parse status: {job.parseStatus}</p>

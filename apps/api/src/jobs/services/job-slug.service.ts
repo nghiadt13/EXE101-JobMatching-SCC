@@ -16,7 +16,6 @@ export class JobSlugService {
       const exists = await this.prisma.job.findFirst({
         where: {
           slug: candidateSlug,
-          deletedAt: null,
           ...(excludeJobId ? { id: { not: excludeJobId } } : {}),
         },
         select: { id: true },

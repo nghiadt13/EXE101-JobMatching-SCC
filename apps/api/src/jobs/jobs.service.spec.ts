@@ -25,6 +25,7 @@ describe('JobsService', () => {
     };
   };
   let aiNormalizationService: { normalizeJob: jest.Mock };
+  let generateUniqueSlug: jest.Mock;
 
   const normalizedJobResult = {
     schemaVersion: 'candidate_job_profile_v1' as const,
@@ -69,6 +70,7 @@ describe('JobsService', () => {
     aiNormalizationService = {
       normalizeJob: jest.fn().mockResolvedValue(normalizedJobResult),
     };
+    generateUniqueSlug = jest.fn().mockResolvedValue('job-1');
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -86,7 +88,7 @@ describe('JobsService', () => {
         {
           provide: JobSlugService,
           useValue: {
-            generateUniqueSlug: jest.fn().mockResolvedValue('job-1'),
+            generateUniqueSlug,
           },
         },
       ],
@@ -366,5 +368,46 @@ describe('JobsService', () => {
       'jobs',
       'recruiter-1/jd.pdf',
     );
+  });
+
+  it('retries slug generation when createFromFile hits a unique constraint', async () => {
+    generateUniqueSlug
+      .mockResolvedValueOnce('job-1')
+      .mockResolvedValueOnce('job-2');
+    documentTextExtractorService.extract.mockResolvedValue(
+      'Senior Backend Engineer with TypeScript and NestJS',
+    );
+    documentStorageService.save.mockResolvedValue('recruiter-1/jd.pdf');
+    prismaService.job.create
+      .mockRejectedValueOnce({ code: 'P2002' })
+      .mockResolvedValueOnce({
+        id: 'job-2',
+        recruiterId: 'recruiter-1',
+        title: 'Job',
+        slug: 'job-2',
+        description: 'Summary',
+        skills: ['TypeScript'],
+        location: null,
+        salaryMin: null,
+        salaryMax: null,
+        employmentType: 'FULL_TIME',
+        status: JobStatus.DRAFT,
+        publishedAt: null,
+        closedAt: null,
+        createdAt: new Date('2026-03-07T00:00:00.000Z'),
+        updatedAt: new Date('2026-03-07T00:00:00.000Z'),
+      });
+
+    const result = await service.createFromFile('recruiter-1', {
+      originalname: 'jd.pdf',
+      mimetype: 'application/pdf',
+      size: 100,
+      buffer: Buffer.from('jd content'),
+    } as Express.Multer.File);
+
+    expect(generateUniqueSlug).toHaveBeenCalledTimes(2);
+    expect(prismaService.job.create).toHaveBeenCalledTimes(2);
+    expect(documentStorageService.remove).not.toHaveBeenCalled();
+    expect(result.slug).toBe('job-2');
   });
 });
