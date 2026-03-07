@@ -7,15 +7,20 @@ import {
   Patch,
   Post,
   Query,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { UserRole } from '@prisma/client';
+import { memoryStorage } from 'multer';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import type { JwtPayload } from '../auth/auth.types';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { DOCUMENT_MAX_FILE_SIZE_BYTES } from '../documents/document-upload.constants';
 import { CreateJobDto } from './dto/create-job.dto';
 import { QueryJobsDto } from './dto/query-jobs.dto';
 import { UpdateJobDto } from './dto/update-job.dto';
@@ -34,6 +39,24 @@ export class JobsController {
     @Body() dto: CreateJobDto,
   ): Promise<JobView> {
     return this.jobsService.create(user.sub, dto);
+  }
+
+  @Post('upload')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.RECRUITER)
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: {
+        fileSize: DOCUMENT_MAX_FILE_SIZE_BYTES,
+      },
+    }),
+  )
+  upload(
+    @CurrentUser() user: JwtPayload,
+    @UploadedFile() file: Express.Multer.File,
+  ): Promise<JobView> {
+    return this.jobsService.createFromFile(user.sub, file);
   }
 
   @Get()

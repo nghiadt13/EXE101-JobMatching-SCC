@@ -4,8 +4,16 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  PayloadTooLargeException,
 } from '@nestjs/common';
 import { JobStatus, Prisma, UserRole } from '@prisma/client';
+import { basename, extname } from 'node:path';
+import {
+  DOCUMENT_MAX_FILE_SIZE_BYTES,
+  DOCUMENT_MAX_TEXT_CHARS,
+} from '../documents/document-upload.constants';
+import { DocumentStorageService } from '../documents/services/document-storage.service';
+import { DocumentTextExtractorService } from '../documents/services/document-text-extractor.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiNormalizationService } from '../normalization/ai-normalization.service';
 import {
@@ -25,12 +33,23 @@ type Viewer = {
   role: UserRole;
 };
 
+type JobInputMode = 'manual' | 'file_upload';
+
+type SourceDocumentMeta = {
+  fileName: string;
+  mimeType: string;
+  fileSize: number;
+  storedPath?: string;
+};
+
 @Injectable()
 export class JobsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly aiNormalizationService: AiNormalizationService,
     private readonly jobSlugService: JobSlugService,
+    private readonly documentStorageService: DocumentStorageService,
+    private readonly documentTextExtractorService: DocumentTextExtractorService,
   ) {}
 
   async create(recruiterId: string, dto: CreateJobDto): Promise<JobView> {
@@ -54,7 +73,9 @@ export class JobsService {
           slug,
           description: dto.description,
           skills: normalizedSkills as Prisma.InputJsonValue,
-          location: this.withNormalizationMeta(dto.location, normalization),
+          location: this.withNormalizationMeta(dto.location, normalization, {
+            inputMode: 'manual',
+          }),
           salaryMin: dto.salaryMin ?? null,
           salaryMax: dto.salaryMax ?? null,
           employmentType: dto.employmentType,
@@ -64,6 +85,71 @@ export class JobsService {
 
       return this.toView(created);
     } catch (error) {
+      if (this.isUniqueViolation(error)) {
+        throw new ConflictException('Job slug already exists');
+      }
+      throw error;
+    }
+  }
+
+  async createFromFile(
+    recruiterId: string,
+    file: Express.Multer.File,
+  ): Promise<JobView> {
+    if (!file) {
+      throw new BadRequestException('JD file is required');
+    }
+    if (file.size > DOCUMENT_MAX_FILE_SIZE_BYTES) {
+      throw new PayloadTooLargeException('JD file is too large');
+    }
+
+    this.documentTextExtractorService.assertSupported(file);
+
+    const rawText = (
+      await this.documentTextExtractorService.extract(file, 'JD')
+    ).slice(0, DOCUMENT_MAX_TEXT_CHARS);
+    const normalization =
+      await this.aiNormalizationService.normalizeJob(rawText);
+    const draft = this.mapUploadToDraft(
+      normalization.profile,
+      rawText,
+      file.originalname,
+    );
+    const slug = await this.jobSlugService.generateUniqueSlug(draft.title);
+    const storedPath = await this.documentStorageService.save(
+      'jobs',
+      recruiterId,
+      file,
+    );
+
+    try {
+      const created = await this.prisma.job.create({
+        data: {
+          recruiterId,
+          title: draft.title,
+          slug,
+          description: draft.description,
+          skills: draft.skills as Prisma.InputJsonValue,
+          location: this.withNormalizationMeta(null, normalization, {
+            inputMode: 'file_upload',
+            sourceDocument: {
+              fileName: file.originalname,
+              mimeType: file.mimetype,
+              fileSize: file.size,
+              storedPath,
+            },
+          }),
+          salaryMin: null,
+          salaryMax: null,
+          employmentType: draft.employmentType,
+          status: JobStatus.DRAFT,
+        },
+        select: this.jobViewSelect,
+      });
+
+      return this.toView(created);
+    } catch (error) {
+      await this.documentStorageService.remove('jobs', storedPath);
       if (this.isUniqueViolation(error)) {
         throw new ConflictException('Job slug already exists');
       }
@@ -156,6 +242,7 @@ export class JobsService {
       dto.location !== undefined
         ? dto.location
         : this.stripNormalizationMeta(existing.location);
+    const existingInputMode = this.readInputMode(existing.location) ?? 'manual';
 
     try {
       const updated = await this.prisma.job.update({
@@ -170,7 +257,10 @@ export class JobsService {
                 skills: nextSkills as Prisma.InputJsonValue,
               }
             : {}),
-          location: this.withNormalizationMeta(baseLocation, normalization),
+          location: this.withNormalizationMeta(baseLocation, normalization, {
+            existingLocation: existing.location,
+            inputMode: existingInputMode,
+          }),
           ...(dto.salaryMin !== undefined ? { salaryMin: dto.salaryMin } : {}),
           ...(dto.salaryMax !== undefined ? { salaryMax: dto.salaryMax } : {}),
           ...(dto.employmentType !== undefined
@@ -193,11 +283,17 @@ export class JobsService {
     recruiterId: string,
     id: string,
   ): Promise<{ success: true }> {
-    await this.getRecruiterOwnedJobOrThrow(recruiterId, id);
+    const job = await this.getRecruiterOwnedJobOrThrow(recruiterId, id);
     await this.prisma.job.update({
       where: { id },
       data: { deletedAt: new Date() },
     });
+
+    const storedPath = this.readStoredDocumentPath(job.location);
+    if (storedPath) {
+      await this.documentStorageService.remove('jobs', storedPath);
+    }
+
     return { success: true };
   }
 
@@ -360,6 +456,8 @@ export class JobsService {
     return {
       ...item,
       skills: Array.isArray(item.skills) ? (item.skills as string[]) : [],
+      inputMode:
+        this.normalizeInputMode(normalization['inputMode']) ?? 'manual',
       location: this.stripNormalizationMeta(item.location),
       parseStatus: this.normalizeParseStatus(normalization['parseStatus']),
       normalizedProfile:
@@ -410,20 +508,59 @@ export class JobsService {
   private withNormalizationMeta(
     location: Record<string, unknown> | null | undefined,
     normalization: NormalizationResult,
+    options?: {
+      existingLocation?: Prisma.JsonValue | Record<string, unknown> | null;
+      inputMode?: JobInputMode;
+      sourceDocument?: SourceDocumentMeta;
+    },
   ): Prisma.InputJsonValue {
     const base = {
       ...(location ?? {}),
     };
+    const existingNormalization = this.readNormalizationMeta(
+      options?.existingLocation,
+    );
+    const nextInputMode =
+      options?.inputMode ??
+      this.normalizeInputMode(existingNormalization['inputMode']);
+    const existingSourceDocument = this.asRecord(
+      existingNormalization['sourceDocument'],
+    );
+    const nextSourceDocument =
+      options?.sourceDocument ??
+      (Object.keys(existingSourceDocument).length > 0
+        ? this.toSourceDocumentMeta(existingSourceDocument)
+        : null);
+    const nextNormalization: Record<string, unknown> = {
+      ...existingNormalization,
+      schemaVersion: normalization.schemaVersion,
+      parseStatus: normalization.status,
+      parseTelemetry: normalization.telemetry,
+      normalizedProfile: normalization.profile,
+    };
+
+    if (nextInputMode) {
+      nextNormalization['inputMode'] = nextInputMode;
+    }
+    if (nextSourceDocument) {
+      nextNormalization['sourceDocument'] = nextSourceDocument;
+    }
 
     return {
       ...base,
-      [JOB_LOCATION_NORMALIZATION_KEY]: {
-        schemaVersion: normalization.schemaVersion,
-        parseStatus: normalization.status,
-        parseTelemetry: normalization.telemetry,
-        normalizedProfile: normalization.profile,
-      },
+      [JOB_LOCATION_NORMALIZATION_KEY]: nextNormalization,
     } as unknown as Prisma.InputJsonValue;
+  }
+
+  private readNormalizationMeta(
+    value: Prisma.JsonValue | Record<string, unknown> | null | undefined,
+  ): Record<string, unknown> {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return {};
+    }
+    return this.asRecord(
+      (value as Record<string, unknown>)[JOB_LOCATION_NORMALIZATION_KEY],
+    );
   }
 
   private stripNormalizationMeta(
@@ -461,5 +598,125 @@ export class JobsService {
       value === 'needs_review'
       ? value
       : 'needs_review';
+  }
+
+  private mapUploadToDraft(
+    profile: NormalizedProfile,
+    rawText: string,
+    originalName: string,
+  ): {
+    title: string;
+    description: string;
+    skills: string[];
+    employmentType: string;
+  } {
+    const fallbackTitle = this.buildFallbackTitle(originalName);
+    const title =
+      this.clampString(profile.title, 160) ||
+      this.clampString(fallbackTitle, 160) ||
+      'Imported job draft';
+    const description = this.buildDraftDescription(profile, rawText, title);
+
+    return {
+      title,
+      description,
+      skills: this.normalizeSkills(profile.skills),
+      employmentType:
+        this.clampString(profile.jobMeta?.employmentType, 50) || 'FULL_TIME',
+    };
+  }
+
+  private buildDraftDescription(
+    profile: NormalizedProfile,
+    rawText: string,
+    title: string,
+  ): string {
+    const sections = [this.clampString(profile.summary, 4000)];
+    const requirements = this.normalizeSkills(
+      profile.jobMeta?.requirements ?? [],
+    ).slice(0, 20);
+    const benefits = this.normalizeSkills(
+      profile.jobMeta?.benefits ?? [],
+    ).slice(0, 20);
+
+    if (requirements.length > 0) {
+      sections.push(`Requirements:\n- ${requirements.join('\n- ')}`);
+    }
+    if (benefits.length > 0) {
+      sections.push(`Benefits:\n- ${benefits.join('\n- ')}`);
+    }
+
+    const composed = sections.filter(Boolean).join('\n\n').trim();
+    if (composed.length >= 10) {
+      return composed.slice(0, 20000);
+    }
+
+    const fallback = rawText.trim().slice(0, 20000);
+    if (fallback.length >= 10) {
+      return fallback;
+    }
+
+    return `Imported draft for ${title}`.slice(0, 20000);
+  }
+
+  private buildFallbackTitle(originalName: string): string {
+    const base = basename(originalName, extname(originalName))
+      .replace(/[-_]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return base || 'Imported job draft';
+  }
+
+  private clampString(value: unknown, maxLength: number): string {
+    return typeof value === 'string' ? value.trim().slice(0, maxLength) : '';
+  }
+
+  private readInputMode(
+    value: Prisma.JsonValue | Record<string, unknown> | null | undefined,
+  ): JobInputMode | null {
+    const normalization = this.readNormalizationMeta(value);
+    return this.normalizeInputMode(normalization['inputMode']);
+  }
+
+  private normalizeInputMode(value: unknown): JobInputMode | null {
+    return value === 'manual' || value === 'file_upload' ? value : null;
+  }
+
+  private toSourceDocumentMeta(
+    value: Record<string, unknown>,
+  ): SourceDocumentMeta | null {
+    const fileName = this.clampString(value['fileName'], 255);
+    const mimeType = this.clampString(value['mimeType'], 255);
+    const fileSize =
+      typeof value['fileSize'] === 'number' &&
+      Number.isFinite(value['fileSize'])
+        ? value['fileSize']
+        : null;
+    const storedPath = this.clampString(value['storedPath'], 500);
+
+    if (!fileName || !mimeType || fileSize === null) {
+      return null;
+    }
+
+    return {
+      fileName,
+      mimeType,
+      fileSize,
+      ...(storedPath ? { storedPath } : {}),
+    };
+  }
+
+  private readStoredDocumentPath(
+    value: Prisma.JsonValue | Record<string, unknown> | null | undefined,
+  ): string | null {
+    if (this.readInputMode(value) !== 'file_upload') {
+      return null;
+    }
+
+    const sourceDocument = this.asRecord(
+      this.readNormalizationMeta(value)['sourceDocument'],
+    );
+    const storedPath = this.clampString(sourceDocument['storedPath'], 500);
+    return storedPath || null;
   }
 }

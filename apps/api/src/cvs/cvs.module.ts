@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { DocumentStorageService } from '../documents/services/document-storage.service';
+import { DocumentTextExtractorService } from '../documents/services/document-text-extractor.service';
 import { CvsController } from './cvs.controller';
 import { CvsService } from './cvs.service';
 import { CvStorageService } from './services/cv-storage.service';
@@ -10,6 +12,8 @@ import { CvParsingNormalizerService } from './services/cv-parsing-normalizer.ser
   controllers: [CvsController],
   providers: [
     CvsService,
+    DocumentStorageService,
+    DocumentTextExtractorService,
     CvStorageService,
     CvTextExtractorService,
     CvAiParserService,

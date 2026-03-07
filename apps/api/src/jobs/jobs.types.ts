@@ -12,6 +12,7 @@ export interface JobView {
   slug: string;
   description: string;
   skills: string[];
+  inputMode: 'manual' | 'file_upload';
   location: Record<string, unknown> | null;
   salaryMin: number | null;
   salaryMax: number | null;

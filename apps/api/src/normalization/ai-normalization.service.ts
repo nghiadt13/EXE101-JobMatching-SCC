@@ -93,7 +93,9 @@ export class AiNormalizationService {
   private buildPrompt(domain: Domain, rawText: string): string {
     return [
       'You are an expert IT Recruiter AI.',
-      'Analyze the following raw text extracted from a ' + (domain === 'cv' ? 'candidate CV' : 'Job Description') + '.',
+      'Analyze the following raw text extracted from a ' +
+        (domain === 'cv' ? 'candidate CV' : 'Job Description') +
+        '.',
       'CRITICAL INSTRUCTION: Read the ENTIRE document from start to finish. Extract ALL technical skills, tools, frameworks, and programming languages you can find into the "skills" array. Group related granular skills under a parent category string, e.g., "AWS: EC2, S3, Lambda" or "Networking: OSI Model, Layer 3, IP" instead of separating them into individual elements. DO NOT summarize or omit any technical keywords.',
       'For Experience and Education: Connect the dates, company/school names, and job titles even if they appear on separate or disjointed lines in the raw text.',
       '',
@@ -104,7 +106,7 @@ export class AiNormalizationService {
       '',
       '--- START OF TEXT ---',
       rawText,
-      '--- END OF TEXT ---'
+      '--- END OF TEXT ---',
     ].join('\n');
   }
 

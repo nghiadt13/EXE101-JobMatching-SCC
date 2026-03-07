@@ -213,9 +213,10 @@ Soft delete CV
 
 ### POST /jobs (Recruiter only)
 
-Tạo job mới
+Tạo job mới (manual entry)
 
 ```json
+Request:
 {
   "title": "Senior Backend Developer",
   "description": "...",
@@ -225,7 +226,66 @@ Tạo job mới
   "salaryMax": 3000,
   "employmentType": "FULL_TIME"
 }
+
+Response:
+{
+  "id": "uuid",
+  "title": "Senior Backend Developer",
+  "description": "...",
+  "skills": ["Python", "Django", "PostgreSQL"],
+  "inputMode": "manual",
+  "employmentType": "FULL_TIME",
+  "status": "DRAFT",
+  "parseStatus": "parsed_ok",
+  "location": { "city": "Ho Chi Minh", "remote": false },
+  "salaryMin": 2000,
+  "salaryMax": 3000,
+  "normalizedProfile": { ... }
+}
 ```
+
+### POST /jobs/upload (Recruiter only)
+
+Upload JD file để tạo draft job từ PDF hoặc DOCX.
+
+```
+Content-Type: multipart/form-data
+File: jd.pdf hoặc jd.docx
+Max size: 5MB
+Allowed mime: application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document
+
+Response:
+{
+  "id": "uuid",
+  "title": "Senior Backend Engineer",
+  "description": "Parsed summary + requirements draft",
+  "skills": ["TypeScript", "NestJS"],
+  "inputMode": "file_upload",
+  "employmentType": "FULL_TIME",
+  "status": "DRAFT",
+  "parseStatus": "parsed_ok",
+  "parseTelemetry": {
+    "source": "llm",
+    "fallbackUsed": false,
+    "latencyMs": 1000
+  },
+  "normalizedProfile": {
+    "schemaVersion": "candidate_job_profile_v1",
+    "title": "Senior Backend Engineer",
+    "summary": "...",
+    "skills": ["TypeScript", "NestJS"],
+    "jobMeta": {
+      "requirements": ["..."],
+      "benefits": ["..."],
+      "employmentType": "FULL_TIME"
+    }
+  }
+}
+```
+
+Flow: upload luôn tạo một `DRAFT` job mới. Recruiter cần review/chỉnh sửa rồi mới publish.
+
+**Note:** `inputMode` indicates whether job was created manually (`manual`) or from file upload (`file_upload`). Used by recruiter UI to display appropriate parse guidance.
 
 ### GET /jobs
 
@@ -257,6 +317,15 @@ Publish job (chỉ `DRAFT -> PUBLISHED`)
 ### POST /jobs/:id/close (Recruiter only)
 
 Close job (chỉ `PUBLISHED -> CLOSED`)
+
+### Job Upload Error Codes
+
+- `400`: thiếu file hoặc payload invalid
+- `401`: chưa đăng nhập
+- `403`: role không phải recruiter
+- `413`: file vượt quá 5MB
+- `415`: sai định dạng file
+- `422`: file hợp lệ nhưng không extract được readable text
 
 ### Jobs Error Codes
 

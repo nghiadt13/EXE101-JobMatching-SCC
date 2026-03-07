@@ -2,9 +2,10 @@ import Link from 'next/link';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
+import { JdUploadForm } from '@/components/jobs/jd-upload-form';
 import { RecruiterJobForm } from '@/components/jobs/recruiter-job-form';
 import { RecruiterJobsTable } from '@/components/jobs/recruiter-jobs-table';
-import { closeJob, createJob, deleteJob, getJobs, publishJob } from '@/lib/jobs-client';
+import { closeJob, createJob, deleteJob, getJobs, publishJob, uploadJobFile } from '@/lib/jobs-client';
 
 function parseSkills(input: FormDataEntryValue | null): string[] {
   return String(input ?? '')
@@ -44,6 +45,17 @@ export default async function RecruiterJobsPage() {
       salaryMax: parseOptionalNumber(formData.get('salaryMax')),
     });
     revalidatePath('/dashboard/recruiter/jobs');
+  }
+
+  async function uploadAction(formData: FormData) {
+    'use server';
+    const currentSession = await auth();
+    if (!currentSession?.user || !currentSession.accessToken) redirect('/login');
+    if (currentSession.user.role !== 'RECRUITER') redirect('/dashboard');
+
+    const created = await uploadJobFile(currentSession.accessToken, formData);
+    revalidatePath('/dashboard/recruiter/jobs');
+    redirect(`/dashboard/recruiter/jobs/${created.id}`);
   }
 
   async function publishAction(formData: FormData) {
@@ -91,7 +103,10 @@ export default async function RecruiterJobsPage() {
       </header>
 
       <div className="grid gap-6 lg:grid-cols-[1.1fr_1.9fr]">
-        <RecruiterJobForm submitLabel="Create job" action={createAction} />
+        <div className="space-y-6">
+          <JdUploadForm uploadAction={uploadAction} />
+          <RecruiterJobForm submitLabel="Create job" action={createAction} />
+        </div>
         <RecruiterJobsTable
           jobs={jobs.items}
           publishAction={publishAction}

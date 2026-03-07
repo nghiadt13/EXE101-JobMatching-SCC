@@ -128,4 +128,41 @@ describe('MatchingService', () => {
     expect(result.score).toBeGreaterThanOrEqual(0);
     expect(result.score).toBeLessThanOrEqual(100);
   });
+
+  it('uses uploaded JD normalized skills from location metadata for matching', async () => {
+    prismaService.cV.findFirst.mockResolvedValue({
+      id: 'cv-4',
+      candidateId: 'cand-4',
+      skills: ['TypeScript'],
+      parsedData: {
+        normalizedProfile: {
+          skills: ['TypeScript', 'Docker'],
+        },
+        summary: 'Backend engineer with Docker experience',
+      },
+      candidate: { userId: 'candidate-4' },
+    });
+    prismaService.job.findFirst.mockResolvedValue({
+      id: 'job-uploaded',
+      recruiterId: 'recruiter-1',
+      description: 'Imported draft job',
+      skills: [],
+      location: {
+        __normalization: {
+          normalizedProfile: {
+            skills: ['Docker', 'Kubernetes'],
+          },
+        },
+      },
+      status: JobStatus.PUBLISHED,
+    });
+
+    const result = await service.calculateForCvAndJob('cv-4', 'job-uploaded', {
+      sub: 'candidate-4',
+      role: UserRole.CANDIDATE,
+    });
+
+    expect(result.breakdown.matchedSkills).toContain('Docker');
+    expect(result.breakdown.missingSkills).toContain('Kubernetes');
+  });
 });

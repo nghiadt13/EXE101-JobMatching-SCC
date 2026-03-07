@@ -1,10 +1,14 @@
-export const CV_MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
+import {
+  DOCUMENT_ALLOWED_EXTENSIONS,
+  DOCUMENT_ALLOWED_MIME_TYPES,
+  DOCUMENT_MAX_FILE_SIZE_BYTES,
+  DOCUMENT_MAX_TEXT_CHARS,
+} from '../documents/document-upload.constants';
+
+export const CV_MAX_FILE_SIZE_BYTES = DOCUMENT_MAX_FILE_SIZE_BYTES;
 export const CV_MAX_ACTIVE_PER_CANDIDATE = 10;
-export const CV_MAX_TEXT_CHARS = 20000;
+export const CV_MAX_TEXT_CHARS = DOCUMENT_MAX_TEXT_CHARS;
 
-export const CV_ALLOWED_MIME_TYPES = new Set([
-  'application/pdf',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-]);
+export const CV_ALLOWED_MIME_TYPES = DOCUMENT_ALLOWED_MIME_TYPES;
 
-export const CV_ALLOWED_EXTENSIONS = new Set(['.pdf', '.docx']);
+export const CV_ALLOWED_EXTENSIONS = DOCUMENT_ALLOWED_EXTENSIONS;

@@ -11,6 +11,7 @@ export type JobItem = {
   slug: string;
   description: string;
   skills: string[];
+  inputMode: 'manual' | 'file_upload';
   parseStatus: 'parsed_ok' | 'fallback' | 'needs_review';
   parseTelemetry: {
     source: 'llm' | 'fallback';
@@ -115,6 +116,14 @@ export function createJob(
     '/jobs',
     { method: 'POST', body: JSON.stringify(payload) },
     { token, contentTypeJson: true },
+  );
+}
+
+export function uploadJobFile(token: string, formData: FormData) {
+  return apiRequest<JobItem>(
+    '/jobs/upload',
+    { method: 'POST', body: formData },
+    { token },
   );
 }
 

@@ -139,6 +139,7 @@ Timeline: **1-2 tuần** (14 ngày)
 
 ### Job Flow
 
+- [x] Upload JD PDF/DOCX để tạo draft job
 - [ ] Create job (draft)
 - [ ] Edit job
 - [ ] Publish job

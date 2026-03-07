@@ -1,6 +1,8 @@
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { JobStatus, UserRole } from '@prisma/client';
 import { Test, TestingModule } from '@nestjs/testing';
+import { DocumentStorageService } from '../documents/services/document-storage.service';
+import { DocumentTextExtractorService } from '../documents/services/document-text-extractor.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiNormalizationService } from '../normalization/ai-normalization.service';
 import { JobsService } from './jobs.service';
@@ -8,6 +10,11 @@ import { JobSlugService } from './services/job-slug.service';
 
 describe('JobsService', () => {
   let service: JobsService;
+  let documentStorageService: { save: jest.Mock; remove: jest.Mock };
+  let documentTextExtractorService: {
+    assertSupported: jest.Mock;
+    extract: jest.Mock;
+  };
   let prismaService: {
     job: {
       create: jest.Mock;
@@ -19,7 +26,37 @@ describe('JobsService', () => {
   };
   let aiNormalizationService: { normalizeJob: jest.Mock };
 
+  const normalizedJobResult = {
+    schemaVersion: 'candidate_job_profile_v1' as const,
+    status: 'parsed_ok' as const,
+    profile: {
+      schemaVersion: 'candidate_job_profile_v1' as const,
+      language: 'en' as const,
+      title: 'Job',
+      summary: 'Summary',
+      skills: ['TypeScript'],
+      experience: [],
+      education: [],
+      certifications: [],
+      projects: [],
+      languages: [],
+      location: { city: '', country: '' },
+      rawQuality: { score: 90, needsManualReview: false, reason: '' },
+      jobMeta: {
+        requirements: [],
+        benefits: [],
+        employmentType: 'FULL_TIME',
+      },
+    },
+    telemetry: { source: 'llm' as const, fallbackUsed: false, latencyMs: 100 },
+  };
+
   beforeEach(async () => {
+    documentStorageService = { save: jest.fn(), remove: jest.fn() };
+    documentTextExtractorService = {
+      assertSupported: jest.fn(),
+      extract: jest.fn(),
+    };
     prismaService = {
       job: {
         create: jest.fn(),
@@ -30,30 +67,7 @@ describe('JobsService', () => {
       },
     };
     aiNormalizationService = {
-      normalizeJob: jest.fn().mockResolvedValue({
-        schemaVersion: 'candidate_job_profile_v1',
-        status: 'parsed_ok',
-        profile: {
-          schemaVersion: 'candidate_job_profile_v1',
-          language: 'en',
-          title: 'Job',
-          summary: 'Summary',
-          skills: ['TypeScript'],
-          experience: [],
-          education: [],
-          certifications: [],
-          projects: [],
-          languages: [],
-          location: { city: '', country: '' },
-          rawQuality: { score: 90, needsManualReview: false, reason: '' },
-          jobMeta: {
-            requirements: [],
-            benefits: [],
-            employmentType: 'FULL_TIME',
-          },
-        },
-        telemetry: { source: 'llm', fallbackUsed: false, latencyMs: 100 },
-      }),
+      normalizeJob: jest.fn().mockResolvedValue(normalizedJobResult),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -61,6 +75,14 @@ describe('JobsService', () => {
         JobsService,
         { provide: PrismaService, useValue: prismaService },
         { provide: AiNormalizationService, useValue: aiNormalizationService },
+        {
+          provide: DocumentStorageService,
+          useValue: documentStorageService,
+        },
+        {
+          provide: DocumentTextExtractorService,
+          useValue: documentTextExtractorService,
+        },
         {
           provide: JobSlugService,
           useValue: {
@@ -127,5 +149,222 @@ describe('JobsService', () => {
         title: 'Updated title',
       }),
     ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('creates a draft job from uploaded JD file and stores provenance', async () => {
+    documentTextExtractorService.extract.mockResolvedValue(
+      'Senior Backend Engineer with TypeScript and NestJS',
+    );
+    documentStorageService.save.mockResolvedValue('recruiter-1/jd.pdf');
+    prismaService.job.create.mockResolvedValue({
+      id: 'job-1',
+      recruiterId: 'recruiter-1',
+      title: 'Job',
+      slug: 'job-1',
+      description: 'Summary',
+      skills: ['TypeScript'],
+      location: {
+        __normalization: {
+          schemaVersion: 'candidate_job_profile_v1',
+          parseStatus: 'parsed_ok',
+          parseTelemetry: {
+            source: 'llm',
+            fallbackUsed: false,
+            latencyMs: 100,
+          },
+          normalizedProfile: normalizedJobResult.profile,
+          inputMode: 'file_upload',
+          sourceDocument: {
+            fileName: 'jd.pdf',
+            mimeType: 'application/pdf',
+            fileSize: 100,
+            storedPath: 'recruiter-1/jd.pdf',
+          },
+        },
+      },
+      salaryMin: null,
+      salaryMax: null,
+      employmentType: 'FULL_TIME',
+      status: JobStatus.DRAFT,
+      publishedAt: null,
+      closedAt: null,
+      createdAt: new Date('2026-03-07T00:00:00.000Z'),
+      updatedAt: new Date('2026-03-07T00:00:00.000Z'),
+    });
+
+    const result = await service.createFromFile('recruiter-1', {
+      originalname: 'jd.pdf',
+      mimetype: 'application/pdf',
+      size: 100,
+      buffer: Buffer.from('jd content'),
+    } as Express.Multer.File);
+
+    expect(documentTextExtractorService.assertSupported).toHaveBeenCalled();
+    expect(documentStorageService.save).toHaveBeenCalledWith(
+      'jobs',
+      'recruiter-1',
+      expect.objectContaining({ originalname: 'jd.pdf' }),
+    );
+    expect(result.status).toBe(JobStatus.DRAFT);
+    expect(result.parseStatus).toBe('parsed_ok');
+  });
+
+  it('removes stored JD file if draft creation fails', async () => {
+    documentTextExtractorService.extract.mockResolvedValue(
+      'Senior Backend Engineer with TypeScript and NestJS',
+    );
+    documentStorageService.save.mockResolvedValue('recruiter-1/jd.pdf');
+    prismaService.job.create.mockRejectedValue(new Error('db failure'));
+
+    await expect(
+      service.createFromFile('recruiter-1', {
+        originalname: 'jd.pdf',
+        mimetype: 'application/pdf',
+        size: 100,
+        buffer: Buffer.from('jd content'),
+      } as Express.Multer.File),
+    ).rejects.toThrow('db failure');
+
+    expect(documentStorageService.remove).toHaveBeenCalledWith(
+      'jobs',
+      'recruiter-1/jd.pdf',
+    );
+  });
+
+  it('preserves uploaded JD provenance when recruiter edits the draft', async () => {
+    prismaService.job.findFirst.mockResolvedValue({
+      id: 'job-1',
+      recruiterId: 'recruiter-1',
+      slug: 'job-1',
+      title: 'Existing title',
+      description: 'Existing description',
+      skills: ['TypeScript'],
+      location: {
+        city: 'Ho Chi Minh City',
+        __normalization: {
+          inputMode: 'file_upload',
+          sourceDocument: {
+            fileName: 'jd.pdf',
+            mimeType: 'application/pdf',
+            fileSize: 100,
+            storedPath: 'recruiter-1/jd.pdf',
+          },
+        },
+      },
+      employmentType: 'FULL_TIME',
+      status: JobStatus.DRAFT,
+    });
+    prismaService.job.update.mockResolvedValue({
+      id: 'job-1',
+      recruiterId: 'recruiter-1',
+      title: 'Updated title',
+      slug: 'job-1',
+      description: 'Updated description long enough',
+      skills: ['TypeScript'],
+      location: {
+        city: 'Ho Chi Minh City',
+        __normalization: {
+          schemaVersion: 'candidate_job_profile_v1',
+          parseStatus: 'parsed_ok',
+          parseTelemetry: {
+            source: 'llm',
+            fallbackUsed: false,
+            latencyMs: 100,
+          },
+          normalizedProfile: {
+            schemaVersion: 'candidate_job_profile_v1',
+            language: 'en',
+            title: 'Job',
+            summary: 'Summary',
+            skills: ['TypeScript'],
+            experience: [],
+            education: [],
+            certifications: [],
+            projects: [],
+            languages: [],
+            location: { city: '', country: '' },
+            rawQuality: { score: 90, needsManualReview: false, reason: '' },
+            jobMeta: {
+              requirements: [],
+              benefits: [],
+              employmentType: 'FULL_TIME',
+            },
+          },
+          inputMode: 'file_upload',
+          sourceDocument: {
+            fileName: 'jd.pdf',
+            mimeType: 'application/pdf',
+            fileSize: 100,
+            storedPath: 'recruiter-1/jd.pdf',
+          },
+        },
+      },
+      salaryMin: null,
+      salaryMax: null,
+      employmentType: 'FULL_TIME',
+      status: JobStatus.DRAFT,
+      publishedAt: null,
+      closedAt: null,
+      createdAt: new Date('2026-03-07T00:00:00.000Z'),
+      updatedAt: new Date('2026-03-07T00:00:00.000Z'),
+    });
+
+    await service.update('recruiter-1', 'job-1', {
+      title: 'Updated title',
+      description: 'Updated description long enough',
+    });
+
+    const updateCalls = prismaService.job.update.mock.calls as Array<
+      [{ data: { location: Record<string, unknown> } }]
+    >;
+    const updateCall = updateCalls[0]?.[0] as {
+      data: { location: Record<string, unknown> };
+    };
+    const normalization = updateCall.data.location['__normalization'] as Record<
+      string,
+      unknown
+    >;
+    const sourceDocument = normalization['sourceDocument'] as Record<
+      string,
+      unknown
+    >;
+
+    expect(normalization['inputMode']).toBe('file_upload');
+    expect(sourceDocument['fileName']).toBe('jd.pdf');
+  });
+
+  it('removes uploaded JD file when recruiter deletes the job', async () => {
+    prismaService.job.findFirst.mockResolvedValue({
+      id: 'job-1',
+      recruiterId: 'recruiter-1',
+      slug: 'job-1',
+      title: 'Uploaded title',
+      description: 'Uploaded description',
+      skills: ['TypeScript'],
+      location: {
+        __normalization: {
+          inputMode: 'file_upload',
+          sourceDocument: {
+            storedPath: 'recruiter-1/jd.pdf',
+          },
+        },
+      },
+      employmentType: 'FULL_TIME',
+      status: JobStatus.DRAFT,
+    });
+
+    await service.softDelete('recruiter-1', 'job-1');
+
+    const deleteCalls = prismaService.job.update.mock.calls as Array<
+      [{ where: { id: string }; data: { deletedAt: Date } }]
+    >;
+    const deleteCall = deleteCalls[0]?.[0];
+
+    expect(deleteCall?.where.id).toBe('job-1');
+    expect(deleteCall?.data.deletedAt).toBeInstanceOf(Date);
+    expect(documentStorageService.remove).toHaveBeenCalledWith(
+      'jobs',
+      'recruiter-1/jd.pdf',
+    );
   });
 });

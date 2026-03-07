@@ -23,6 +23,32 @@ function parseOptionalNumber(value: string): number | undefined {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
+function getParseMessage(
+  parseStatus: string,
+  inputMode: 'manual' | 'file_upload',
+) {
+  if (inputMode === 'manual') {
+    return 'This job was normalized from the current form fields. Review the parsed summary, skills, and requirements before publishing.';
+  }
+  if (parseStatus === 'parsed_ok') {
+    return 'The uploaded JD was parsed successfully. Review the draft fields before publishing.';
+  }
+  if (parseStatus === 'fallback') {
+    return 'Auto-normalization fell back to a degraded parse. Check title, description, skills, and requirements before publishing.';
+  }
+  return 'This draft needs manual review before publish. Verify the parsed summary, skills, and requirements.';
+}
+
+function getParseTone(parseStatus: string) {
+  if (parseStatus === 'parsed_ok') {
+    return 'border-emerald-200 bg-emerald-50 text-emerald-800';
+  }
+  if (parseStatus === 'fallback') {
+    return 'border-amber-200 bg-amber-50 text-amber-800';
+  }
+  return 'border-zinc-300 bg-zinc-100 text-zinc-800';
+}
+
 export default async function RecruiterJobDetailPage({ params }: PageProps) {
   const session = await auth();
   if (!session?.user || !session.accessToken) {
@@ -78,6 +104,15 @@ export default async function RecruiterJobDetailPage({ params }: PageProps) {
           salaryMax: job.salaryMax,
         }}
       />
+      <section className={`mt-6 rounded-2xl border px-4 py-3 text-sm ${getParseTone(job.parseStatus)}`}>
+        <p className="font-semibold uppercase tracking-[0.08em]">Parse status: {job.parseStatus}</p>
+        <p className="mt-2">{getParseMessage(job.parseStatus, job.inputMode)}</p>
+        {job.parseTelemetry ? (
+          <p className="mt-2 text-xs opacity-80">
+            Source: {job.parseTelemetry.source} · Fallback used: {job.parseTelemetry.fallbackUsed ? 'yes' : 'no'}
+          </p>
+        ) : null}
+      </section>
       <section className="mt-6 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
         <h2 className="text-sm font-semibold uppercase tracking-[0.08em] text-zinc-600">
           AI Parsed Preview
