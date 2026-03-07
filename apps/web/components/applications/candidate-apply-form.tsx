@@ -1,3 +1,7 @@
+'use client';
+
+import { useFormStatus } from 'react-dom';
+
 type CandidateApplyFormProps = {
   jobId: string;
   cvs: Array<{ id: string; fileName: string; isPrimary: boolean }>;
@@ -24,12 +28,21 @@ export function CandidateApplyForm({ jobId, cvs, action }: CandidateApplyFormPro
           </option>
         ))}
       </select>
-      <button
-        type="submit"
-        className="inline-flex h-10 items-center justify-center rounded-lg bg-zinc-900 px-4 text-sm font-medium text-white hover:bg-zinc-700"
-      >
-        Apply now
-      </button>
+      <SubmitButton />
     </form>
+  );
+}
+
+function SubmitButton() {
+  const { pending } = useFormStatus();
+
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="inline-flex h-10 items-center justify-center rounded-lg bg-zinc-900 px-4 text-sm font-medium text-white hover:bg-zinc-700 disabled:cursor-not-allowed disabled:bg-zinc-400"
+    >
+      {pending ? 'Submitting...' : 'Apply now'}
+    </button>
   );
 }

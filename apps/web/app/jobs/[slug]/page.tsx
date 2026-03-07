@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { notFound } from 'next/navigation';
 import { auth } from '@/auth';
 import { CandidateApplyForm } from '@/components/applications/candidate-apply-form';
+import { ExpandableChips } from '@/components/cv/expandable-chips';
 import { createApplication } from '@/lib/applications-client';
 import { ApiError } from '@/lib/api-client';
 import { getMyCvs } from '@/lib/cv-client';
@@ -54,15 +55,17 @@ export default async function JobDetailPage({ params, searchParams }: PageProps)
     if (!cvId || !jobId) {
       redirect(`/jobs/${slug}?error=missing`);
     }
+    let redirectTarget = `/jobs/${slug}?applied=1`;
     try {
       await createApplication(currentSession.accessToken, { cvId, jobId });
-      redirect(`/jobs/${slug}?applied=1`);
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
-        redirect(`/jobs/${slug}?error=duplicate`);
+        redirectTarget = `/jobs/${slug}?error=duplicate`;
+      } else {
+        redirectTarget = `/jobs/${slug}?error=failed`;
       }
-      redirect(`/jobs/${slug}?error=failed`);
     }
+    redirect(redirectTarget);
   }
 
   return (
@@ -81,22 +84,26 @@ export default async function JobDetailPage({ params, searchParams }: PageProps)
       <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
         <p className="whitespace-pre-wrap text-zinc-800">{job.description}</p>
         {!!job.skills.length && (
-          <div className="mt-4 flex flex-wrap gap-2">
-            {job.skills.map((skill) => (
-              <span key={skill} className="rounded-full bg-zinc-100 px-2 py-1 text-xs text-zinc-700">
-                {skill}
-              </span>
-            ))}
+          <div className="mt-6 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+            <ExpandableChips title="Key skills" items={job.skills} />
           </div>
         )}
 
         {query.applied === '1' && (
-          <p className="mt-4 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+          <p
+            role="status"
+            aria-live="polite"
+            className="mt-4 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-700"
+          >
             Application submitted successfully.
           </p>
         )}
         {errorMessage && (
-          <p className="mt-4 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
+          <p
+            role="alert"
+            aria-live="assertive"
+            className="mt-4 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700"
+          >
             {errorMessage}
           </p>
         )}
