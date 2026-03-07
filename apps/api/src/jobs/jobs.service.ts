@@ -8,6 +8,7 @@ import {
   PayloadTooLargeException,
   ServiceUnavailableException,
   UnprocessableEntityException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { JobStatus, Prisma, UserRole } from '@prisma/client';
 import { basename, extname } from 'node:path';
@@ -67,6 +68,7 @@ export class JobsService {
   ) {}
 
   async create(recruiterId: string, dto: CreateJobDto): Promise<JobView> {
+    await this.ensureRecruiterUserOrThrow(recruiterId);
     this.validateSalaryRange(dto.salaryMin, dto.salaryMax);
     const storedSkills = this.skillStorageAdapter.toStoredSkills(
       dto.skills,
@@ -133,6 +135,8 @@ export class JobsService {
         buildErrorPayload(ERROR_CODES.jdFileTooLarge, 'JD file is too large'),
       );
     }
+
+    await this.ensureRecruiterUserOrThrow(recruiterId);
 
     this.documentTextExtractorService.assertSupported(file);
     this.logger.info('job_upload_started', {
@@ -267,6 +271,10 @@ export class JobsService {
     viewer: Viewer | null,
     query: QueryJobsDto,
   ): Promise<JobsListResponse> {
+    if (viewer?.role === UserRole.RECRUITER) {
+      await this.ensureRecruiterUserOrThrow(viewer.sub);
+    }
+
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
     const where = this.buildListWhere(viewer, query);
@@ -297,6 +305,10 @@ export class JobsService {
     viewer: Viewer | null,
     idOrSlug: string,
   ): Promise<JobView> {
+    if (viewer?.role === UserRole.RECRUITER) {
+      await this.ensureRecruiterUserOrThrow(viewer.sub);
+    }
+
     const job = await this.prisma.job.findFirst({
       where: {
         deletedAt: null,
@@ -322,6 +334,7 @@ export class JobsService {
     id: string,
     dto: UpdateJobDto,
   ): Promise<JobView> {
+    await this.ensureRecruiterUserOrThrow(recruiterId);
     const existing = await this.getRecruiterOwnedJobOrThrow(recruiterId, id);
     this.validateSalaryRange(dto.salaryMin, dto.salaryMax);
     const existingInputMode = this.readInputMode(existing.location) ?? 'manual';
@@ -470,6 +483,7 @@ export class JobsService {
     recruiterId: string,
     id: string,
   ): Promise<{ success: true }> {
+    await this.ensureRecruiterUserOrThrow(recruiterId);
     const job = await this.getRecruiterOwnedJobOrThrow(recruiterId, id);
     await this.prisma.job.update({
       where: { id },
@@ -485,6 +499,7 @@ export class JobsService {
   }
 
   async publish(recruiterId: string, id: string): Promise<JobView> {
+    await this.ensureRecruiterUserOrThrow(recruiterId);
     const job = await this.getRecruiterOwnedJobOrThrow(recruiterId, id);
     if (job.status !== JobStatus.DRAFT) {
       throw new BadRequestException('Only draft jobs can be published');
@@ -504,6 +519,7 @@ export class JobsService {
   }
 
   async close(recruiterId: string, id: string): Promise<JobView> {
+    await this.ensureRecruiterUserOrThrow(recruiterId);
     const job = await this.getRecruiterOwnedJobOrThrow(recruiterId, id);
     if (job.status !== JobStatus.PUBLISHED) {
       throw new BadRequestException('Only published jobs can be closed');
@@ -599,6 +615,21 @@ export class JobsService {
       }
     }
     return Array.from(unique).slice(0, 100);
+  }
+
+  private async ensureRecruiterUserOrThrow(recruiterId: string): Promise<void> {
+    const recruiter = await this.prisma.user.findFirst({
+      where: {
+        id: recruiterId,
+        role: UserRole.RECRUITER,
+        deletedAt: null,
+      },
+      select: { id: true },
+    });
+
+    if (!recruiter) {
+      throw new UnauthorizedException('Recruiter account not found');
+    }
   }
 
   private validateSalaryRange(min?: number, max?: number) {

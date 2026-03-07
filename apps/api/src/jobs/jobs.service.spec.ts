@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   ServiceUnavailableException,
   UnprocessableEntityException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { JobStatus, UserRole } from '@prisma/client';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -25,6 +26,9 @@ describe('JobsService', () => {
     extract: jest.Mock;
   };
   let prismaService: {
+    user: {
+      findFirst: jest.Mock;
+    };
     job: {
       create: jest.Mock;
       delete: jest.Mock;
@@ -74,6 +78,9 @@ describe('JobsService', () => {
       extract: jest.fn(),
     };
     prismaService = {
+      user: {
+        findFirst: jest.fn().mockResolvedValue({ id: 'recruiter-1' }),
+      },
       job: {
         create: jest.fn(),
         delete: jest.fn(),
@@ -165,6 +172,20 @@ describe('JobsService', () => {
     expect(findManyCall?.where?.recruiterId).toBe('recruiter-1');
   });
 
+  it('rejects recruiter job listing when recruiter token no longer maps to an active recruiter user', async () => {
+    prismaService.user.findFirst.mockResolvedValueOnce(null);
+
+    await expect(
+      service.list(
+        { sub: 'stale-recruiter', role: UserRole.RECRUITER },
+        { page: 1, limit: 10 },
+      ),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+
+    expect(prismaService.job.findMany).not.toHaveBeenCalled();
+    expect(prismaService.job.count).not.toHaveBeenCalled();
+  });
+
   it('rejects invalid salary range on create', async () => {
     await expect(
       service.create('recruiter-1', {
@@ -178,6 +199,22 @@ describe('JobsService', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
+  it('rejects manual job creation when recruiter token no longer maps to an active recruiter user', async () => {
+    prismaService.user.findFirst.mockResolvedValueOnce(null);
+
+    await expect(
+      service.create('stale-recruiter', {
+        title: 'Backend Engineer',
+        description: 'Long enough description text',
+        skills: ['TypeScript'],
+        employmentType: 'FULL_TIME',
+      }),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+
+    expect(aiNormalizationService.normalizeJob).not.toHaveBeenCalled();
+    expect(prismaService.job.create).not.toHaveBeenCalled();
+  });
+
   it('throws forbidden when recruiter updates foreign job', async () => {
     prismaService.job.findFirst.mockResolvedValue(null);
 
@@ -186,6 +223,19 @@ describe('JobsService', () => {
         title: 'Updated title',
       }),
     ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('rejects recruiter job update when recruiter token no longer maps to an active recruiter user', async () => {
+    prismaService.user.findFirst.mockResolvedValueOnce(null);
+
+    await expect(
+      service.update('stale-recruiter', 'job-1', {
+        title: 'Updated title',
+      }),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+
+    expect(prismaService.job.findFirst).not.toHaveBeenCalled();
+    expect(prismaService.job.update).not.toHaveBeenCalled();
   });
 
   it('creates a draft job from uploaded JD file and stores provenance', async () => {
@@ -244,6 +294,23 @@ describe('JobsService', () => {
     );
     expect(result.status).toBe(JobStatus.DRAFT);
     expect(result.parseStatus).toBe('parsed_ok');
+  });
+
+  it('rejects JD upload when recruiter token no longer maps to an active recruiter user', async () => {
+    prismaService.user.findFirst.mockResolvedValueOnce(null);
+
+    await expect(
+      service.createFromFile('stale-recruiter', {
+        originalname: 'jd.pdf',
+        mimetype: 'application/pdf',
+        size: 100,
+        buffer: Buffer.from('jd content'),
+      } as Express.Multer.File),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+
+    expect(documentTextExtractorService.assertSupported).not.toHaveBeenCalled();
+    expect(documentStorageService.save).not.toHaveBeenCalled();
+    expect(prismaService.job.create).not.toHaveBeenCalled();
   });
 
   it('falls back to normalized-profile skills when legacy jobs have empty skills arrays', async () => {
