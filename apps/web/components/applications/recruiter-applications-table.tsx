@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { ApplicationStatus, ApplicationItem } from '@/lib/applications-client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -20,7 +21,22 @@ const statusVariant: Record<string, 'default' | 'success' | 'warning' | 'info' |
 
 export function RecruiterApplicationsTable({ items, action }: RecruiterApplicationsTableProps) {
   if (!items.length) {
-    return <EmptyState title="No applications" description="No applications found for your jobs." />;
+    return (
+      <EmptyState
+        title="No applications yet"
+        description="Applications from candidates will appear here once they apply to your published jobs."
+        action={
+          <div className="flex flex-wrap justify-center gap-2">
+            <Button asChild size="sm">
+              <Link href="/dashboard/recruiter/jobs">View your jobs</Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/dashboard/recruiter/jobs">Create a job</Link>
+            </Button>
+          </div>
+        }
+      />
+    );
   }
 
   return (

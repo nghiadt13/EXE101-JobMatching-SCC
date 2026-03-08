@@ -16,7 +16,21 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
-export function LoginForm() {
+type LoginFormProps = {
+  callbackUrl?: string;
+};
+
+/** Allow only internal relative paths — no protocols, no double-slashes. */
+function safeCallbackUrl(raw: string | undefined): string | null {
+  if (!raw) return null;
+  const decoded = decodeURIComponent(raw);
+  if (decoded.startsWith('/') && !decoded.startsWith('//') && !decoded.includes(':')) {
+    return decoded;
+  }
+  return null;
+}
+
+export function LoginForm({ callbackUrl }: LoginFormProps) {
   const router = useRouter();
   const [submitError, setSubmitError] = useState('');
   const {
@@ -41,7 +55,8 @@ export function LoginForm() {
       return;
     }
 
-    router.push('/dashboard');
+    const destination = safeCallbackUrl(callbackUrl) ?? '/dashboard';
+    router.push(destination);
     router.refresh();
   };
 

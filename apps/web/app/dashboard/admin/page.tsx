@@ -39,7 +39,7 @@ export default async function AdminDashboardPage() {
       {errorMessage ? <Alert className="mb-4">{errorMessage}</Alert> : null}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <DashboardStatCard label="Total users" value={stats.totalUsers} hint="Active users in the platform" />
+        <DashboardStatCard label="Total users" value={stats.totalUsers} hint="Active users in the platform" href="/dashboard/admin/users" />
         <DashboardStatCard label="Recruiters" value={stats.totalRecruiters} hint="Active recruiter accounts" />
         <DashboardStatCard label="Candidates" value={stats.totalCandidates} hint="Active candidate accounts" />
         <DashboardStatCard label="Jobs" value={stats.totalJobs} hint="All jobs across recruiters" />

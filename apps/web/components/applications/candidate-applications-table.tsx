@@ -1,5 +1,7 @@
+import Link from 'next/link';
 import { ApplicationItem } from '@/lib/applications-client';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 
 type CandidateApplicationsTableProps = {
@@ -19,7 +21,12 @@ export function CandidateApplicationsTable({ items }: CandidateApplicationsTable
     return (
       <EmptyState
         title="No applications yet"
-        description="You have not applied to any job yet. Browse open positions to get started."
+        description="You haven't applied to any job yet."
+        action={
+          <Button asChild size="sm">
+            <Link href="/jobs">Browse open positions</Link>
+          </Button>
+        }
       />
     );
   }
@@ -39,7 +46,13 @@ export function CandidateApplicationsTable({ items }: CandidateApplicationsTable
           {items.map((item) => (
             <tr key={item.id} className="border-t border-zinc-100 transition-colors hover:bg-zinc-50/50">
               <td className="px-4 py-3">
-                <p className="font-medium text-zinc-900">{item.job.title}</p>
+                {item.job.slug ? (
+                  <Link href={`/jobs/${item.job.slug}`} className="font-medium text-zinc-900 hover:underline">
+                    {item.job.title}
+                  </Link>
+                ) : (
+                  <p className="font-medium text-zinc-900">{item.job.title}</p>
+                )}
                 <p className="text-xs text-zinc-500">{item.cv.fileName}</p>
               </td>
               <td className="px-4 py-3">

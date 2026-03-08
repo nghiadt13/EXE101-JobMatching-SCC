@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Menu, X } from 'lucide-react';
-import { getNavIcon, type NavItem } from '@/lib/navigation';
+import { getNavIcon, isNavItemActive, type NavItem } from '@/lib/navigation';
 
 type MobileNavProps = {
   items: NavItem[];
@@ -30,9 +30,7 @@ export function MobileNav({ items, currentPath }: MobileNavProps) {
           <div className="mx-auto max-w-5xl space-y-0.5">
             {items.map((item) => {
               const Icon = getNavIcon(item.iconName);
-              const isActive =
-                currentPath === item.href ||
-                (item.href !== '/jobs' && currentPath?.startsWith(item.href + '/'));
+              const isActive = isNavItemActive(item.href, currentPath);
               return (
                 <Link
                   key={item.href}

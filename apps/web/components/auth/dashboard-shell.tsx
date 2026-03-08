@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { SignOutButton } from './sign-out-button';
 import { MobileNav } from './mobile-nav';
 import { Breadcrumbs, type BreadcrumbItem } from '@/components/ui/breadcrumbs';
-import { getNavForRole, getNavIcon } from '@/lib/navigation';
+import { getNavForRole, getNavIcon, isNavItemActive } from '@/lib/navigation';
 
 type DashboardShellProps = {
   title: string;
@@ -42,9 +42,7 @@ export function DashboardShell({
             <nav className="flex-1 space-y-0.5" aria-label="Dashboard navigation">
               {navItems.map((item) => {
                 const Icon = getNavIcon(item.iconName);
-                const isActive =
-                  currentPath === item.href ||
-                  (item.href !== '/jobs' && currentPath?.startsWith(item.href + '/'));
+                const isActive = isNavItemActive(item.href, currentPath);
                 return (
                   <Link
                     key={item.href}

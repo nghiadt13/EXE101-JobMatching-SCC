@@ -68,3 +68,17 @@ export function getNavForRole(role: string): NavItem[] {
       return [];
   }
 }
+
+/**
+ * Returns true when a nav item should be considered active for the given currentPath.
+ * Handles exact matches and prefix matches. The /jobs item is treated as a prefix
+ * root so /jobs/[slug] also activates it.
+ */
+export function isNavItemActive(itemHref: string, currentPath: string | undefined): boolean {
+  if (!currentPath) return false;
+  if (currentPath === itemHref) return true;
+  // All nav items that have a meaningful sub-route hierarchy match by prefix.
+  // This includes /jobs and /jobs/[slug].
+  return currentPath.startsWith(itemHref + '/') || currentPath.startsWith(itemHref + '?');
+}
+

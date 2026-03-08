@@ -4,11 +4,17 @@ import { auth } from '@/auth';
 import { LoginForm } from '@/components/auth/login-form';
 import { getRoleDashboardPath } from '@/lib/auth-redirect';
 
-export default async function LoginPage() {
+type LoginPageProps = {
+  searchParams: Promise<{ callbackUrl?: string }>;
+};
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
   const session = await auth();
   if (session?.user?.role) {
     redirect(getRoleDashboardPath(session.user.role));
   }
+
+  const { callbackUrl } = await searchParams;
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-16">
@@ -18,7 +24,7 @@ export default async function LoginPage() {
           Use your account credentials to access the platform.
         </p>
         <div className="mt-6">
-          <LoginForm />
+          <LoginForm callbackUrl={callbackUrl} />
         </div>
         <p className="mt-4 text-center text-sm text-zinc-500">
           <Link href="/jobs" className="font-medium text-zinc-700 hover:underline">

@@ -1,16 +1,18 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import { auth } from '@/auth';
 import { DashboardShell } from '@/components/auth/dashboard-shell';
 import { CvList } from '@/components/cv/cv-list';
 import { CvUploadForm } from '@/components/cv/cv-upload-form';
 import { Alert } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import { ApiError } from '@/lib/api-client';
 import { buildErrorRedirectPath, resolveRouteError } from '@/lib/errors/backend-error-state';
 import { deleteCv, getMyCvs, setPrimaryCv, updateCv, uploadCv } from '@/lib/cv-client';
 
 type PageProps = {
-  searchParams: Promise<{ error?: string; message?: string; requestId?: string }>;
+  searchParams: Promise<{ error?: string; message?: string; requestId?: string; returnTo?: string }>;
 };
 
 export default async function CandidateCvsPage({ searchParams }: PageProps) {
@@ -18,6 +20,16 @@ export default async function CandidateCvsPage({ searchParams }: PageProps) {
   const session = await auth();
   if (!session?.user || !session.accessToken) redirect('/login');
   if (session.user.role !== 'CANDIDATE') redirect('/dashboard');
+
+  // Validate returnTo — only allow internal relative paths
+  const rawReturnTo = query.returnTo;
+  const returnTo =
+    rawReturnTo &&
+    rawReturnTo.startsWith('/') &&
+    !rawReturnTo.startsWith('//') &&
+    !rawReturnTo.includes(':')
+      ? rawReturnTo
+      : null;
 
   async function uploadAction(formData: FormData) {
     'use server';
@@ -123,6 +135,13 @@ export default async function CandidateCvsPage({ searchParams }: PageProps) {
         { label: 'Dashboard', href: '/dashboard/candidate' },
         { label: 'CVs' },
       ]}
+      actions={
+        returnTo ? (
+          <Button asChild variant="outline" size="sm">
+            <Link href={returnTo}>← Return to job</Link>
+          </Button>
+        ) : undefined
+      }
     >
       <div className="grid gap-6">
         {routeError ? (

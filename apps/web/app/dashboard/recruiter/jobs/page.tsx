@@ -152,9 +152,9 @@ export default async function RecruiterJobsPage({ searchParams }: PageProps) {
           <p className="mt-2 text-sm text-zinc-600">All drafts, published, and closed roles.</p>
         </div>
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-amber-700">Visible drafts</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-amber-700">Draft jobs</p>
           <p className="mt-3 text-3xl font-semibold text-amber-950">{draftCount}</p>
-          <p className="mt-2 text-sm text-amber-900/80">Drafts needing review or publishing.</p>
+          <p className="mt-2 text-sm text-amber-900/80">Jobs in draft — review and publish when ready.</p>
         </div>
         <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-blue-700">Needs attention</p>

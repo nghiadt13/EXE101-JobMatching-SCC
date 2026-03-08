@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect, notFound } from 'next/navigation';
 import { auth } from '@/auth';
+import { DashboardShell } from '@/components/auth/dashboard-shell';
 import { CandidateApplyForm } from '@/components/applications/candidate-apply-form';
 import { ExpandableChips } from '@/components/cv/expandable-chips';
 import { PageHeader } from '@/components/ui/page-header';
@@ -56,6 +57,71 @@ export default async function JobDetailPage({ params, searchParams }: PageProps)
     redirect(redirectTarget);
   }
 
+  const jobPath = `/jobs/${slug}`;
+  const cvPrereqUrl = `/dashboard/candidate/cvs?returnTo=${encodeURIComponent(jobPath)}`;
+
+  const jobContent = (
+    <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+      <p className="whitespace-pre-wrap text-zinc-800">{job.description}</p>
+      {!!job.skills.length && (
+        <div className="mt-6 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+          <ExpandableChips title="Key skills" items={job.skills} />
+        </div>
+      )}
+
+      {query.applied === '1' && (
+        <Alert variant="success" className="mt-4" role="status" aria-live="polite">
+          Application submitted successfully.
+        </Alert>
+      )}
+      {errorMessage && (
+        <Alert className="mt-4" role="alert" aria-live="assertive">
+          {errorMessage}
+        </Alert>
+      )}
+
+      {canApply && cvs && cvs.items.length > 0 ? (
+        <CandidateApplyForm jobId={job.id} cvs={cvs.items} action={applyAction} />
+      ) : null}
+      {canApply && cvs && cvs.items.length === 0 ? (
+        <p className="mt-4 text-sm text-zinc-600">
+          Please{' '}
+          <Link href={cvPrereqUrl} className="font-medium underline">upload a CV</Link>
+          {' '}first before applying.
+        </p>
+      ) : null}
+      {!session?.user && (
+        <p className="mt-4 text-sm text-zinc-600">
+          <Link href={`/login?callbackUrl=${encodeURIComponent(jobPath)}`} className="font-medium underline">Sign in</Link>{' '}
+          as candidate to apply.
+        </p>
+      )}
+      {session?.user && session.user.role !== 'CANDIDATE' && (
+        <p className="mt-4 text-sm text-zinc-600">Only candidate accounts can apply for jobs.</p>
+      )}
+    </section>
+  );
+
+  // Candidates: render inside dashboard shell for nav continuity
+  if (canApply || (session?.user?.role === 'CANDIDATE')) {
+    return (
+      <DashboardShell
+        title={job.title}
+        description={job.employmentType}
+        email={session?.user?.email}
+        role="CANDIDATE"
+        currentPath={jobPath}
+        actions={
+          <Button asChild variant="outline" size="sm">
+            <Link href="/jobs">← Back to jobs</Link>
+          </Button>
+        }
+      >
+        {jobContent}
+      </DashboardShell>
+    );
+  }
+
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col px-6 py-12">
       <PageHeader
@@ -68,44 +134,7 @@ export default async function JobDetailPage({ params, searchParams }: PageProps)
           </Button>
         }
       />
-
-      <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <p className="whitespace-pre-wrap text-zinc-800">{job.description}</p>
-        {!!job.skills.length && (
-          <div className="mt-6 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
-            <ExpandableChips title="Key skills" items={job.skills} />
-          </div>
-        )}
-
-        {query.applied === '1' && (
-          <Alert variant="success" className="mt-4" role="status" aria-live="polite">
-            Application submitted successfully.
-          </Alert>
-        )}
-        {errorMessage && (
-          <Alert className="mt-4" role="alert" aria-live="assertive">
-            {errorMessage}
-          </Alert>
-        )}
-
-        {canApply && cvs && cvs.items.length > 0 ? (
-          <CandidateApplyForm jobId={job.id} cvs={cvs.items} action={applyAction} />
-        ) : null}
-        {canApply && cvs && cvs.items.length === 0 ? (
-          <p className="mt-4 text-sm text-zinc-600">
-            Please <Link href="/dashboard/candidate/cvs" className="font-medium underline">upload a CV</Link> first before applying.
-          </p>
-        ) : null}
-        {!session?.user && (
-          <p className="mt-4 text-sm text-zinc-600">
-            <Link href={`/login?callbackUrl=${encodeURIComponent(`/jobs/${slug}`)}`} className="font-medium underline">Sign in</Link>{' '}
-            as candidate to apply.
-          </p>
-        )}
-        {session?.user && session.user.role !== 'CANDIDATE' && (
-          <p className="mt-4 text-sm text-zinc-600">Only candidate accounts can apply for jobs.</p>
-        )}
-      </section>
+      {jobContent}
     </main>
   );
 }
