@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { signIn } from 'next-auth/react';
 import { z } from 'zod';
+import { Button } from '@/components/ui/button';
 
 const loginSchema = z.object({
   email: z.email('Email is invalid'),
@@ -24,10 +25,7 @@ export function LoginForm() {
     formState: { errors, isSubmitting },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: '',
-      password: '',
-    },
+    defaultValues: { email: '', password: '' },
   });
 
   const onSubmit = async (values: LoginFormValues) => {
@@ -58,7 +56,7 @@ export function LoginForm() {
           type="email"
           autoComplete="email"
           {...register('email')}
-          className="h-11 w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm outline-none ring-zinc-300 transition focus:ring-2"
+          className="h-11 w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-2"
         />
         {errors.email && <p className="text-sm text-red-600">{errors.email.message}</p>}
       </div>
@@ -72,20 +70,20 @@ export function LoginForm() {
           type="password"
           autoComplete="current-password"
           {...register('password')}
-          className="h-11 w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm outline-none ring-zinc-300 transition focus:ring-2"
+          className="h-11 w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-2"
         />
         {errors.password && <p className="text-sm text-red-600">{errors.password.message}</p>}
       </div>
 
-      {submitError && <p className="text-sm text-red-600">{submitError}</p>}
+      {submitError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          {submitError}
+        </div>
+      )}
 
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        className="inline-flex h-11 w-full items-center justify-center rounded-lg bg-zinc-900 px-4 text-sm font-medium text-white transition hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {isSubmitting ? 'Signing in...' : 'Sign in'}
-      </button>
+      <Button type="submit" disabled={isSubmitting} className="w-full" size="lg">
+        {isSubmitting ? 'Signing in…' : 'Sign in'}
+      </Button>
 
       <p className="text-sm text-zinc-600">
         New here?{' '}

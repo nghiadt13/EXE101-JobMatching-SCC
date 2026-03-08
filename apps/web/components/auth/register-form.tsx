@@ -9,6 +9,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { ApiError, registerUser } from '@/lib/api-client';
 import { getRoleDashboardPath } from '@/lib/auth-redirect';
+import { Button } from '@/components/ui/button';
 
 const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -28,17 +29,11 @@ export function RegisterForm() {
     formState: { errors, isSubmitting },
   } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
-    defaultValues: {
-      name: '',
-      email: '',
-      password: '',
-      role: 'CANDIDATE',
-    },
+    defaultValues: { name: '', email: '', password: '', role: 'CANDIDATE' },
   });
 
   const onSubmit = async (values: RegisterFormValues) => {
     setSubmitError('');
-
     try {
       const registerResponse = await registerUser(values);
       const signInResponse = await signIn('credentials', {
@@ -59,85 +54,55 @@ export function RegisterForm() {
         setSubmitError(error.message);
         return;
       }
-
       setSubmitError('Failed to create account');
     }
   };
 
+  const inputClass =
+    'h-11 w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-2';
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="space-y-2">
-        <label htmlFor="name" className="text-sm font-medium text-zinc-700">
-          Name
-        </label>
-        <input
-          id="name"
-          type="text"
-          autoComplete="name"
-          {...register('name')}
-          className="h-11 w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm outline-none ring-zinc-300 transition focus:ring-2"
-        />
+        <label htmlFor="name" className="text-sm font-medium text-zinc-700">Name</label>
+        <input id="name" type="text" autoComplete="name" {...register('name')} className={inputClass} />
         {errors.name && <p className="text-sm text-red-600">{errors.name.message}</p>}
       </div>
 
       <div className="space-y-2">
-        <label htmlFor="email" className="text-sm font-medium text-zinc-700">
-          Email
-        </label>
-        <input
-          id="email"
-          type="email"
-          autoComplete="email"
-          {...register('email')}
-          className="h-11 w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm outline-none ring-zinc-300 transition focus:ring-2"
-        />
+        <label htmlFor="email" className="text-sm font-medium text-zinc-700">Email</label>
+        <input id="email" type="email" autoComplete="email" {...register('email')} className={inputClass} />
         {errors.email && <p className="text-sm text-red-600">{errors.email.message}</p>}
       </div>
 
       <div className="space-y-2">
-        <label htmlFor="password" className="text-sm font-medium text-zinc-700">
-          Password
-        </label>
-        <input
-          id="password"
-          type="password"
-          autoComplete="new-password"
-          {...register('password')}
-          className="h-11 w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm outline-none ring-zinc-300 transition focus:ring-2"
-        />
+        <label htmlFor="password" className="text-sm font-medium text-zinc-700">Password</label>
+        <input id="password" type="password" autoComplete="new-password" {...register('password')} className={inputClass} />
         {errors.password && <p className="text-sm text-red-600">{errors.password.message}</p>}
       </div>
 
       <div className="space-y-2">
-        <label htmlFor="role" className="text-sm font-medium text-zinc-700">
-          Role
-        </label>
-        <select
-          id="role"
-          {...register('role')}
-          className="h-11 w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm outline-none ring-zinc-300 transition focus:ring-2"
-        >
+        <label htmlFor="role" className="text-sm font-medium text-zinc-700">Role</label>
+        <select id="role" {...register('role')} className={inputClass}>
           <option value="CANDIDATE">Candidate</option>
           <option value="RECRUITER">Recruiter</option>
         </select>
         {errors.role && <p className="text-sm text-red-600">{errors.role.message}</p>}
       </div>
 
-      {submitError && <p className="text-sm text-red-600">{submitError}</p>}
+      {submitError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          {submitError}
+        </div>
+      )}
 
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        className="inline-flex h-11 w-full items-center justify-center rounded-lg bg-zinc-900 px-4 text-sm font-medium text-white transition hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {isSubmitting ? 'Creating account...' : 'Create account'}
-      </button>
+      <Button type="submit" disabled={isSubmitting} className="w-full" size="lg">
+        {isSubmitting ? 'Creating account…' : 'Create account'}
+      </Button>
 
       <p className="text-sm text-zinc-600">
         Already have an account?{' '}
-        <Link href="/login" className="font-medium text-zinc-900 underline">
-          Sign in
-        </Link>
+        <Link href="/login" className="font-medium text-zinc-900 underline">Sign in</Link>
       </p>
     </form>
   );

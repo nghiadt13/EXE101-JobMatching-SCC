@@ -1,14 +1,12 @@
-import Link from 'next/link';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
+import { DashboardShell } from '@/components/auth/dashboard-shell';
 import { CvList } from '@/components/cv/cv-list';
 import { CvUploadForm } from '@/components/cv/cv-upload-form';
+import { Alert } from '@/components/ui/alert';
 import { ApiError } from '@/lib/api-client';
-import {
-  buildErrorRedirectPath,
-  resolveRouteError,
-} from '@/lib/errors/backend-error-state';
+import { buildErrorRedirectPath, resolveRouteError } from '@/lib/errors/backend-error-state';
 import { deleteCv, getMyCvs, setPrimaryCv, updateCv, uploadCv } from '@/lib/cv-client';
 
 type PageProps = {
@@ -18,36 +16,24 @@ type PageProps = {
 export default async function CandidateCvsPage({ searchParams }: PageProps) {
   const query = await searchParams;
   const session = await auth();
-  if (!session?.user || !session.accessToken) {
-    redirect('/login');
-  }
-  if (session.user.role !== 'CANDIDATE') {
-    redirect('/dashboard');
-  }
+  if (!session?.user || !session.accessToken) redirect('/login');
+  if (session.user.role !== 'CANDIDATE') redirect('/dashboard');
 
   async function uploadAction(formData: FormData) {
     'use server';
     const currentSession = await auth();
-    if (!currentSession?.user || !currentSession.accessToken) {
-      redirect('/login');
-    }
-    if (currentSession.user.role !== 'CANDIDATE') {
-      redirect('/dashboard');
-    }
+    if (!currentSession?.user || !currentSession.accessToken) redirect('/login');
+    if (currentSession.user.role !== 'CANDIDATE') redirect('/dashboard');
 
     const file = formData.get('file');
-    if (!(file instanceof File)) {
-      redirect('/dashboard/candidate/cvs?error=missing-file');
-    }
+    if (!(file instanceof File)) redirect('/dashboard/candidate/cvs?error=missing-file');
 
     try {
       await uploadCv(currentSession.accessToken, file);
       revalidatePath('/dashboard/candidate/cvs');
     } catch (error) {
       if (error instanceof ApiError) {
-        if (error.status === 401) {
-          redirect('/login');
-        }
+        if (error.status === 401) redirect('/login');
         redirect(buildErrorRedirectPath('/dashboard/candidate/cvs', error, 'upload-failed'));
       }
       redirect('/dashboard/candidate/cvs?error=upload-failed');
@@ -57,20 +43,14 @@ export default async function CandidateCvsPage({ searchParams }: PageProps) {
   async function setPrimaryAction(formData: FormData) {
     'use server';
     const currentSession = await auth();
-    if (!currentSession?.user || !currentSession.accessToken) {
-      redirect('/login');
-    }
+    if (!currentSession?.user || !currentSession.accessToken) redirect('/login');
     const cvId = String(formData.get('cvId') ?? '').trim();
-    if (!cvId) {
-      return;
-    }
+    if (!cvId) return;
     try {
       await setPrimaryCv(currentSession.accessToken, cvId);
     } catch (error) {
       if (error instanceof ApiError) {
-        if (error.status === 401) {
-          redirect('/login');
-        }
+        if (error.status === 401) redirect('/login');
         redirect(buildErrorRedirectPath('/dashboard/candidate/cvs', error, 'set-primary-failed'));
       }
       redirect('/dashboard/candidate/cvs?error=set-primary-failed');
@@ -81,20 +61,14 @@ export default async function CandidateCvsPage({ searchParams }: PageProps) {
   async function deleteAction(formData: FormData) {
     'use server';
     const currentSession = await auth();
-    if (!currentSession?.user || !currentSession.accessToken) {
-      redirect('/login');
-    }
+    if (!currentSession?.user || !currentSession.accessToken) redirect('/login');
     const cvId = String(formData.get('cvId') ?? '').trim();
-    if (!cvId) {
-      return;
-    }
+    if (!cvId) return;
     try {
       await deleteCv(currentSession.accessToken, cvId);
     } catch (error) {
       if (error instanceof ApiError) {
-        if (error.status === 401) {
-          redirect('/login');
-        }
+        if (error.status === 401) redirect('/login');
         redirect(buildErrorRedirectPath('/dashboard/candidate/cvs', error, 'delete-failed'));
       }
       redirect('/dashboard/candidate/cvs?error=delete-failed');
@@ -105,37 +79,19 @@ export default async function CandidateCvsPage({ searchParams }: PageProps) {
   async function updateAction(formData: FormData) {
     'use server';
     const currentSession = await auth();
-    if (!currentSession?.user || !currentSession.accessToken) {
-      redirect('/login');
-    }
+    if (!currentSession?.user || !currentSession.accessToken) redirect('/login');
     const cvId = String(formData.get('cvId') ?? '').trim();
-    if (!cvId) {
-      return;
-    }
+    if (!cvId) return;
 
-    const skills = String(formData.get('skills') ?? '')
-      .split('\n')
-      .map((item) => item.trim())
-      .filter(Boolean);
+    const skills = String(formData.get('skills') ?? '').split('\n').map((item) => item.trim()).filter(Boolean);
     const summary = String(formData.get('summary') ?? '').trim();
-    const languages = String(formData.get('languages') ?? '')
-      .split(/[\n,]/g)
-      .map((item) => item.trim())
-      .filter(Boolean);
+    const languages = String(formData.get('languages') ?? '').split(/[\n,]/g).map((item) => item.trim()).filter(Boolean);
 
     try {
-      await updateCv(currentSession.accessToken, cvId, {
-        skills,
-        parsedData: {
-          summary,
-          languages,
-        },
-      });
+      await updateCv(currentSession.accessToken, cvId, { skills, parsedData: { summary, languages } });
     } catch (error) {
       if (error instanceof ApiError) {
-        if (error.status === 401) {
-          redirect('/login');
-        }
+        if (error.status === 401) redirect('/login');
         redirect(buildErrorRedirectPath('/dashboard/candidate/cvs', error, 'update-failed'));
       }
       redirect('/dashboard/candidate/cvs?error=update-failed');
@@ -157,25 +113,20 @@ export default async function CandidateCvsPage({ searchParams }: PageProps) {
   });
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col px-6 py-12">
-      <header className="mb-6 flex items-center justify-between">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.15em] text-zinc-500">Candidate</p>
-          <h1 className="mt-1 text-2xl font-semibold text-zinc-900">CV Management</h1>
-        </div>
-        <Link href="/dashboard/candidate" className="text-sm font-medium text-zinc-700 underline">
-          Back dashboard
-        </Link>
-      </header>
-
+    <DashboardShell
+      title="CV Management"
+      description="Upload, review, and manage your CVs."
+      email={session.user.email}
+      role="CANDIDATE"
+      currentPath="/dashboard/candidate/cvs"
+      breadcrumbs={[
+        { label: 'Dashboard', href: '/dashboard/candidate' },
+        { label: 'CVs' },
+      ]}
+    >
       <div className="grid gap-6">
         {routeError ? (
-          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            <p>{routeError.message}</p>
-            {routeError.requestId ? (
-              <p className="mt-1 text-xs font-medium text-red-800/80">Request ID: {routeError.requestId}</p>
-            ) : null}
-          </div>
+          <Alert requestId={routeError.requestId}>{routeError.message}</Alert>
         ) : null}
         <CvUploadForm uploadAction={uploadAction} />
         <CvList
@@ -185,6 +136,6 @@ export default async function CandidateCvsPage({ searchParams }: PageProps) {
           updateAction={updateAction}
         />
       </div>
-    </main>
+    </DashboardShell>
   );
 }

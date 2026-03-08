@@ -1,18 +1,13 @@
-import Link from 'next/link';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
+import { DashboardShell } from '@/components/auth/dashboard-shell';
 import { RecruiterJobForm } from '@/components/jobs/recruiter-job-form';
+import { Alert } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { ApiError } from '@/lib/api-client';
-import {
-  buildErrorRedirectPath,
-  resolveRouteError,
-} from '@/lib/errors/backend-error-state';
-import {
-  composeJobDescription,
-  getJobFormInitialValues,
-  parseMultilineList,
-} from '@/lib/job-description-format';
+import { buildErrorRedirectPath, resolveRouteError } from '@/lib/errors/backend-error-state';
+import { composeJobDescription, getJobFormInitialValues, parseMultilineList } from '@/lib/job-description-format';
 import { getJobDetail, updateJob } from '@/lib/jobs-client';
 
 type PageProps = {
@@ -21,10 +16,7 @@ type PageProps = {
 };
 
 function parseSkills(value: string): string[] {
-  return value
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean);
+  return value.split(',').map((item) => item.trim()).filter(Boolean);
 }
 
 function parseOptionalNumber(value: string): number | undefined {
@@ -34,34 +26,16 @@ function parseOptionalNumber(value: string): number | undefined {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
-function getParseMessage(
-  parseStatus: string,
-  inputMode: 'manual' | 'file_upload',
-) {
-  if (inputMode === 'manual') {
-    return 'This job was normalized from the current form fields. Review the parsed summary, skills, and requirements before publishing.';
-  }
-  if (parseStatus === 'parsed_ok') {
-    return 'The uploaded JD was parsed successfully. Review the draft fields before publishing.';
-  }
-  return 'This draft needs manual review before publish. Verify the parsed summary, skills, and requirements carefully.';
-}
-
-function getParseTone(parseStatus: string) {
-  if (parseStatus === 'parsed_ok') {
-    return 'border-emerald-200 bg-emerald-50 text-emerald-800';
-  }
-  return 'border-zinc-300 bg-zinc-100 text-zinc-800';
+function getParseMessage(parseStatus: string, inputMode: 'manual' | 'file_upload') {
+  if (inputMode === 'manual') return 'This job was normalized from the current form fields. Review before publishing.';
+  if (parseStatus === 'parsed_ok') return 'The uploaded JD was parsed successfully. Review the draft fields before publishing.';
+  return 'This draft needs manual review before publish. Verify fields carefully.';
 }
 
 export default async function RecruiterJobDetailPage({ params, searchParams }: PageProps) {
   const session = await auth();
-  if (!session?.user || !session.accessToken) {
-    redirect('/login');
-  }
-  if (session.user.role !== 'RECRUITER') {
-    redirect('/dashboard');
-  }
+  if (!session?.user || !session.accessToken) redirect('/login');
+  if (session.user.role !== 'RECRUITER') redirect('/dashboard');
 
   const { id } = await params;
   const query = await searchParams;
@@ -71,24 +45,16 @@ export default async function RecruiterJobDetailPage({ params, searchParams }: P
   async function updateAction(formData: FormData) {
     'use server';
     const currentSession = await auth();
-    if (!currentSession?.user || !currentSession.accessToken) {
-      redirect('/login');
-    }
+    if (!currentSession?.user || !currentSession.accessToken) redirect('/login');
 
     const summary = String(formData.get('summary') ?? '').trim();
-    const requirements = parseMultilineList(
-      String(formData.get('requirements') ?? ''),
-    );
+    const requirements = parseMultilineList(String(formData.get('requirements') ?? ''));
     const benefits = parseMultilineList(String(formData.get('benefits') ?? ''));
 
     try {
       await updateJob(currentSession.accessToken, id, {
         title: String(formData.get('title') ?? '').trim(),
-        description: composeJobDescription({
-          summary,
-          requirements,
-          benefits,
-        }),
+        description: composeJobDescription({ summary, requirements, benefits }),
         skills: parseSkills(String(formData.get('skills') ?? '')),
         employmentType: String(formData.get('employmentType') ?? '').trim(),
         salaryMin: parseOptionalNumber(String(formData.get('salaryMin') ?? '')),
@@ -96,16 +62,8 @@ export default async function RecruiterJobDetailPage({ params, searchParams }: P
       });
     } catch (error) {
       if (error instanceof ApiError) {
-        if (error.status === 401) {
-          redirect('/login');
-        }
-        redirect(
-          buildErrorRedirectPath(
-            `/dashboard/recruiter/jobs/${id}`,
-            error,
-            'save-failed',
-          ),
-        );
+        if (error.status === 401) redirect('/login');
+        redirect(buildErrorRedirectPath(`/dashboard/recruiter/jobs/${id}`, error, 'save-failed'));
       }
       redirect(`/dashboard/recruiter/jobs/${id}?error=save-failed`);
     }
@@ -119,55 +77,42 @@ export default async function RecruiterJobDetailPage({ params, searchParams }: P
     'save-failed': 'Saving this job failed. Please try again.',
   });
 
-  return (
-    <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col px-6 py-12">
-      <header className="mb-6 flex items-center justify-between">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.15em] text-zinc-500">Recruiter Job</p>
-          <h1 className="mt-1 text-2xl font-semibold text-zinc-900">Edit Job</h1>
-        </div>
-        <Link href="/dashboard/recruiter/jobs" className="text-sm font-medium text-zinc-700 underline">
-          Back jobs
-        </Link>
-      </header>
+  const parseBadgeVariant = job.parseStatus === 'parsed_ok' ? 'success' as const : 'warning' as const;
 
+  return (
+    <DashboardShell
+      title="Edit Job"
+      email={session.user.email}
+      role="RECRUITER"
+      currentPath={`/dashboard/recruiter/jobs/${id}`}
+      breadcrumbs={[
+        { label: 'Dashboard', href: '/dashboard/recruiter' },
+        { label: 'Jobs', href: '/dashboard/recruiter/jobs' },
+        { label: job.title },
+      ]}
+      actions={<Badge variant={parseBadgeVariant}>{job.parseStatus === 'parsed_ok' ? 'Parsed OK' : 'Needs Review'}</Badge>}
+    >
       {routeError ? (
-        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          <p>{routeError.message}</p>
-          {routeError.requestId ? (
-            <p className="mt-1 text-xs font-medium text-red-800/80">Request ID: {routeError.requestId}</p>
-          ) : null}
-        </div>
+        <Alert className="mb-6" requestId={routeError.requestId}>{routeError.message}</Alert>
       ) : null}
 
-      <RecruiterJobForm
-        submitLabel="Save changes"
-        action={updateAction}
-        initialValues={initialValues}
-      />
-      <section className={`mt-6 rounded-2xl border px-4 py-3 text-sm ${getParseTone(job.parseStatus)}`}>
+      <RecruiterJobForm submitLabel="Save changes" action={updateAction} initialValues={initialValues} />
+
+      <section className={`mt-6 rounded-2xl border px-4 py-3 text-sm ${job.parseStatus === 'parsed_ok' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-zinc-300 bg-zinc-100 text-zinc-800'}`}>
         <p className="font-semibold uppercase tracking-[0.08em]">Parse status: {job.parseStatus}</p>
         <p className="mt-2">{getParseMessage(job.parseStatus, job.inputMode)}</p>
         {job.parseTelemetry ? (
-          <p className="mt-2 text-xs opacity-80">
-            Provider: {job.parseTelemetry.provider} · Model: {job.parseTelemetry.model}
-          </p>
+          <p className="mt-2 text-xs opacity-80">Provider: {job.parseTelemetry.provider} · Model: {job.parseTelemetry.model}</p>
         ) : null}
       </section>
+
       <section className="mt-6 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-        <h2 className="text-sm font-semibold uppercase tracking-[0.08em] text-zinc-600">
-          AI Parsed Preview
-        </h2>
-        <p className="mt-2 text-xs text-zinc-500">Status: {job.parseStatus}</p>
-        <p className="mt-3 text-sm text-zinc-700">
-          {job.normalizedProfile?.summary || 'No parsed summary available yet.'}
-        </p>
+        <h2 className="text-sm font-semibold uppercase tracking-[0.08em] text-zinc-600">AI Parsed Preview</h2>
+        <p className="mt-3 text-sm text-zinc-700">{job.normalizedProfile?.summary || 'No parsed summary available yet.'}</p>
         {job.normalizedProfile?.skills?.length ? (
           <div className="mt-3 flex flex-wrap gap-2">
             {job.normalizedProfile.skills.slice(0, 12).map((skill) => (
-              <span key={`${job.id}-${skill}`} className="rounded-full bg-zinc-100 px-2 py-1 text-xs text-zinc-700">
-                {skill}
-              </span>
+              <Badge key={`${job.id}-${skill}`} variant="outline">{skill}</Badge>
             ))}
           </div>
         ) : null}
@@ -194,9 +139,7 @@ export default async function RecruiterJobDetailPage({ params, searchParams }: P
         {job.requirementsSchema ? (
           <div className="mt-5 grid gap-4 border-t border-zinc-200 pt-4 md:grid-cols-2">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">
-                Must Have Requirements
-              </p>
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">Must Have</p>
               <ul className="mt-2 space-y-1 text-sm text-zinc-700">
                 {job.requirementsSchema.mustHaves.slice(0, 8).map((item) => (
                   <li key={item.id}>• {item.label}</li>
@@ -204,9 +147,7 @@ export default async function RecruiterJobDetailPage({ params, searchParams }: P
               </ul>
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">
-                Nice To Have Requirements
-              </p>
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">Nice To Have</p>
               <ul className="mt-2 space-y-1 text-sm text-zinc-700">
                 {job.requirementsSchema.niceToHaves.slice(0, 8).map((item) => (
                   <li key={item.id}>• {item.label}</li>
@@ -214,17 +155,17 @@ export default async function RecruiterJobDetailPage({ params, searchParams }: P
               </ul>
               {job.requirementsSchema.locationPreference ? (
                 <p className="mt-3 text-xs text-zinc-500">
-                  Location preference: {[
+                  Location: {[
                     job.requirementsSchema.locationPreference.city,
                     job.requirementsSchema.locationPreference.country,
                     job.requirementsSchema.locationPreference.remote ? 'Remote' : '',
-                  ].filter(Boolean).join(' • ')}
+                  ].filter(Boolean).join(' · ')}
                 </p>
               ) : null}
             </div>
           </div>
         ) : null}
       </section>
-    </main>
+    </DashboardShell>
   );
 }

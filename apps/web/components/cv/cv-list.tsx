@@ -1,4 +1,5 @@
 import { CvItem } from '@/lib/cv-client';
+import { ConfirmForm } from '@/components/ui/confirm-form';
 import { CvEditForm } from './cv-edit-form';
 import { ExpandableSummary } from './expandable-summary';
 import { ExpandableChips as ChipsSection } from './expandable-chips';
@@ -265,15 +266,17 @@ export function CvList({
             </details>
 
             {/* Delete Button */}
-            <form action={deleteAction} className="mt-3">
-              <input type="hidden" name="cvId" value={cv.id} />
-              <button
-                type="submit"
-                className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50"
-              >
-                Delete
-              </button>
-            </form>
+            <div className="mt-3">
+              <ConfirmForm
+                title="Delete this CV?"
+                description="If this is your primary CV, another active CV will become primary automatically when available."
+                confirmLabel="Delete CV"
+                action={deleteAction}
+                triggerLabel="Delete"
+                triggerVariant="danger"
+                hiddenInputs={{ cvId: cv.id }}
+              />
+            </div>
           </article>
         );
       })}

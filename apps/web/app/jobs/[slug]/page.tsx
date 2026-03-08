@@ -1,9 +1,11 @@
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
-import { notFound } from 'next/navigation';
+import { redirect, notFound } from 'next/navigation';
 import { auth } from '@/auth';
 import { CandidateApplyForm } from '@/components/applications/candidate-apply-form';
 import { ExpandableChips } from '@/components/cv/expandable-chips';
+import { PageHeader } from '@/components/ui/page-header';
+import { Alert } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import { createApplication } from '@/lib/applications-client';
 import { ApiError } from '@/lib/api-client';
 import { getMyCvs } from '@/lib/cv-client';
@@ -23,63 +25,49 @@ export default async function JobDetailPage({ params, searchParams }: PageProps)
   try {
     job = await getJobDetail(slug);
   } catch (error) {
-    if (error instanceof ApiError && error.status === 404) {
-      notFound();
-    }
+    if (error instanceof ApiError && error.status === 404) notFound();
     throw error;
   }
 
-  const canApply =
-    session?.user?.role === 'CANDIDATE' && Boolean(session.accessToken);
+  const canApply = session?.user?.role === 'CANDIDATE' && Boolean(session.accessToken);
   const cvs = canApply ? await getMyCvs(session.accessToken as string) : null;
   const errorMessage =
-    query.error === 'duplicate'
-      ? 'You already applied to this job.'
-      : query.error === 'missing'
-        ? 'Please select a CV before submitting your application.'
-        : query.error
-          ? 'Unable to submit application.'
-          : null;
+    query.error === 'duplicate' ? 'You already applied to this job.'
+    : query.error === 'missing' ? 'Please select a CV before submitting your application.'
+    : query.error ? 'Unable to submit application.'
+    : null;
 
   async function applyAction(formData: FormData) {
     'use server';
     const currentSession = await auth();
-    if (!currentSession?.user || !currentSession.accessToken) {
-      redirect(`/login?callbackUrl=${encodeURIComponent(`/jobs/${slug}`)}`);
-    }
-    if (currentSession.user.role !== 'CANDIDATE') {
-      redirect('/dashboard');
-    }
+    if (!currentSession?.user || !currentSession.accessToken) redirect(`/login?callbackUrl=${encodeURIComponent(`/jobs/${slug}`)}`);
+    if (currentSession.user.role !== 'CANDIDATE') redirect('/dashboard');
     const cvId = String(formData.get('cvId') ?? '').trim();
     const jobId = String(formData.get('jobId') ?? '').trim();
-    if (!cvId || !jobId) {
-      redirect(`/jobs/${slug}?error=missing`);
-    }
+    if (!cvId || !jobId) redirect(`/jobs/${slug}?error=missing`);
     let redirectTarget = `/jobs/${slug}?applied=1`;
     try {
       await createApplication(currentSession.accessToken, { cvId, jobId });
     } catch (error) {
-      if (error instanceof ApiError && error.status === 409) {
-        redirectTarget = `/jobs/${slug}?error=duplicate`;
-      } else {
-        redirectTarget = `/jobs/${slug}?error=failed`;
-      }
+      redirectTarget = error instanceof ApiError && error.status === 409
+        ? `/jobs/${slug}?error=duplicate`
+        : `/jobs/${slug}?error=failed`;
     }
     redirect(redirectTarget);
   }
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col px-6 py-12">
-      <header className="mb-8 flex items-center justify-between">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.15em] text-zinc-500">Job</p>
-          <h1 className="mt-1 text-3xl font-semibold text-zinc-900">{job.title}</h1>
-          <p className="mt-2 text-sm text-zinc-500">{job.employmentType}</p>
-        </div>
-        <Link href="/jobs" className="text-sm font-medium text-zinc-700 underline">
-          Back jobs
-        </Link>
-      </header>
+      <PageHeader
+        overline="Job"
+        title={job.title}
+        description={job.employmentType}
+        actions={
+          <Button asChild variant="outline" size="sm">
+            <Link href="/jobs">← Back to jobs</Link>
+          </Button>
+        }
+      />
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
         <p className="whitespace-pre-wrap text-zinc-800">{job.description}</p>
@@ -90,22 +78,14 @@ export default async function JobDetailPage({ params, searchParams }: PageProps)
         )}
 
         {query.applied === '1' && (
-          <p
-            role="status"
-            aria-live="polite"
-            className="mt-4 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-700"
-          >
+          <Alert variant="success" className="mt-4" role="status" aria-live="polite">
             Application submitted successfully.
-          </p>
+          </Alert>
         )}
         {errorMessage && (
-          <p
-            role="alert"
-            aria-live="assertive"
-            className="mt-4 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700"
-          >
+          <Alert className="mt-4" role="alert" aria-live="assertive">
             {errorMessage}
-          </p>
+          </Alert>
         )}
 
         {canApply && cvs && cvs.items.length > 0 ? (
@@ -113,21 +93,17 @@ export default async function JobDetailPage({ params, searchParams }: PageProps)
         ) : null}
         {canApply && cvs && cvs.items.length === 0 ? (
           <p className="mt-4 text-sm text-zinc-600">
-            Please upload a CV first in your dashboard before applying.
+            Please <Link href="/dashboard/candidate/cvs" className="font-medium underline">upload a CV</Link> first before applying.
           </p>
         ) : null}
         {!session?.user && (
           <p className="mt-4 text-sm text-zinc-600">
-            <Link href={`/login?callbackUrl=${encodeURIComponent(`/jobs/${slug}`)}`} className="underline">
-              Sign in
-            </Link>{' '}
+            <Link href={`/login?callbackUrl=${encodeURIComponent(`/jobs/${slug}`)}`} className="font-medium underline">Sign in</Link>{' '}
             as candidate to apply.
           </p>
         )}
         {session?.user && session.user.role !== 'CANDIDATE' && (
-          <p className="mt-4 text-sm text-zinc-600">
-            Only candidate accounts can apply for jobs.
-          </p>
+          <p className="mt-4 text-sm text-zinc-600">Only candidate accounts can apply for jobs.</p>
         )}
       </section>
     </main>

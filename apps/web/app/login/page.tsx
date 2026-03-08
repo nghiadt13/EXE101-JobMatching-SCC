@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import { LoginForm } from '@/components/auth/login-form';
@@ -19,6 +20,11 @@ export default async function LoginPage() {
         <div className="mt-6">
           <LoginForm />
         </div>
+        <p className="mt-4 text-center text-sm text-zinc-500">
+          <Link href="/jobs" className="font-medium text-zinc-700 hover:underline">
+            Browse open positions →
+          </Link>
+        </p>
       </div>
     </main>
   );

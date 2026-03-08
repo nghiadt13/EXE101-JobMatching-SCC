@@ -12,8 +12,31 @@
   --font-mono: var(--font-geist-mono);
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), sans-serif;
+}
+
+::selection {
+  background-color: #dbeafe;
+  color: #1e3a5f;
+}
+
+/* Native dialog styling */
+dialog::backdrop {
+  background: rgb(0 0 0 / 0.4);
+}
+
+dialog {
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+dialog[open] {
+  opacity: 1;
 }

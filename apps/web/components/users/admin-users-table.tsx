@@ -1,5 +1,8 @@
 import { UserRole } from '@/lib/api-client';
 import { AdminUser } from '@/lib/users-client';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { ConfirmForm } from '@/components/ui/confirm-form';
 
 type AdminUsersTableProps = {
   users: AdminUser[];
@@ -8,12 +11,13 @@ type AdminUsersTableProps = {
   deleteAction: (formData: FormData) => Promise<void>;
 };
 
-export function AdminUsersTable({
-  users,
-  currentUserId,
-  updateAction,
-  deleteAction,
-}: AdminUsersTableProps) {
+const roleVariant: Record<string, 'primary' | 'success' | 'info'> = {
+  ADMIN: 'primary',
+  RECRUITER: 'info',
+  CANDIDATE: 'success',
+};
+
+export function AdminUsersTable({ users, currentUserId, updateAction, deleteAction }: AdminUsersTableProps) {
   return (
     <div className="overflow-x-auto rounded-2xl border border-zinc-200 bg-white shadow-sm">
       <table className="min-w-full text-sm">
@@ -26,52 +30,51 @@ export function AdminUsersTable({
         </thead>
         <tbody>
           {users.map((user) => (
-            <tr key={user.id} className="border-t border-zinc-200 align-top">
+            <tr key={user.id} className="border-t border-zinc-200 align-top transition-colors hover:bg-zinc-50/50">
               <td className="px-4 py-3">
                 <p className="font-medium text-zinc-900">{user.email}</p>
                 <p className="text-zinc-500">{user.name}</p>
+                <Badge variant={roleVariant[user.role] ?? 'default'} className="mt-1">{user.role}</Badge>
               </td>
               <td className="px-4 py-3">
-                <form action={updateAction} className="flex items-center gap-2">
+                <form action={updateAction} className="flex flex-wrap items-center gap-2">
                   <input type="hidden" name="userId" value={user.id} />
                   <input
                     type="text"
                     name="name"
                     defaultValue={user.name}
-                    className="h-9 rounded-lg border border-zinc-300 px-2"
+                    className="h-9 rounded-lg border border-zinc-300 px-2 text-sm focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-2"
                     minLength={2}
                     required
                   />
                   <select
                     name="role"
                     defaultValue={user.role}
-                    className="h-9 rounded-lg border border-zinc-300 px-2"
+                    className="h-9 rounded-lg border border-zinc-300 px-2 text-sm focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-2"
                   >
                     {(['ADMIN', 'RECRUITER', 'CANDIDATE'] as UserRole[]).map((role) => (
-                      <option key={role} value={role}>
-                        {role}
-                      </option>
+                      <option key={role} value={role}>{role}</option>
                     ))}
                   </select>
-                  <button
-                    type="submit"
-                    className="h-9 rounded-lg border border-zinc-300 px-3 font-medium text-zinc-800 hover:bg-zinc-100"
-                  >
-                    Save
-                  </button>
+                  <Button type="submit" variant="outline" size="sm">Save</Button>
                 </form>
               </td>
               <td className="px-4 py-3">
-                <form action={deleteAction}>
-                  <input type="hidden" name="userId" value={user.id} />
-                  <button
-                    type="submit"
-                    disabled={user.id === currentUserId}
-                    className="h-9 rounded-lg border border-red-200 px-3 font-medium text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
+                {user.id === currentUserId ? (
+                  <Button type="button" variant="danger" size="sm" disabled>
                     Delete
-                  </button>
-                </form>
+                  </Button>
+                ) : (
+                  <ConfirmForm
+                    title="Delete this user?"
+                    description="This action will soft-delete the account. Make sure this is not the wrong user before continuing."
+                    confirmLabel="Delete user"
+                    action={deleteAction}
+                    triggerLabel="Delete"
+                    triggerVariant="danger"
+                    hiddenInputs={{ userId: user.id }}
+                  />
+                )}
               </td>
             </tr>
           ))}

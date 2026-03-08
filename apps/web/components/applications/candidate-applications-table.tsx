@@ -1,16 +1,31 @@
 import { ApplicationItem } from '@/lib/applications-client';
+import { Badge } from '@/components/ui/badge';
+import { EmptyState } from '@/components/ui/empty-state';
 
 type CandidateApplicationsTableProps = {
   items: ApplicationItem[];
 };
 
+const statusVariant: Record<string, 'default' | 'success' | 'warning' | 'info' | 'danger'> = {
+  APPLIED: 'default',
+  REVIEWING: 'info',
+  INTERVIEW: 'success',
+  OFFER: 'success',
+  REJECTED: 'danger',
+};
+
 export function CandidateApplicationsTable({ items }: CandidateApplicationsTableProps) {
   if (!items.length) {
-    return <p className="text-sm text-zinc-500">You have not applied to any job yet.</p>;
+    return (
+      <EmptyState
+        title="No applications yet"
+        description="You have not applied to any job yet. Browse open positions to get started."
+      />
+    );
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+    <div className="overflow-x-auto rounded-2xl border border-zinc-200 bg-white shadow-sm">
       <table className="w-full text-left text-sm">
         <thead className="bg-zinc-50 text-zinc-600">
           <tr>
@@ -22,12 +37,14 @@ export function CandidateApplicationsTable({ items }: CandidateApplicationsTable
         </thead>
         <tbody>
           {items.map((item) => (
-            <tr key={item.id} className="border-t border-zinc-100">
+            <tr key={item.id} className="border-t border-zinc-100 transition-colors hover:bg-zinc-50/50">
               <td className="px-4 py-3">
                 <p className="font-medium text-zinc-900">{item.job.title}</p>
                 <p className="text-xs text-zinc-500">{item.cv.fileName}</p>
               </td>
-              <td className="px-4 py-3 text-zinc-700">{item.status}</td>
+              <td className="px-4 py-3">
+                <Badge variant={statusVariant[item.status] ?? 'default'}>{item.status}</Badge>
+              </td>
               <td className="px-4 py-3 text-zinc-700">
                 <p>{Math.round(item.matchScore)}%</p>
                 {item.matchingSnapshot ? (
@@ -38,12 +55,7 @@ export function CandidateApplicationsTable({ items }: CandidateApplicationsTable
                 {item.matchingSnapshot?.warnings.length ? (
                   <div className="mt-2 flex flex-wrap gap-1">
                     {item.matchingSnapshot.warnings.slice(0, 2).map((warning) => (
-                      <span
-                        key={`${item.id}-${warning}`}
-                        className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] text-amber-800"
-                      >
-                        {warning}
-                      </span>
+                      <Badge key={`${item.id}-${warning}`} variant="warning">{warning}</Badge>
                     ))}
                   </div>
                 ) : null}

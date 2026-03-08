@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import { getRoleDashboardPath } from '@/lib/auth-redirect';
+import { Button } from '@/components/ui/button';
 
 export default async function Home() {
   const session = await auth();
@@ -16,24 +17,24 @@ export default async function Home() {
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-zinc-500">
             HR Recruitment Platform
           </p>
-          <h1 className="text-3xl font-semibold text-zinc-900">Authentication Ready</h1>
+          <h1 className="text-3xl font-semibold text-zinc-900">
+            Find talent. Land roles.
+          </h1>
           <p className="text-zinc-600">
-            Continue with email/password credentials to access role-based dashboard.
+            AI-powered matching between candidates and opportunities. Sign in to access your
+            role-based dashboard.
           </p>
         </div>
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-          <Link
-            href="/login"
-            className="inline-flex h-11 items-center justify-center rounded-lg bg-zinc-900 px-5 text-sm font-medium text-white transition hover:bg-zinc-700"
-          >
-            Sign in
-          </Link>
-          <Link
-            href="/register"
-            className="inline-flex h-11 items-center justify-center rounded-lg border border-zinc-300 px-5 text-sm font-medium text-zinc-800 transition hover:bg-zinc-100"
-          >
-            Create account
-          </Link>
+          <Button asChild size="lg">
+            <Link href="/login">Sign in</Link>
+          </Button>
+          <Button asChild variant="outline" size="lg">
+            <Link href="/register">Create account</Link>
+          </Button>
+          <Button asChild variant="ghost" size="lg">
+            <Link href="/jobs">Browse jobs</Link>
+          </Button>
         </div>
       </div>
     </main>

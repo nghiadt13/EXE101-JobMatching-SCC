@@ -1,15 +1,13 @@
-import Link from 'next/link';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
+import { DashboardShell } from '@/components/auth/dashboard-shell';
 import { JdUploadForm } from '@/components/jobs/jd-upload-form';
 import { RecruiterJobForm } from '@/components/jobs/recruiter-job-form';
 import { RecruiterJobsTable } from '@/components/jobs/recruiter-jobs-table';
+import { Alert } from '@/components/ui/alert';
 import { ApiError } from '@/lib/api-client';
-import {
-  buildErrorRedirectPath,
-  resolveRouteError,
-} from '@/lib/errors/backend-error-state';
+import { buildErrorRedirectPath, resolveRouteError } from '@/lib/errors/backend-error-state';
 import { composeJobDescription, parseMultilineList } from '@/lib/job-description-format';
 import { closeJob, createJob, deleteJob, getJobs, publishJob, uploadJobFile } from '@/lib/jobs-client';
 
@@ -18,10 +16,7 @@ type PageProps = {
 };
 
 function parseSkills(input: FormDataEntryValue | null): string[] {
-  return String(input ?? '')
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean);
+  return String(input ?? '').split(',').map((item) => item.trim()).filter(Boolean);
 }
 
 function parseOptionalNumber(input: FormDataEntryValue | null): number | undefined {
@@ -34,12 +29,8 @@ function parseOptionalNumber(input: FormDataEntryValue | null): number | undefin
 export default async function RecruiterJobsPage({ searchParams }: PageProps) {
   const query = await searchParams;
   const session = await auth();
-  if (!session?.user || !session.accessToken) {
-    redirect('/login');
-  }
-  if (session.user.role !== 'RECRUITER') {
-    redirect('/dashboard');
-  }
+  if (!session?.user || !session.accessToken) redirect('/login');
+  if (session.user.role !== 'RECRUITER') redirect('/dashboard');
 
   async function createAction(formData: FormData) {
     'use server';
@@ -48,19 +39,13 @@ export default async function RecruiterJobsPage({ searchParams }: PageProps) {
     if (currentSession.user.role !== 'RECRUITER') redirect('/dashboard');
 
     const summary = String(formData.get('summary') ?? '').trim();
-    const requirements = parseMultilineList(
-      String(formData.get('requirements') ?? ''),
-    );
+    const requirements = parseMultilineList(String(formData.get('requirements') ?? ''));
     const benefits = parseMultilineList(String(formData.get('benefits') ?? ''));
 
     try {
       await createJob(currentSession.accessToken, {
         title: String(formData.get('title') ?? '').trim(),
-        description: composeJobDescription({
-          summary,
-          requirements,
-          benefits,
-        }),
+        description: composeJobDescription({ summary, requirements, benefits }),
         skills: parseSkills(formData.get('skills')),
         employmentType: String(formData.get('employmentType') ?? '').trim(),
         salaryMin: parseOptionalNumber(formData.get('salaryMin')),
@@ -68,9 +53,7 @@ export default async function RecruiterJobsPage({ searchParams }: PageProps) {
       });
     } catch (error) {
       if (error instanceof ApiError) {
-        if (error.status === 401) {
-          redirect('/login');
-        }
+        if (error.status === 401) redirect('/login');
         redirect(buildErrorRedirectPath('/dashboard/recruiter/jobs', error, 'create-failed'));
       }
       redirect('/dashboard/recruiter/jobs?error=create-failed');
@@ -85,20 +68,16 @@ export default async function RecruiterJobsPage({ searchParams }: PageProps) {
     if (currentSession.user.role !== 'RECRUITER') redirect('/dashboard');
 
     let createdId: string;
-
     try {
       const created = await uploadJobFile(currentSession.accessToken, formData);
       createdId = created.id;
     } catch (error) {
       if (error instanceof ApiError) {
-        if (error.status === 401) {
-          redirect('/login');
-        }
+        if (error.status === 401) redirect('/login');
         redirect(buildErrorRedirectPath('/dashboard/recruiter/jobs', error, 'upload-failed'));
       }
       redirect('/dashboard/recruiter/jobs?error=upload-failed');
     }
-
     revalidatePath('/dashboard/recruiter/jobs');
     redirect(`/dashboard/recruiter/jobs/${createdId}`);
   }
@@ -135,11 +114,10 @@ export default async function RecruiterJobsPage({ searchParams }: PageProps) {
 
   const jobs = await getJobs({ page: 1, limit: 30 }, session.accessToken);
   const draftCount = jobs.items.filter((job) => job.status === 'DRAFT').length;
-  const reviewCount = jobs.items.filter(
-    (job) => job.parseStatus !== 'parsed_ok',
-  ).length;
+  const reviewCount = jobs.items.filter((job) => job.parseStatus !== 'parsed_ok').length;
   const visibleCount = jobs.items.length;
   const totalCount = jobs.pagination.totalItems;
+
   const routeError = resolveRouteError(query, {
     'create-failed': 'Job creation failed. Please try again.',
     'CV_FILE_TOO_LARGE': 'JD file is too large. Maximum size is 5MB.',
@@ -152,44 +130,36 @@ export default async function RecruiterJobsPage({ searchParams }: PageProps) {
   });
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-6 py-12">
-      <header className="mb-6 flex items-center justify-between">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.15em] text-zinc-500">Recruiter</p>
-          <h1 className="mt-1 text-2xl font-semibold text-zinc-900">Job Management</h1>
-          <p className="mt-2 max-w-2xl text-sm text-zinc-600">
-            Create jobs manually or upload a JD file, then review draft quality and publish when the role is ready.
-          </p>
-        </div>
-        <Link href="/dashboard/recruiter" className="text-sm font-medium text-zinc-700 underline">
-          Back dashboard
-        </Link>
-      </header>
-
+    <DashboardShell
+      title="Job Management"
+      description="Create jobs manually or upload a JD file, then review draft quality and publish when ready."
+      email={session.user.email}
+      role="RECRUITER"
+      currentPath="/dashboard/recruiter/jobs"
+      breadcrumbs={[
+        { label: 'Dashboard', href: '/dashboard/recruiter' },
+        { label: 'Jobs' },
+      ]}
+    >
       {routeError ? (
-        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          <p>{routeError.message}</p>
-          {routeError.requestId ? (
-            <p className="mt-1 text-xs font-medium text-red-800/80">Request ID: {routeError.requestId}</p>
-          ) : null}
-        </div>
+        <Alert className="mb-6" requestId={routeError.requestId}>{routeError.message}</Alert>
       ) : null}
 
       <section className="mb-6 grid gap-4 md:grid-cols-3">
         <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500">Total jobs</p>
           <p className="mt-3 text-3xl font-semibold text-zinc-950">{totalCount}</p>
-          <p className="mt-2 text-sm text-zinc-600">All drafts, published jobs, and closed roles in your workspace.</p>
+          <p className="mt-2 text-sm text-zinc-600">All drafts, published, and closed roles.</p>
         </div>
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-amber-700">Visible drafts</p>
           <p className="mt-3 text-3xl font-semibold text-amber-950">{draftCount}</p>
-          <p className="mt-2 text-sm text-amber-900/80">Draft jobs in the current list view that still need review or publishing.</p>
+          <p className="mt-2 text-sm text-amber-900/80">Drafts needing review or publishing.</p>
         </div>
         <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-blue-700">Visible attention</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-blue-700">Needs attention</p>
           <p className="mt-3 text-3xl font-semibold text-blue-950">{reviewCount}</p>
-          <p className="mt-2 text-sm text-blue-900/80">Jobs in the current list view where AI parsing still needs manual verification.</p>
+          <p className="mt-2 text-sm text-blue-900/80">Jobs needing manual parse verification.</p>
         </div>
       </section>
 
@@ -207,6 +177,6 @@ export default async function RecruiterJobsPage({ searchParams }: PageProps) {
           <RecruiterJobForm submitLabel="Create job" action={createAction} />
         </div>
       </div>
-    </main>
+    </DashboardShell>
   );
 }
