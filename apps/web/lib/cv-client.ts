@@ -37,7 +37,7 @@ export type CvItem = {
   fileName: string;
   fileSize: number;
   mimeType: string;
-  parseStatus: 'parsed_ok' | 'needs_review';
+  parseStatus: 'parsed_ok' | 'needs_review' | 'pending_apply';
   parseTelemetry: {
     provider: 'gemini' | 'openai';
     model: string;

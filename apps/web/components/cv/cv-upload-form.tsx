@@ -28,7 +28,12 @@ export function CvUploadForm({ uploadAction }: CvUploadFormProps) {
           Upload CV
         </p>
         <p className="mt-2 text-sm text-zinc-600">Only PDF or DOCX. Maximum 5MB.</p>
+        <p className="mt-1 text-xs text-amber-700 flex items-center gap-1">
+          <span className="h-1.5 w-1.5 rounded-full bg-amber-500 inline-block"></span>
+          Skills will be deeply analyzed when you apply to a specific job.
+        </p>
       </div>
+
 
       <input
         name="file"

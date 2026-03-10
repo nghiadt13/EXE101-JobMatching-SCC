@@ -83,11 +83,13 @@ export function CvList({
   const parseStatusLabel: Record<CvItem['parseStatus'], string> = {
     parsed_ok: 'Parsed OK',
     needs_review: 'Needs Review',
+    pending_apply: 'Pending Apply',
   };
 
   const parseStatusClassName: Record<CvItem['parseStatus'], string> = {
     parsed_ok: 'bg-emerald-100 text-emerald-700',
     needs_review: 'bg-zinc-200 text-zinc-700',
+    pending_apply: 'bg-amber-100 text-amber-700',
   };
 
   if (!items.length) {
@@ -171,11 +173,18 @@ export function CvList({
 
             {/* Skills Section */}
             <div className="mt-4">
-              <ChipsSection
-                title="Skills"
-                categorize={true}
-                items={skills}
-              />
+              {cv.parseStatus === 'pending_apply' && !skills.length ? (
+                <div className="rounded-xl border border-dashed border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                  <span className="font-semibold block mb-1">Pending Analysis</span>
+                  Your CV has been saved successfully. We will deeply analyze your text and identify relevant skills the moment you apply to a specific job.
+                </div>
+              ) : (
+                <ChipsSection
+                  title="Skills"
+                  categorize={true}
+                  items={skills}
+                />
+              )}
             </div>
 
             {/* Details Grid */}

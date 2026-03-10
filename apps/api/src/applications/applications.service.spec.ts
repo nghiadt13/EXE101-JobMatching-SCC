@@ -214,6 +214,8 @@ describe('ApplicationsService', () => {
             candidateId: 'cand-2',
             skills: ['AWS', 'EC2'],
             candidateProfile: null,
+            rawText: 'Cloud engineer with 3 years AWS EC2 experience',
+            filePath: 'cand-2/cv-2.pdf',
             parsedData: {
               summary: 'Cloud engineer',
               normalizedProfile: {
@@ -302,6 +304,30 @@ describe('ApplicationsService', () => {
       new JobRequirementsSchemaService(),
       new CandidateProfileService(),
       new SchemaMatchingEvaluatorService(),
+      {
+        evaluate: jest.fn().mockResolvedValue({
+          finalScorePercent: 88,
+          snapshot: {
+            version: 'matching_snapshot_v2',
+            scoreBreakdown: { skillScore: 86, constraintScore: 100, final: 88 },
+            requirements: [],
+            constraints: [],
+            candidateSummary: {
+              headline: 'Cloud engineer',
+              totalExperienceMonths: 36,
+              relevantExperienceMonths: 36,
+              skills: ['AWS', 'EC2'],
+              location: null,
+            },
+            strengths: ['AWS'],
+            gaps: [],
+            constraintsFailed: [],
+            warnings: [],
+          },
+        }),
+      } as any,
+      { getAbsolutePath: jest.fn() } as any,
+      { extract: jest.fn() } as any,
     );
     const integrationService = new ApplicationsService(
       integrationPrisma as unknown as PrismaService,
@@ -313,7 +339,7 @@ describe('ApplicationsService', () => {
       { cvId: 'cv-2', jobId: 'job-2' },
     );
 
-    expect(result.matchingSnapshot?.version).toBe('schema_v1');
+    expect(result.matchingSnapshot?.version).toBe('matching_snapshot_v2');
     expect(result.matchScore).toBeGreaterThanOrEqual(0);
   });
 });

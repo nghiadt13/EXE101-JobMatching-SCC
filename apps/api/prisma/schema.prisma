@@ -74,6 +74,7 @@ model CV {
   parsedData  Json
   skills      Json
   skillAtoms  Json?
+  rawText     String?   @db.Text
   candidateProfile Json?
   candidateProfileVersion String?
   isPrimary   Boolean   @default(false)

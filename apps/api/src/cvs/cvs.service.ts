@@ -1,10 +1,8 @@
 import {
   BadRequestException,
-  HttpException,
   Injectable,
   NotFoundException,
   PayloadTooLargeException,
-  ServiceUnavailableException,
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
@@ -19,13 +17,10 @@ import { CvView, CvsListResponse } from './cvs.types';
 import { CandidateProfileService } from '../matching/services/candidate-profile.service';
 import { SkillStorageAdapterService } from '../matching/services/skill-storage-adapter.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { AiNormalizationService } from '../normalization/ai-normalization.service';
-import { AiNormalizationError } from '../normalization/normalization.errors';
 import { buildErrorPayload } from '../common/errors/api-error-envelope';
 import { ERROR_CODES } from '../common/errors/error-codes';
 import { AppLogger } from '../common/logging/app-logger.service';
 import {
-  NormalizationResult,
   NormalizedProfile,
   ParseStatus,
 } from '../normalization/normalization.types';
@@ -37,7 +32,6 @@ export class CvsService {
   constructor(
     private readonly logger: AppLogger,
     private readonly prisma: PrismaService,
-    private readonly aiNormalizationService: AiNormalizationService,
     private readonly cvStorageService: CvStorageService,
     private readonly cvTextExtractorService: CvTextExtractorService,
     private readonly candidateProfileService: CandidateProfileService,
@@ -78,10 +72,27 @@ export class CvsService {
       candidateId: candidate.id,
     });
 
-    const normalized = await this.buildNormalizedCvData(file);
+    // Extract raw text (cheap, CPU-only — no LLM call at upload time)
+    let rawText: string;
+    try {
+      rawText = (await this.cvTextExtractorService.extract(file)).slice(
+        0,
+        CV_MAX_TEXT_CHARS,
+      );
+    } catch {
+      throw new UnprocessableEntityException({
+        code: ERROR_CODES.cvParseFailed,
+        message: 'Could not read CV file. Upload a readable PDF or DOCX and try again.',
+        details: { stage: 'text_extraction' },
+      });
+    }
 
     const storedPath = await this.cvStorageService.save(candidate.id, file);
     try {
+      const stubParsedData: Record<string, unknown> = {
+        parseStatus: 'pending_apply',
+        rawTextLength: rawText.length,
+      };
       const created = await this.prisma.cV.create({
         data: {
           candidateId: candidate.id,
@@ -89,12 +100,12 @@ export class CvsService {
           filePath: storedPath,
           fileSize: file.size,
           mimeType: file.mimetype,
-          parsedData: normalized.parsedData as unknown as Prisma.InputJsonValue,
-          skills: normalized.skills as Prisma.InputJsonValue,
-          skillAtoms: normalized.skillAtoms as unknown as Prisma.InputJsonValue,
-          candidateProfile:
-            normalized.candidateProfile as unknown as Prisma.InputJsonValue,
-          candidateProfileVersion: normalized.candidateProfile.version,
+          parsedData: stubParsedData as Prisma.InputJsonValue,
+          skills: [] as Prisma.InputJsonValue,
+          skillAtoms: [] as Prisma.InputJsonValue,
+          rawText,
+          candidateProfile: Prisma.JsonNull,
+          candidateProfileVersion: null,
           isPrimary: activeCount === 0,
         },
         select: this.cvViewSelect,
@@ -104,7 +115,7 @@ export class CvsService {
         candidateId: candidate.id,
         cvId: created.id,
         fileName: file.originalname,
-        parseStatus: this.readParseStatus(created.parsedData),
+        rawTextLength: rawText.length,
       });
       return this.toView(created);
     } catch (error) {
@@ -115,77 +126,17 @@ export class CvsService {
           candidateId: candidate.id,
           fileName: file.originalname,
           storedPath,
-          errorCode: this.readExceptionCode(error),
         },
         error,
       );
-
       await this.cvStorageService.remove(storedPath);
-      this.logger.info('cv_upload_storage_cleanup_completed', {
-        actorId: userId,
-        candidateId: candidate.id,
-        storedPath,
-      });
       throw error;
     }
   }
 
-  private async buildNormalizedCvData(file: Express.Multer.File) {
-    try {
-      const text = (await this.cvTextExtractorService.extract(file)).slice(
-        0,
-        CV_MAX_TEXT_CHARS,
-      );
-      const result = await this.aiNormalizationService.normalizeCv(text);
-      return this.toStoredCvData(result);
-    } catch (error) {
-      if (error instanceof AiNormalizationError) {
-        this.logger.warn('cv_normalization_rejected', {
-          fileName: file.originalname,
-          errorCode: error.code,
-          kind: error.kind,
-          failureCategory: error.details?.category,
-          upstreamStatusCode: error.details?.statusCode ?? undefined,
-          upstreamCode: error.details?.providerCode ?? undefined,
-          retryable: error.details?.retryable,
-          reason: error.details?.reason ?? error.message,
-        });
-        if (error.kind === 'service_unavailable') {
-          throw new ServiceUnavailableException({
-            code: error.code,
-            message:
-              'AI service is unavailable right now. Please try uploading again later.',
-            details: { stage: 'normalization' },
-          });
-        }
+  // buildNormalizedCvData is kept for reference but no longer called during upload.
+  // @deprecated — LLM normalization now happens at apply-time via JdDrivenEvaluationService
 
-        throw new UnprocessableEntityException({
-          code: ERROR_CODES.cvParseFailed,
-          message:
-            'AI parsing failed for this CV. Upload a readable PDF or DOCX and try again.',
-          details: { stage: 'normalization', upstreamCode: error.code },
-        });
-      }
-
-      if (error instanceof HttpException) {
-        this.logger.warn('cv_document_processing_failed', {
-          fileName: file.originalname,
-          errorCode: this.readExceptionCode(error),
-        });
-      }
-
-      this.logger.warn('cv_parse_failed', {
-        fileName: file.originalname,
-        reason: error instanceof Error ? error.message : 'Unknown error',
-      });
-      throw new UnprocessableEntityException({
-        code: ERROR_CODES.cvParseFailed,
-        message:
-          'AI parsing failed for this CV. Upload a readable PDF or DOCX and try again.',
-        details: { stage: 'document_processing' },
-      });
-    }
-  }
 
   async list(userId: string, query: QueryCvsDto): Promise<CvsListResponse> {
     const candidate = await this.getCandidateOrThrow(userId);
@@ -305,15 +256,20 @@ export class CvsService {
       }
     }
 
-    const candidateProfile = this.buildCandidateProfile(
-      mergedParsedData,
-      effectiveSkills,
-    );
+    // Only rebuild candidateProfile if there is existing normalized data.
+    // New CVs (pending_apply) have no normalizedProfile — skip candidateProfile build.
+    const hasNormalizedProfile =
+      Object.keys(this.asRecord(mergedParsedData['normalizedProfile'])).length > 0;
+    const candidateProfile = hasNormalizedProfile
+      ? this.buildCandidateProfile(mergedParsedData, effectiveSkills)
+      : null;
+    const shouldWriteCvDerivedFields =
+      dto.parsedData !== undefined || normalizedSkillsPayload !== null;
 
     const updated = await this.prisma.cV.update({
       where: { id: cvId },
       data: {
-        ...(dto.parsedData !== undefined || normalizedSkillsPayload !== null
+        ...(shouldWriteCvDerivedFields
           ? { parsedData: mergedParsedData as Prisma.InputJsonValue }
           : {}),
         ...(normalizedSkillsPayload
@@ -323,8 +279,17 @@ export class CvsService {
                 normalizedSkillsPayload.skillAtoms as unknown as Prisma.InputJsonValue,
             }
           : {}),
-        candidateProfile: candidateProfile as unknown as Prisma.InputJsonValue,
-        candidateProfileVersion: candidateProfile.version,
+        ...(candidateProfile !== null
+          ? {
+              candidateProfile: candidateProfile as unknown as Prisma.InputJsonValue,
+              candidateProfileVersion: candidateProfile.version,
+            }
+          : shouldWriteCvDerivedFields
+            ? {
+                candidateProfile: Prisma.JsonNull,
+                candidateProfileVersion: null,
+              }
+          : {}),
       },
       select: this.cvViewSelect,
     });
@@ -442,25 +407,22 @@ export class CvsService {
     return cv;
   }
 
-  private readExceptionCode(error: unknown): string | undefined {
-    if (!(error instanceof HttpException)) {
-      return undefined;
-    }
 
-    const response = error.getResponse();
-    if (response && typeof response === 'object') {
-      const code = (response as Record<string, unknown>)['code'];
-      return typeof code === 'string' ? code : undefined;
-    }
-
-    return undefined;
-  }
 
   private readParseStatus(value: Prisma.JsonValue): ParseStatus {
     const record = this.asRecord(value);
+    const parseStatus = record['parseStatus'];
+    if (
+      parseStatus === 'parsed_ok' ||
+      parseStatus === 'needs_review' ||
+      parseStatus === 'pending_apply'
+    ) {
+      return parseStatus;
+    }
+    // Legacy: check nested normalizedProfile.parseStatus
     const profile = this.asRecord(record['normalizedProfile']);
-    const parseStatus = record['parseStatus'] ?? profile['parseStatus'];
-    return parseStatus === 'parsed_ok' ? 'parsed_ok' : 'needs_review';
+    const nested = profile['parseStatus'];
+    return nested === 'parsed_ok' ? 'parsed_ok' : 'needs_review';
   }
 
   private toView(item: {
@@ -486,13 +448,24 @@ export class CvsService {
     const parseTelemetry = this.asRecord(parsedData.parseTelemetry);
     const parseStatus = this.normalizeParseStatus(parsedData.parseStatus);
     const skills = Array.isArray(item.skills) ? (item.skills as string[]) : [];
+    const isPendingApply = parseStatus === 'pending_apply';
     const resolvedCandidateProfile =
-      Object.keys(candidateProfile).length > 0
+      isPendingApply
+        ? null
+        : Object.keys(candidateProfile).length > 0
         ? candidateProfile
         : this.buildCandidateProfile(
             parsedData as unknown as Record<string, unknown>,
             skills,
           );
+    const resolvedCandidateProfileVersion =
+      resolvedCandidateProfile &&
+      typeof resolvedCandidateProfile === 'object' &&
+      'version' in resolvedCandidateProfile &&
+      typeof (resolvedCandidateProfile as { version?: unknown }).version ===
+        'string'
+        ? ((resolvedCandidateProfile as { version: string }).version as string)
+        : null;
 
     return {
       id: item.id,
@@ -512,7 +485,7 @@ export class CvsService {
           : null,
       candidateProfileVersion:
         item.candidateProfileVersion ??
-        (resolvedCandidateProfile as { version?: string }).version ??
+        resolvedCandidateProfileVersion ??
         null,
       parseTelemetry:
         Object.keys(parseTelemetry).length > 0
@@ -538,44 +511,12 @@ export class CvsService {
       createdAt: true,
       updatedAt: true,
       filePath: true,
+      // rawText intentionally excluded — too large for list/detail responses.
+      // MatchingService reads rawText via a separate targeted query.
     } satisfies Prisma.CVSelect;
   }
 
-  private toStoredCvData(result: NormalizationResult): {
-    parsedData: Record<string, unknown>;
-    skills: string[];
-    skillAtoms: unknown[];
-    candidateProfile: ReturnType<CandidateProfileService['create']>;
-  } {
-    const storedSkills = this.skillStorageAdapter.toStoredSkills(
-      result.profile.skills,
-      'cv_parsed',
-    );
-    const profile = {
-      ...result.profile,
-      skills: storedSkills.skills,
-    };
-    const parsedData = {
-      skills: storedSkills.skills,
-      summary: profile.summary,
-      experience: profile.experience,
-      education: profile.education,
-      contact: {
-        languages: profile.languages,
-        location: profile.location,
-      },
-      schemaVersion: result.schemaVersion,
-      parseStatus: result.status,
-      parseTelemetry: result.telemetry,
-      normalizedProfile: profile,
-    };
-    return {
-      parsedData,
-      skills: storedSkills.skills,
-      skillAtoms: storedSkills.skillAtoms,
-      candidateProfile: this.buildCandidateProfile(parsedData, storedSkills.skills),
-    };
-  }
+
 
   private buildCandidateProfile(
     parsedData: Record<string, unknown>,
@@ -600,7 +541,9 @@ export class CvsService {
   }
 
   private normalizeParseStatus(value: unknown): ParseStatus {
-    return value === 'parsed_ok' || value === 'needs_review'
+    return value === 'parsed_ok' ||
+      value === 'needs_review' ||
+      value === 'pending_apply'
       ? value
       : 'needs_review';
   }

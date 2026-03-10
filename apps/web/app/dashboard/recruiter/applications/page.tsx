@@ -3,7 +3,30 @@ import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import { DashboardShell } from '@/components/auth/dashboard-shell';
 import { RecruiterApplicationsTable } from '@/components/applications/recruiter-applications-table';
-import { getApplications, updateApplicationStatus } from '@/lib/applications-client';
+import {
+  ApplicationStatus,
+  getApplications,
+  updateApplicationStatus,
+} from '@/lib/applications-client';
+
+const RECRUITER_TRANSITIONS: Record<ApplicationStatus, ApplicationStatus[]> = {
+  APPLIED: ['REVIEWING', 'REJECTED'],
+  REVIEWING: ['INTERVIEW', 'REJECTED'],
+  INTERVIEW: ['OFFER', 'REJECTED'],
+  OFFER: ['REJECTED'],
+  REJECTED: [],
+  WITHDRAWN: [],
+};
+
+function isRecruiterStatus(value: string): value is Exclude<ApplicationStatus, 'WITHDRAWN'> {
+  return (
+    value === 'APPLIED' ||
+    value === 'REVIEWING' ||
+    value === 'INTERVIEW' ||
+    value === 'OFFER' ||
+    value === 'REJECTED'
+  );
+}
 
 export default async function RecruiterApplicationsPage() {
   const session = await auth();
@@ -17,10 +40,14 @@ export default async function RecruiterApplicationsPage() {
     if (currentSession.user.role !== 'RECRUITER') redirect('/dashboard');
     const applicationId = String(formData.get('applicationId') ?? '').trim();
     const status = String(formData.get('status') ?? '').trim();
+    const currentStatus = String(formData.get('currentStatus') ?? '').trim();
     const notes = String(formData.get('notes') ?? '').trim();
-    if (!applicationId || !status) return;
+    if (!applicationId || !status || !isRecruiterStatus(status)) return;
+    if (!isRecruiterStatus(currentStatus)) return;
+    const allowed = RECRUITER_TRANSITIONS[currentStatus] ?? [];
+    if (status !== currentStatus && !allowed.includes(status)) return;
     await updateApplicationStatus(currentSession.accessToken, applicationId, {
-      status: status as 'APPLIED' | 'REVIEWING' | 'INTERVIEW' | 'OFFER' | 'REJECTED',
+      status,
       ...(notes ? { notes } : {}),
     });
     revalidatePath('/dashboard/recruiter/applications');

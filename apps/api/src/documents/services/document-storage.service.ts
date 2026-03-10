@@ -43,6 +43,11 @@ export class DocumentStorageService {
     await rm(absolutePath, { force: true });
   }
 
+  getAbsolutePath(scope: DocumentScope, relativePath: string): string {
+    return this.toSafeAbsolutePath(this.getUploadRoot(scope), relativePath);
+  }
+
+
   private getUploadRoot(scope: DocumentScope): string {
     if (scope === 'cvs') {
       return resolve(

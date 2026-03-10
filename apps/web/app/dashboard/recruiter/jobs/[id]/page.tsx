@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { ApiError } from '@/lib/api-client';
 import { buildErrorRedirectPath, resolveRouteError } from '@/lib/errors/backend-error-state';
 import { composeJobDescription, getJobFormInitialValues, parseMultilineList } from '@/lib/job-description-format';
-import { getJobDetail, updateJob } from '@/lib/jobs-client';
+import { getJobDetail, updateJob, type RequirementsSchema } from '@/lib/jobs-client';
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -30,6 +30,39 @@ function getParseMessage(parseStatus: string, inputMode: 'manual' | 'file_upload
   if (inputMode === 'manual') return 'This job was normalized from the current form fields. Review before publishing.';
   if (parseStatus === 'parsed_ok') return 'The uploaded JD was parsed successfully. Review the draft fields before publishing.';
   return 'This draft needs manual review before publish. Verify fields carefully.';
+}
+
+function splitRequirementGroups(schema: RequirementsSchema | null) {
+  if (!schema) {
+    return {
+      mustHaves: [] as Array<{ id: string; label: string }>,
+      niceToHaves: [] as Array<{ id: string; label: string }>,
+      locationPreference: null as RequirementsSchema['locationPreference'],
+    };
+  }
+
+  if (schema.version === 'requirements_schema_v1') {
+    return {
+      mustHaves: schema.mustHaves,
+      niceToHaves: schema.niceToHaves,
+      locationPreference: schema.locationPreference,
+    };
+  }
+
+  const mustHaves = schema.requirements.filter(
+    (item) => item.importance === 'critical' || item.importance === 'high',
+  );
+  const niceToHaves = schema.requirements.filter(
+    (item) =>
+      item.importance === 'medium' ||
+      item.importance === 'low' ||
+      item.importance === 'very_low',
+  );
+  return {
+    mustHaves,
+    niceToHaves,
+    locationPreference: schema.locationPreference,
+  };
 }
 
 export default async function RecruiterJobDetailPage({ params, searchParams }: PageProps) {
@@ -78,6 +111,7 @@ export default async function RecruiterJobDetailPage({ params, searchParams }: P
   });
 
   const parseBadgeVariant = job.parseStatus === 'parsed_ok' ? 'success' as const : 'warning' as const;
+  const requirementGroups = splitRequirementGroups(job.requirementsSchema);
 
   return (
     <DashboardShell
@@ -141,7 +175,7 @@ export default async function RecruiterJobDetailPage({ params, searchParams }: P
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">Must Have</p>
               <ul className="mt-2 space-y-1 text-sm text-zinc-700">
-                {job.requirementsSchema.mustHaves.slice(0, 8).map((item) => (
+                {requirementGroups.mustHaves.slice(0, 8).map((item) => (
                   <li key={item.id}>• {item.label}</li>
                 ))}
               </ul>
@@ -149,16 +183,16 @@ export default async function RecruiterJobDetailPage({ params, searchParams }: P
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">Nice To Have</p>
               <ul className="mt-2 space-y-1 text-sm text-zinc-700">
-                {job.requirementsSchema.niceToHaves.slice(0, 8).map((item) => (
+                {requirementGroups.niceToHaves.slice(0, 8).map((item) => (
                   <li key={item.id}>• {item.label}</li>
                 ))}
               </ul>
-              {job.requirementsSchema.locationPreference ? (
+              {requirementGroups.locationPreference ? (
                 <p className="mt-3 text-xs text-zinc-500">
                   Location: {[
-                    job.requirementsSchema.locationPreference.city,
-                    job.requirementsSchema.locationPreference.country,
-                    job.requirementsSchema.locationPreference.remote ? 'Remote' : '',
+                    requirementGroups.locationPreference.city,
+                    requirementGroups.locationPreference.country,
+                    requirementGroups.locationPreference.remote ? 'Remote' : '',
                   ].filter(Boolean).join(' · ')}
                 </p>
               ) : null}

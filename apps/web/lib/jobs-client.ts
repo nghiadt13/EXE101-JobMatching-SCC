@@ -4,7 +4,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/a
 
 export type JobStatus = 'DRAFT' | 'PUBLISHED' | 'CLOSED' | 'ARCHIVED';
 
-export type RequirementItem = {
+export type RequirementItemV1 = {
   id: string;
   label: string;
   category: 'skill' | 'experience' | 'education' | 'language' | 'location' | 'certification' | 'general';
@@ -13,12 +13,28 @@ export type RequirementItem = {
   minimumMonths: number | null;
 };
 
-export type RequirementsSchema = {
+export type RequirementItemV2 = {
+  id: string;
+  label: string;
+  category: 'skill' | 'experience' | 'education' | 'language' | 'location' | 'certification' | 'general';
+  importance: 'critical' | 'high' | 'medium' | 'low' | 'very_low';
+  keywords: string[];
+  minimumMonths: number | null;
+};
+
+export type ConstraintItem = {
+  id: string;
+  label: string;
+  type: 'education' | 'certification' | 'experience_years' | 'language' | 'location' | 'other';
+  required: boolean;
+};
+
+export type RequirementsSchemaV1 = {
   version: 'requirements_schema_v1';
   roleTitle: string;
   summary: string;
-  mustHaves: RequirementItem[];
-  niceToHaves: RequirementItem[];
+  mustHaves: RequirementItemV1[];
+  niceToHaves: RequirementItemV1[];
   locationPreference: {
     city: string;
     country: string;
@@ -26,6 +42,22 @@ export type RequirementsSchema = {
   } | null;
   warnings: string[];
 };
+
+export type RequirementsSchemaV2 = {
+  version: 'requirements_schema_v2';
+  roleTitle: string;
+  summary: string;
+  requirements: RequirementItemV2[];
+  constraints: ConstraintItem[];
+  locationPreference: {
+    city: string;
+    country: string;
+    remote: boolean;
+  } | null;
+  warnings: string[];
+};
+
+export type RequirementsSchema = RequirementsSchemaV1 | RequirementsSchemaV2;
 
 export type JobItem = {
   id: string;

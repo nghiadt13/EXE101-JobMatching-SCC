@@ -34,13 +34,64 @@ export type SchemaMatchingSnapshot = {
   warnings: string[];
 };
 
+export type MatchingSnapshotV2 = {
+  version: 'matching_snapshot_v2';
+  scoreBreakdown: {
+    skillScore: number;
+    constraintScore: number;
+    final: number;
+  };
+  requirements: Array<{
+    requirementId: string;
+    status: 'met' | 'partial' | 'missing' | 'not_applicable';
+    evidence: string[];
+    confidence: 'high' | 'medium' | 'low';
+  }>;
+  constraints: Array<{
+    constraintId: string;
+    met: boolean;
+    evidence: string;
+  }>;
+  candidateSummary: {
+    headline: string;
+    totalExperienceMonths: number;
+    relevantExperienceMonths: number;
+    skills: string[];
+    location: { city: string; country: string } | null;
+  };
+  strengths: string[];
+  gaps: string[];
+  constraintsFailed: string[];
+  warnings: string[];
+};
+
+export function isMatchingSnapshotV2(
+  value: unknown,
+): value is MatchingSnapshotV2 {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return false;
+  }
+  const record = value as Record<string, unknown>;
+  const breakdown = record['scoreBreakdown'];
+  return (
+    record['version'] === 'matching_snapshot_v2' &&
+    !!breakdown &&
+    typeof breakdown === 'object' &&
+    !Array.isArray(breakdown) &&
+    typeof (breakdown as Record<string, unknown>)['skillScore'] === 'number' &&
+    typeof (breakdown as Record<string, unknown>)['constraintScore'] ===
+      'number' &&
+    typeof (breakdown as Record<string, unknown>)['final'] === 'number'
+  );
+}
+
 export type ApplicationItem = {
   id: string;
   jobId: string;
   candidateId: string;
   cvId: string;
   matchScore: number;
-  matchingSnapshot: SchemaMatchingSnapshot | null;
+  matchingSnapshot: SchemaMatchingSnapshot | MatchingSnapshotV2 | null;
   status: ApplicationStatus;
   notes: string | null;
   appliedAt: string;

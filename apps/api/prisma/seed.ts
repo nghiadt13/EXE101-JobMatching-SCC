@@ -72,8 +72,9 @@ async function main() {
         filePath: '/uploads/cvs/anna-backend-cv.pdf',
         fileSize: 900000,
         mimeType: 'application/pdf',
-        parsedData: { summary: 'Backend engineer', skills: ['TypeScript', 'NestJS', 'PostgreSQL'] },
-        skills: ['TypeScript', 'NestJS', 'PostgreSQL'],
+        parsedData: { parseStatus: 'pending_apply' },
+        rawText: 'Anna is a Backend engineer with 5 years of experience using TypeScript, NestJS, and PostgreSQL. She has a bachelors degree in computer science.',
+        skills: [],
         isPrimary: true,
       },
     }),
@@ -84,8 +85,9 @@ async function main() {
         filePath: '/uploads/cvs/bao-fullstack-cv.pdf',
         fileSize: 930000,
         mimeType: 'application/pdf',
-        parsedData: { summary: 'Fullstack engineer', skills: ['React', 'Next.js', 'TypeScript'] },
-        skills: ['React', 'Next.js', 'TypeScript'],
+        parsedData: { parseStatus: 'pending_apply' },
+        rawText: 'Bao is a Fullstack engineer specialized in React, Next.js, and TypeScript. Has 4 years frontend experience.',
+        skills: [],
         isPrimary: true,
       },
     }),
@@ -178,11 +180,24 @@ async function main() {
         cvId: cvAnna.id,
         matchScore: 84,
         matchingSnapshot: {
-          version: 'schema_v1',
-          scoreBreakdown: { mustHave: 86, niceToHave: 80, experience: 84, education: 80, language: 100, location: 95, final: 84 },
-          requirements: [],
+          version: 'matching_snapshot_v2',
+          scoreBreakdown: { skillScore: 85, constraintScore: 100, final: 87 },
+          requirements: [
+            { requirementId: 'critical-skill-typescript', status: 'met', evidence: ['TypeScript, NestJS'], confidence: 'high' }
+          ],
+          constraints: [
+            { constraintId: 'constraint-experience-year', met: true, evidence: '5 years experience' }
+          ],
+          candidateSummary: {
+            headline: 'Backend engineer',
+            totalExperienceMonths: 60,
+            relevantExperienceMonths: 60,
+            skills: ['TypeScript', 'NestJS', 'PostgreSQL'],
+            location: { city: 'Ho Chi Minh', country: 'Vietnam' }
+          },
           strengths: ['TypeScript and NestJS experience aligns well'],
           gaps: ['Limited explicit cloud deployment evidence'],
+          constraintsFailed: [],
           warnings: [],
         },
         status: ApplicationStatus.REVIEWING,

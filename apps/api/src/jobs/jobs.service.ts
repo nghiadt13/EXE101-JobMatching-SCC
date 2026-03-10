@@ -688,11 +688,11 @@ export class JobsService {
       ?.map((value) => value.trim().toUpperCase())
       .filter(Boolean)
       .slice(0, 10);
-    const postedWithinDays = JOB_POSTED_WITHIN_DAYS_VALUES.includes(
-      query.postedWithinDays ?? 0,
-    )
-      ? query.postedWithinDays
-      : undefined;
+    const postedWithinDays =
+      query.postedWithinDays !== undefined &&
+      JOB_POSTED_WITHIN_DAYS_VALUES.includes(query.postedWithinDays as any)
+        ? query.postedWithinDays
+        : undefined;
 
     return {
       ...(q ? { q } : {}),
@@ -1094,7 +1094,7 @@ export class JobsService {
     const normalizedProfile = this.asRecord(
       normalization['normalizedProfile'],
     );
-    return this.jobRequirementsSchemaService.create({
+    return this.jobRequirementsSchemaService.createV2({
       title: input.title,
       summary:
         typeof normalizedProfile['summary'] === 'string'

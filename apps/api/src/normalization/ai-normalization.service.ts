@@ -11,6 +11,11 @@ import {
   NormalizedProfile,
   ParseStatus,
 } from './normalization.types';
+import {
+  JdContextualEvaluation,
+  RequirementsSchemaV2,
+  JD_CONTEXTUAL_EVAL_V1,
+} from '../matching/types/schema-matching.types';
 
 type Domain = 'cv' | 'job';
 
@@ -31,6 +36,50 @@ export class AiNormalizationService {
 
   async normalizeJob(rawText: string): Promise<NormalizationResult> {
     return this.normalize('job', rawText);
+  }
+
+  async evaluateCvAgainstJd(
+    cvRawText: string,
+    requirementsSchema: RequirementsSchemaV2,
+  ): Promise<JdContextualEvaluation> {
+    const start = Date.now();
+    const deadline = start + this.readNormalizationTimeoutMs();
+    const client = this.resolveClient();
+    const prompt = this.buildJdEvalPrompt(cvRawText, requirementsSchema);
+
+    try {
+      const first = await client.generateText(prompt, this.readRemainingTimeMs(deadline));
+      const directJson = this.extractJson(first);
+      const parsed = directJson ?? (await this.tryRepairJson(client, first, deadline));
+
+      if (!parsed) {
+        throw new AiNormalizationError('parse_failed', 'JD evaluation returned invalid JSON');
+      }
+
+      const evaluation = this.normalizeJdEvaluation(parsed, requirementsSchema);
+      this.logger.info('jd_cv_evaluation_completed', {
+        provider: client.provider,
+        model: client.getModelName(),
+        latencyMs: Date.now() - start,
+        requirementsCount: requirementsSchema.requirements.length,
+        constraintsCount: requirementsSchema.constraints.length,
+      });
+      return evaluation;
+    } catch (error) {
+      const failure =
+        error instanceof AiNormalizationError && error.details
+          ? error.details
+          : classifyLlmError(error);
+      this.logger.warn('jd_cv_evaluation_failed', {
+        provider: client.provider,
+        model: client.getModelName(),
+        latencyMs: Date.now() - start,
+        failureCategory: failure.category,
+        reason: failure.reason,
+      });
+      if (error instanceof AiNormalizationError) throw error;
+      throw new AiNormalizationError('service_unavailable', 'LLM provider request failed', failure);
+    }
   }
 
   private async normalize(
@@ -110,6 +159,154 @@ export class AiNormalizationService {
       'service_unavailable',
       `Unsupported LLM provider: ${provider}`,
     );
+  }
+
+  private buildJdEvalPrompt(cvRawText: string, schema: RequirementsSchemaV2): string {
+    const outputTemplate = {
+      version: JD_CONTEXTUAL_EVAL_V1,
+      requirementEvaluations: schema.requirements.map((r) => ({
+        requirementId: r.id,
+        status: 'met | partial | missing | not_applicable',
+        evidence: ['quote or fact from CV'],
+        confidence: 'high | medium | low',
+      })),
+      constraintEvaluations: schema.constraints.map((c) => ({
+        constraintId: c.id,
+        met: true,
+        evidence: 'brief explanation',
+      })),
+      candidateSummary: {
+        headline: '',
+        totalExperienceMonths: 0,
+        relevantExperienceMonths: 0,
+        skills: [],
+        location: null,
+      },
+      warnings: [],
+    };
+
+    return [
+      'You are an HR evaluation assistant. Given a job\'s requirements and a candidate\'s CV text, evaluate how well the candidate meets each requirement.',
+      '',
+      '## Job Requirements Schema',
+      JSON.stringify(schema, null, 2),
+      '',
+      '## Candidate CV Text',
+      '--- START OF CV ---',
+      cvRawText,
+      '--- END OF CV ---',
+      '',
+      '## Instructions',
+      'For each requirement in requirementEvaluations:',
+      '  - status: "met" (strong evidence), "partial" (some evidence but incomplete), "missing" (no evidence), "not_applicable" (requirement clearly does not apply)',
+      '  - evidence: 1-3 brief quotes or facts from the CV that support your assessment',
+      '  - confidence: "high", "medium", or "low"',
+      '',
+      'For each constraint in constraintEvaluations:',
+      '  - met: true/false',
+      '  - evidence: brief explanation',
+      '',
+      'Extract a brief candidateSummary relevant only to this JD.',
+      '',
+      '## Output Format',
+      'Return STRICT JSON ONLY. No markdown, no preamble. Match this exact structure:',
+      JSON.stringify(outputTemplate, null, 2),
+    ].join('\n');
+  }
+
+  private normalizeJdEvaluation(
+    raw: unknown,
+    schema: RequirementsSchemaV2,
+  ): JdContextualEvaluation {
+    const src = this.asRecord(raw);
+    const requirementIds = new Set(schema.requirements.map((r) => r.id));
+    const constraintIds = new Set(schema.constraints.map((c) => c.id));
+    const validStatuses = new Set(['met', 'partial', 'missing', 'not_applicable']);
+    const validConfidences = new Set(['high', 'medium', 'low']);
+
+    const rawReqEvals = Array.isArray(src['requirementEvaluations'])
+      ? (src['requirementEvaluations'] as unknown[])
+      : [];
+    const requirementEvaluations = rawReqEvals
+      .map((item) => this.asRecord(item))
+      .filter((item) => requirementIds.has(item['requirementId'] as string))
+      .map((item) => ({
+        requirementId: String(item['requirementId'] ?? ''),
+        status: validStatuses.has(String(item['status']))
+          ? (String(item['status']) as 'met' | 'partial' | 'missing' | 'not_applicable')
+          : 'missing' as const,
+        evidence: Array.isArray(item['evidence'])
+          ? (item['evidence'] as unknown[])
+              .filter((e) => typeof e === 'string')
+              .slice(0, 3) as string[]
+          : [],
+        confidence: validConfidences.has(String(item['confidence']))
+          ? (String(item['confidence']) as 'high' | 'medium' | 'low')
+          : 'low' as const,
+      }));
+
+    // Ensure all requirements have an evaluation (fill missing with 'missing')
+    for (const req of schema.requirements) {
+      if (!requirementEvaluations.find((e) => e.requirementId === req.id)) {
+        requirementEvaluations.push({
+          requirementId: req.id,
+          status: 'missing',
+          evidence: [],
+          confidence: 'low',
+        });
+      }
+    }
+
+    const rawConstraintEvals = Array.isArray(src['constraintEvaluations'])
+      ? (src['constraintEvaluations'] as unknown[])
+      : [];
+    const constraintEvaluations = rawConstraintEvals
+      .map((item) => this.asRecord(item))
+      .filter((item) => constraintIds.has(item['constraintId'] as string))
+      .map((item) => ({
+        constraintId: String(item['constraintId'] ?? ''),
+        met: Boolean(item['met']),
+        evidence: typeof item['evidence'] === 'string' ? item['evidence'] : '',
+      }));
+
+    for (const constraint of schema.constraints) {
+      if (!constraintEvaluations.find((e) => e.constraintId === constraint.id)) {
+        constraintEvaluations.push({ constraintId: constraint.id, met: false, evidence: '' });
+      }
+    }
+
+    const summary = this.asRecord(src['candidateSummary']);
+    const summaryLocation = this.asRecord(summary['location']);
+
+    return {
+      version: JD_CONTEXTUAL_EVAL_V1,
+      requirementEvaluations,
+      constraintEvaluations,
+      candidateSummary: {
+        headline: typeof summary['headline'] === 'string' ? summary['headline'] : '',
+        totalExperienceMonths:
+          typeof summary['totalExperienceMonths'] === 'number'
+            ? Math.max(0, Math.round(summary['totalExperienceMonths']))
+            : 0,
+        relevantExperienceMonths:
+          typeof summary['relevantExperienceMonths'] === 'number'
+            ? Math.max(0, Math.round(summary['relevantExperienceMonths']))
+            : 0,
+        skills: Array.isArray(summary['skills'])
+          ? (summary['skills'] as unknown[]).filter((s) => typeof s === 'string') as string[]
+          : [],
+        location:
+          typeof summaryLocation['city'] === 'string' || typeof summaryLocation['country'] === 'string'
+            ? {
+                city: typeof summaryLocation['city'] === 'string' ? summaryLocation['city'] : '',
+                country: typeof summaryLocation['country'] === 'string' ? summaryLocation['country'] : '',
+              }
+            : null,
+      },
+      warnings: Array.isArray(src['warnings'])
+        ? (src['warnings'] as unknown[]).filter((w) => typeof w === 'string') as string[]
+        : [],
+    };
   }
 
   private buildPrompt(domain: Domain, rawText: string): string {

@@ -212,6 +212,9 @@ export class ApplicationsService {
     from: ApplicationStatus,
     to: ApplicationStatus,
   ): boolean {
+    if (from === to) {
+      return true;
+    }
     const allowed = RECRUITER_TRANSITIONS.get(from) ?? [];
     return allowed.includes(to);
   }
@@ -221,18 +224,14 @@ export class ApplicationsService {
   }
 
   private toView(item: ApplicationRecord): ApplicationView {
+    const matchingSnapshot = this.normalizeMatchingSnapshot(item.matchingSnapshot);
     return {
       id: item.id,
       jobId: item.jobId,
       candidateId: item.candidateId,
       cvId: item.cvId,
       matchScore: item.matchScore,
-      matchingSnapshot:
-        item.matchingSnapshot &&
-        typeof item.matchingSnapshot === 'object' &&
-        !Array.isArray(item.matchingSnapshot)
-          ? (item.matchingSnapshot as unknown as ApplicationView['matchingSnapshot'])
-          : null,
+      matchingSnapshot,
       status: item.status,
       notes: item.notes,
       appliedAt: item.appliedAt,
@@ -245,6 +244,25 @@ export class ApplicationsService {
       },
       cv: item.cv,
     };
+  }
+
+  private normalizeMatchingSnapshot(
+    value: Prisma.JsonValue | null,
+  ): ApplicationView['matchingSnapshot'] {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return null;
+    }
+    const record = value as Record<string, unknown>;
+    const breakdown =
+      record['scoreBreakdown'] &&
+      typeof record['scoreBreakdown'] === 'object' &&
+      !Array.isArray(record['scoreBreakdown'])
+        ? (record['scoreBreakdown'] as Record<string, unknown>)
+        : null;
+    if (!breakdown || typeof breakdown['final'] !== 'number') {
+      return null;
+    }
+    return record as unknown as ApplicationView['matchingSnapshot'];
   }
 
   private get applicationSelect() {

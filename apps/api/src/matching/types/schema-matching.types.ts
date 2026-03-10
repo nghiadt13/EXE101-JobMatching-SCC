@@ -2,6 +2,11 @@ export const REQUIREMENTS_SCHEMA_VERSION = 'requirements_schema_v1';
 export const CANDIDATE_PROFILE_VERSION = 'candidate_profile_v1';
 export const SCHEMA_MATCHING_SNAPSHOT_VERSION = 'schema_v1';
 
+// --- V2 constants ---
+export const REQUIREMENTS_SCHEMA_V2 = 'requirements_schema_v2';
+export const JD_CONTEXTUAL_EVAL_V1 = 'jd_contextual_eval_v1';
+export const MATCHING_SNAPSHOT_V2 = 'matching_snapshot_v2';
+
 export type RequirementCategory =
   | 'skill'
   | 'experience'
@@ -13,7 +18,11 @@ export type RequirementCategory =
 
 export type RequirementImportance = 'must_have' | 'nice_to_have';
 
-export type RequirementStatus = 'met' | 'partial' | 'missing' | 'not_applicable';
+export type RequirementStatus =
+  | 'met'
+  | 'partial'
+  | 'missing'
+  | 'not_applicable';
 
 export interface RequirementItem {
   id: string;
@@ -86,6 +95,123 @@ export interface SchemaRequirementEvaluation {
   importance: RequirementImportance;
   status: RequirementStatus;
   evidence: string[];
+}
+
+// ============================================================
+// V2 Types — JD-Contextual Evaluation Pipeline
+// V1 types above are unchanged for backward compat.
+// ============================================================
+
+/** 5-level importance from matching policy */
+export type ImportanceLevel =
+  | 'critical'
+  | 'high'
+  | 'medium'
+  | 'low'
+  | 'very_low';
+
+/** Weight multipliers aligned with 03-matching-policy.md */
+export const IMPORTANCE_WEIGHTS: Record<ImportanceLevel, number> = {
+  critical: 1.0,
+  high: 0.8,
+  medium: 0.5,
+  low: 0.3,
+  very_low: 0.1,
+};
+
+/** Status score mapping for deterministic scoring */
+export const STATUS_SCORES: Record<RequirementStatus, number> = {
+  met: 100,
+  partial: 55,
+  missing: 0,
+  not_applicable: 0, // excluded from calc, not scored
+};
+
+export interface RequirementItemV2 {
+  id: string;
+  label: string;
+  category: RequirementCategory;
+  importance: ImportanceLevel;
+  keywords: string[];
+  minimumMonths: number | null;
+}
+
+export interface ConstraintItem {
+  id: string;
+  label: string;
+  type:
+    | 'education'
+    | 'certification'
+    | 'experience_years'
+    | 'language'
+    | 'location'
+    | 'other';
+  required: boolean;
+}
+
+export interface RequirementsSchemaV2 {
+  version: typeof REQUIREMENTS_SCHEMA_V2;
+  roleTitle: string;
+  summary: string;
+  /** Max 20 requirements */
+  requirements: RequirementItemV2[];
+  /** Max 10 constraints */
+  constraints: ConstraintItem[];
+  locationPreference: LocationPreference | null;
+  warnings: string[];
+}
+
+// --- JdContextualEvaluation ---
+
+export type EvaluationConfidence = 'high' | 'medium' | 'low';
+
+export interface RequirementEvaluation {
+  requirementId: string;
+  status: RequirementStatus;
+  evidence: string[];
+  confidence: EvaluationConfidence;
+}
+
+export interface ConstraintEvaluation {
+  constraintId: string;
+  met: boolean;
+  evidence: string;
+}
+
+export interface CandidateSummary {
+  headline: string;
+  totalExperienceMonths: number;
+  relevantExperienceMonths: number;
+  /** Only skills relevant to this JD */
+  skills: string[];
+  location: { city: string; country: string } | null;
+}
+
+export interface JdContextualEvaluation {
+  version: typeof JD_CONTEXTUAL_EVAL_V1;
+  requirementEvaluations: RequirementEvaluation[];
+  constraintEvaluations: ConstraintEvaluation[];
+  candidateSummary: CandidateSummary;
+  warnings: string[];
+}
+
+// --- MatchingSnapshotV2 ---
+
+export interface MatchingSnapshotV2 {
+  version: typeof MATCHING_SNAPSHOT_V2;
+  scoreBreakdown: {
+    skillScore: number;
+    constraintScore: number;
+    final: number;
+  };
+  requirements: RequirementEvaluation[];
+  constraints: ConstraintEvaluation[];
+  candidateSummary: CandidateSummary;
+  strengths: string[];
+  gaps: string[];
+  /** Labels of failed constraints, flagged for HR review */
+  constraintsFailed: string[];
+  warnings: string[];
 }
 
 export interface SchemaMatchingSnapshot {

@@ -7,6 +7,12 @@ import { SchemaMatchingEvaluatorService } from './services/schema-matching-evalu
 import { SkillAtomizerService } from './services/skill-atomizer.service';
 import { SkillCanonicalizerService } from './services/skill-canonicalizer.service';
 import { SkillStorageAdapterService } from './services/skill-storage-adapter.service';
+import { JdDrivenEvaluationService } from './services/jd-driven-evaluation.service';
+import { DocumentStorageService } from '../documents/services/document-storage.service';
+import { DocumentTextExtractorService } from '../documents/services/document-text-extractor.service';
+import { AiNormalizationService } from '../normalization/ai-normalization.service';
+import { GeminiClientService } from '../normalization/gemini-client.service';
+import { OpenAiClientService } from '../normalization/openai-client.service';
 
 @Module({
   controllers: [MatchingController],
@@ -18,6 +24,12 @@ import { SkillStorageAdapterService } from './services/skill-storage-adapter.ser
     JobRequirementsSchemaService,
     CandidateProfileService,
     SchemaMatchingEvaluatorService,
+    JdDrivenEvaluationService,
+    DocumentStorageService,
+    DocumentTextExtractorService,
+    AiNormalizationService,
+    GeminiClientService,
+    OpenAiClientService,
   ],
   exports: [
     MatchingService,
@@ -25,6 +37,7 @@ import { SkillStorageAdapterService } from './services/skill-storage-adapter.ser
     JobRequirementsSchemaService,
     CandidateProfileService,
     SchemaMatchingEvaluatorService,
+    JdDrivenEvaluationService,
   ],
 })
 export class MatchingModule {}

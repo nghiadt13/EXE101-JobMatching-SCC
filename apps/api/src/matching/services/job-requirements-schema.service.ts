@@ -2,10 +2,15 @@ import { Injectable } from '@nestjs/common';
 import type { NormalizedProfile } from '../../normalization/normalization.types';
 import {
   REQUIREMENTS_SCHEMA_VERSION,
+  REQUIREMENTS_SCHEMA_V2,
   RequirementCategory,
   RequirementImportance,
   RequirementItem,
   RequirementsSchemaV1,
+  RequirementItemV2,
+  ConstraintItem,
+  ImportanceLevel,
+  RequirementsSchemaV2,
 } from '../types/schema-matching.types';
 
 @Injectable()
@@ -55,6 +60,75 @@ export class JobRequirementsSchemaService {
       niceToHaves,
       locationPreference: this.readLocationPreference(input.location),
       warnings: this.buildWarnings(input.normalizedProfile, mustHaves),
+    };
+  }
+
+  /**
+   * Creates a RequirementsSchemaV2 from normalized JD data.
+   * Uses 5-level importance weights from matching policy.
+   * New JDs created/edited after this change will use V2.
+   */
+  createV2(input: {
+    title: string;
+    summary: string;
+    skills: string[];
+    description: string;
+    normalizedProfile: NormalizedProfile | null;
+    location: Record<string, unknown> | null;
+  }): RequirementsSchemaV2 {
+    const requirements: RequirementItemV2[] = [];
+    const constraints: ConstraintItem[] = [];
+    const seen = new Set<string>();
+    const rawRequirements = [
+      ...(input.normalizedProfile?.jobMeta?.requirements ?? []),
+      ...this.extractFallbackRequirements(input.description),
+    ];
+
+    // Skills → critical importance requirements
+    for (const skill of input.skills) {
+      const item = this.createRequirementV2(skill, 'skill', 'critical');
+      if (this.acceptRequirementV2(item, seen)) {
+        requirements.push(item);
+      }
+    }
+
+    for (const rawRequirement of rawRequirements) {
+      const category = this.detectCategory(rawRequirement);
+
+      // Education/certification/experience_years with hard constraint markers → constraints
+      if (this.isHardConstraint(rawRequirement, category)) {
+        const slug = rawRequirement
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '')
+          .slice(0, 48);
+        const id = `constraint-${category}-${slug || 'requirement'}`;
+        if (!constraints.find((c) => c.id === id)) {
+          constraints.push({
+            id,
+            label: rawRequirement.trim(),
+            type: this.mapConstraintType(category),
+            required: true,
+          });
+        }
+        continue;
+      }
+
+      const importance = this.mapImportanceV2(rawRequirement);
+      const item = this.createRequirementV2(rawRequirement, category, importance);
+      if (this.acceptRequirementV2(item, seen)) {
+        requirements.push(item);
+      }
+    }
+
+    return {
+      version: REQUIREMENTS_SCHEMA_V2,
+      roleTitle: input.title.trim(),
+      summary: input.summary.trim(),
+      requirements: requirements.slice(0, 20),
+      constraints: constraints.slice(0, 10),
+      locationPreference: this.readLocationPreference(input.location),
+      warnings: [],
     };
   }
 
@@ -182,4 +256,65 @@ export class JobRequirementsSchemaService {
     'this', 'role', 'years', 'year', 'months', 'month', 'experience', 'plus',
     'nice', 'preferred', 'ability', 'strong', 'good', 'using', 'knowledge',
   ]);
+
+  // --- V2 helpers ---
+
+  private createRequirementV2(
+    label: string,
+    category: RequirementCategory,
+    importance: ImportanceLevel,
+  ): RequirementItemV2 {
+    const normalizedLabel = label.trim();
+    const slug = normalizedLabel
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 64);
+    return {
+      id: `${importance}-${category}-${slug || 'requirement'}`,
+      label: normalizedLabel,
+      category,
+      importance,
+      keywords: this.extractKeywords(normalizedLabel),
+      minimumMonths: this.extractMinimumMonths(normalizedLabel),
+    };
+  }
+
+  private acceptRequirementV2(item: RequirementItemV2, seen: Set<string>): boolean {
+    if (!item.label || item.keywords.length === 0) return false;
+    const key = `${item.category}:${item.keywords.join('|')}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }
+
+  private mapImportanceV2(value: string): ImportanceLevel {
+    if (/(nice to have|preferred|plus|bonus|advantage)/i.test(value)) return 'low';
+    if (/(required|must have|critical|mandatory)/i.test(value)) return 'critical';
+    return 'medium';
+  }
+
+  private isHardConstraint(value: string, category: RequirementCategory): boolean {
+    if (category === 'education' && /(required|must|minimum|bachelor|master|degree)/i.test(value)) {
+      return true;
+    }
+    if (category === 'certification' && /(required|must|mandatory)/i.test(value)) {
+      return true;
+    }
+    if (category === 'experience' && /(minimum|at least|required).*(year|month)/i.test(value)) {
+      return true;
+    }
+    return false;
+  }
+
+  private mapConstraintType(category: RequirementCategory): ConstraintItem['type'] {
+    switch (category) {
+      case 'education': return 'education';
+      case 'certification': return 'certification';
+      case 'experience': return 'experience_years';
+      case 'language': return 'language';
+      case 'location': return 'location';
+      default: return 'other';
+    }
+  }
 }

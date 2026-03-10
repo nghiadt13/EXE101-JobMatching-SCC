@@ -1,7 +1,7 @@
 export const NORMALIZED_SCHEMA_VERSION = 'candidate_job_profile_v1';
 export const JOB_LOCATION_NORMALIZATION_KEY = '__normalization';
 
-export type ParseStatus = 'parsed_ok' | 'needs_review';
+export type ParseStatus = 'parsed_ok' | 'needs_review' | 'pending_apply';
 
 export type NormalizationProvider = 'gemini' | 'openai';
 

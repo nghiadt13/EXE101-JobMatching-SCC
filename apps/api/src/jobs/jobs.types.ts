@@ -4,7 +4,10 @@ import {
   NormalizedProfile,
   ParseStatus,
 } from '../normalization/normalization.types';
-import { RequirementsSchemaV1 } from '../matching/types/schema-matching.types';
+import {
+  RequirementsSchemaV1,
+  RequirementsSchemaV2,
+} from '../matching/types/schema-matching.types';
 
 export interface JobView {
   id: string;
@@ -20,7 +23,7 @@ export interface JobView {
   employmentType: string;
   parseStatus: ParseStatus;
   normalizedProfile: NormalizedProfile | null;
-  requirementsSchema: RequirementsSchemaV1 | null;
+  requirementsSchema: RequirementsSchemaV1 | RequirementsSchemaV2 | null;
   requirementsSchemaVersion: string | null;
   parseTelemetry: NormalizationTelemetry | null;
   status: JobStatus;
