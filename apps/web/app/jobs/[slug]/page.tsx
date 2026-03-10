@@ -12,6 +12,7 @@ import { createApplication } from '@/lib/applications-client';
 import { ApiError } from '@/lib/api-client';
 import { getMyCvs } from '@/lib/cv-client';
 import { getJobDetail } from '@/lib/jobs-client';
+import { PUBLIC_JOBS_LISTING_ROUTE } from '@/lib/routes';
 import { safeJsonLdSerialize } from '@/lib/seo';
 
 type PageProps = {
@@ -150,7 +151,7 @@ export default async function JobDetailPage({ params, searchParams }: PageProps)
         currentPath={jobPath}
         actions={
           <Button asChild variant="outline" size="sm">
-            <Link href="/jobs">← Back to jobs</Link>
+            <Link href={PUBLIC_JOBS_LISTING_ROUTE}>← Back to jobs</Link>
           </Button>
         }
       >
@@ -167,7 +168,7 @@ export default async function JobDetailPage({ params, searchParams }: PageProps)
         description={job.employmentType}
         actions={
           <Button asChild variant="outline" size="sm">
-            <Link href="/jobs">← Back to jobs</Link>
+            <Link href={PUBLIC_JOBS_LISTING_ROUTE}>← Back to jobs</Link>
           </Button>
         }
       />

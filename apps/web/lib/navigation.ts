@@ -7,6 +7,7 @@ import {
   ClipboardList,
   type LucideIcon,
 } from 'lucide-react';
+import { LEGACY_JOBS_LISTING_ROUTE, PUBLIC_JOBS_LISTING_ROUTE } from './routes';
 
 export type NavIconName =
   | 'home'
@@ -26,7 +27,7 @@ export const candidateNav: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard/candidate', iconName: 'home' },
   { label: 'My CVs', href: '/dashboard/candidate/cvs', iconName: 'file-text' },
   { label: 'Applications', href: '/dashboard/candidate/applications', iconName: 'clipboard-list' },
-  { label: 'Browse Jobs', href: '/jobs', iconName: 'briefcase' },
+  { label: 'Browse Jobs', href: PUBLIC_JOBS_LISTING_ROUTE, iconName: 'briefcase' },
   { label: 'Profile', href: '/dashboard/profile', iconName: 'user-circle' },
 ];
 
@@ -71,11 +72,22 @@ export function getNavForRole(role: string): NavItem[] {
 
 /**
  * Returns true when a nav item should be considered active for the given currentPath.
- * Handles exact matches and prefix matches. The /jobs item is treated as a prefix
- * root so /jobs/[slug] also activates it.
+ * Handles exact matches and prefix matches. The public jobs listing route treats
+ * both `/` and legacy `/jobs` paths as active.
  */
 export function isNavItemActive(itemHref: string, currentPath: string | undefined): boolean {
   if (!currentPath) return false;
+
+  if (itemHref === PUBLIC_JOBS_LISTING_ROUTE) {
+    return (
+      currentPath === PUBLIC_JOBS_LISTING_ROUTE
+      || currentPath.startsWith('/?')
+      || currentPath === LEGACY_JOBS_LISTING_ROUTE
+      || currentPath.startsWith(`${LEGACY_JOBS_LISTING_ROUTE}/`)
+      || currentPath.startsWith(`${LEGACY_JOBS_LISTING_ROUTE}?`)
+    );
+  }
+
   if (currentPath === itemHref) return true;
   // All nav items that have a meaningful sub-route hierarchy match by prefix.
   // This includes /jobs and /jobs/[slug].

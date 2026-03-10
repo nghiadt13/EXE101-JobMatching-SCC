@@ -3,6 +3,7 @@ import { ApplicationItem } from '@/lib/applications-client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
+import { PUBLIC_JOBS_LISTING_ROUTE } from '@/lib/routes';
 
 type CandidateApplicationsTableProps = {
   items: ApplicationItem[];
@@ -24,7 +25,7 @@ export function CandidateApplicationsTable({ items }: CandidateApplicationsTable
         description="You haven't applied to any job yet."
         action={
           <Button asChild size="sm">
-            <Link href="/jobs">Browse open positions</Link>
+            <Link href={PUBLIC_JOBS_LISTING_ROUTE}>Browse open positions</Link>
           </Button>
         }
       />

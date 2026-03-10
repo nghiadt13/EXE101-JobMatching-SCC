@@ -4,13 +4,14 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { trackEvent } from '@/lib/analytics/track';
+import { PUBLIC_JOBS_LISTING_ROUTE } from '@/lib/routes';
 
 export function HomeHeroSearch() {
   const [q, setQ] = useState('');
 
   return (
     <form
-      action="/jobs"
+      action={PUBLIC_JOBS_LISTING_ROUTE}
       method="get"
       className="mt-6 rounded-2xl border border-zinc-200 bg-white/90 p-4 shadow-sm"
       onSubmit={() => {

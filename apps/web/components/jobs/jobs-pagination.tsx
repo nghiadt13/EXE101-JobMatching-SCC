@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { buildJobsSearchParams, type JobsQuery } from '@/lib/jobs-client';
 import { Button } from '@/components/ui/button';
+import { PUBLIC_JOBS_LISTING_ROUTE } from '@/lib/routes';
 
 type JobsPaginationProps = {
   page: number;
@@ -10,7 +11,7 @@ type JobsPaginationProps = {
 
 function buildPageHref(query: JobsQuery, page: number) {
   const params = buildJobsSearchParams({ ...query, page });
-  return `/jobs?${params.toString()}`;
+  return params.size ? `${PUBLIC_JOBS_LISTING_ROUTE}?${params.toString()}` : PUBLIC_JOBS_LISTING_ROUTE;
 }
 
 export function JobsPagination({ page, totalPages, query }: JobsPaginationProps) {

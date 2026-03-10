@@ -7,6 +7,8 @@ effort: 38h
 issue: null
 branch: main
 tags: [feature, frontend, backend, api, jobs, seo]
+blockedBy: []
+blocks: [260310-2315-homepage-default-job-listing-entryflow]
 created: 2026-03-10
 ---
 
@@ -124,7 +126,7 @@ Feature flags bắt buộc:
 
 ## Blocking Decisions Locked For This Plan
 
-- Giữ redirect logged-in khỏi `/` (hành vi hiện tại) cho v1 để tránh đụng flow dashboard.
+- Không redirect logged-in khỏi `/`; root là public jobs listing mặc định, dashboard chỉ vào qua explicit navigation.
 - Trust strip v1 dùng copy trung tính, không hiển thị số liệu chưa xác thực.
 - `employmentType` v1 dùng normalized free-text mapping (uppercase + trim), không khóa enum cứng.
 
@@ -155,6 +157,6 @@ Accepted changes reflected in this plan:
 - Mode: Auto validation (no user interview in this turn)
 - Decisions validated:
   - Scope remains MVP-first, không mở rộng sang saved jobs/alerts/company profile.
-  - Redirect logged-in ở homepage giữ nguyên cho v1 để giảm regression auth-flow.
+  - Root listing mở cho cả guest + authenticated users; không ép redirect role-dashboard ở `/`.
   - Tracking v1 giữ tối giản 2 events, consent-gated, no raw query payload.
   - API v1 ship core filters trước; facets/relevance chỉ bật khi perf gates đạt.

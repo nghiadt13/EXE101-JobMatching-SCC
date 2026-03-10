@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { type JobItem } from '@/lib/jobs-client';
 import { Button } from '@/components/ui/button';
+import { PUBLIC_JOBS_LISTING_ROUTE } from '@/lib/routes';
 import { JobListingCard } from './job-listing-card';
 
 type HomeFeaturedJobsProps = {
@@ -16,7 +17,7 @@ export function HomeFeaturedJobs({ jobs }: HomeFeaturedJobsProps) {
           <p className="mt-1 text-sm text-zinc-600">Latest openings from active recruiters.</p>
         </div>
         <Button asChild variant="outline" size="sm">
-          <Link href="/jobs">View all jobs</Link>
+          <Link href={PUBLIC_JOBS_LISTING_ROUTE}>View all jobs</Link>
         </Button>
       </div>
       <div className="grid gap-4 md:grid-cols-2">

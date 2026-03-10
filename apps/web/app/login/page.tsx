@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import { LoginForm } from '@/components/auth/login-form';
 import { getRoleDashboardPath } from '@/lib/auth-redirect';
+import { PUBLIC_JOBS_LISTING_ROUTE } from '@/lib/routes';
 
 type LoginPageProps = {
   searchParams: Promise<{ callbackUrl?: string }>;
@@ -27,7 +28,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <LoginForm callbackUrl={callbackUrl} />
         </div>
         <p className="mt-4 text-center text-sm text-zinc-500">
-          <Link href="/jobs" className="font-medium text-zinc-700 hover:underline">
+          <Link href={PUBLIC_JOBS_LISTING_ROUTE} className="font-medium text-zinc-700 hover:underline">
             Browse open positions →
           </Link>
         </p>

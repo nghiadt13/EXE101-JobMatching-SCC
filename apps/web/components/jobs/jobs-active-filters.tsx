@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { buildJobsSearchParams, type JobsQuery } from '@/lib/jobs-client';
+import { PUBLIC_JOBS_LISTING_ROUTE } from '@/lib/routes';
 
 type JobsActiveFiltersProps = {
   query: JobsQuery;
@@ -17,7 +18,7 @@ function buildClearLink(query: JobsQuery, key: keyof JobsQuery, value?: string) 
     delete next[key];
   }
   const params = buildJobsSearchParams(next);
-  return `/jobs?${params.toString()}`;
+  return params.size ? `${PUBLIC_JOBS_LISTING_ROUTE}?${params.toString()}` : PUBLIC_JOBS_LISTING_ROUTE;
 }
 
 export function JobsActiveFilters({ query }: JobsActiveFiltersProps) {
@@ -64,7 +65,7 @@ export function JobsActiveFilters({ query }: JobsActiveFiltersProps) {
           <Badge variant="outline">{chip.label} ×</Badge>
         </Link>
       ))}
-      <Link href="/jobs" className="text-xs font-medium text-zinc-600 underline">
+      <Link href={PUBLIC_JOBS_LISTING_ROUTE} className="text-xs font-medium text-zinc-600 underline">
         Clear all
       </Link>
     </div>

@@ -8,6 +8,7 @@ import { useForm } from 'react-hook-form';
 import { signIn } from 'next-auth/react';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
+import { PUBLIC_JOBS_LISTING_ROUTE } from '@/lib/routes';
 
 const loginSchema = z.object({
   email: z.email('Email is invalid'),
@@ -55,7 +56,7 @@ export function LoginForm({ callbackUrl }: LoginFormProps) {
       return;
     }
 
-    const destination = safeCallbackUrl(callbackUrl) ?? '/dashboard';
+    const destination = safeCallbackUrl(callbackUrl) ?? PUBLIC_JOBS_LISTING_ROUTE;
     router.push(destination);
     router.refresh();
   };

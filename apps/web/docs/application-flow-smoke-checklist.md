@@ -3,7 +3,7 @@
 ## Candidate
 
 - Login with candidate account.
-- Open `/jobs` and verify published jobs show clear "View details and apply" action.
+- Open `/` and verify published jobs show clear "View details and apply" action.
 - Open a published job detail page.
 - Select CV and submit apply.
 - Confirm success message appears and duplicate apply is blocked with explicit feedback.

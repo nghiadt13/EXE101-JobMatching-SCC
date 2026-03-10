@@ -13,16 +13,17 @@
 
 ## Public/Candidate Visibility
 
-- [ ] Open `/` as guest and verify hero search submits to `/jobs?q=...`.
+- [ ] Open `/` as guest and verify search submits to `/?q=...`.
 - [ ] Verify featured jobs section renders only published jobs.
-- [ ] Open `/jobs` without login and verify only published jobs are listed.
-- [ ] Apply filters on `/jobs` (keyword, remote, salary, employment type) and verify URL query syncs.
+- [ ] Open `/` without login and verify only published jobs are listed.
+- [ ] Open `/jobs` and verify it redirects to `/` while preserving query params.
+- [ ] Apply filters on `/` (keyword, remote, salary, employment type) and verify URL query syncs.
 - [ ] Use browser back/forward and verify filter state is restored from URL.
 - [ ] Verify sort selector (`newest`, `salary_asc`, `salary_desc`) updates listing.
 - [ ] Verify pagination keeps current filter query.
 - [ ] Open `/jobs/[slug]` for published job and verify detail renders.
 - [ ] Try opening slug of draft/closed job and verify not found.
-- [ ] Verify `/jobs` query-heavy URL returns `noindex,follow` metadata policy.
+- [ ] Verify `/` query-heavy URL returns `noindex,follow` metadata policy.
 
 ## Negative/Access Cases
 

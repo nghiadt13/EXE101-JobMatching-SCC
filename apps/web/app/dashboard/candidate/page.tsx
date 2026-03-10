@@ -7,6 +7,7 @@ import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { ApiError } from '@/lib/api-client';
 import { getDashboardStats, type CandidateDashboardStats } from '@/lib/dashboard-client';
+import { PUBLIC_JOBS_LISTING_ROUTE } from '@/lib/routes';
 
 export default async function CandidateDashboardPage() {
   const session = await auth();
@@ -59,7 +60,7 @@ export default async function CandidateDashboardPage() {
           <Link href="/dashboard/candidate/cvs">Manage CVs</Link>
         </Button>
         <Button asChild variant="outline">
-          <Link href="/jobs">Browse jobs</Link>
+          <Link href={PUBLIC_JOBS_LISTING_ROUTE}>Browse jobs</Link>
         </Button>
         <Button asChild variant="outline">
           <Link href="/dashboard/candidate/applications">My applications</Link>
