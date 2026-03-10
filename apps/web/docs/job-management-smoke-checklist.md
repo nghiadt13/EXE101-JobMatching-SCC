@@ -13,12 +13,20 @@
 
 ## Public/Candidate Visibility
 
+- [ ] Open `/` as guest and verify hero search submits to `/jobs?q=...`.
+- [ ] Verify featured jobs section renders only published jobs.
 - [ ] Open `/jobs` without login and verify only published jobs are listed.
+- [ ] Apply filters on `/jobs` (keyword, remote, salary, employment type) and verify URL query syncs.
+- [ ] Use browser back/forward and verify filter state is restored from URL.
+- [ ] Verify sort selector (`newest`, `salary_asc`, `salary_desc`) updates listing.
+- [ ] Verify pagination keeps current filter query.
 - [ ] Open `/jobs/[slug]` for published job and verify detail renders.
 - [ ] Try opening slug of draft/closed job and verify not found.
+- [ ] Verify `/jobs` query-heavy URL returns `noindex,follow` metadata policy.
 
 ## Negative/Access Cases
 
 - [ ] Candidate cannot access recruiter mutation endpoints.
 - [ ] Recruiter cannot update/delete jobs that belong to another recruiter.
 - [ ] Invalid lifecycle transition (`DRAFT -> CLOSE`) is rejected with `400`.
+- [ ] Without consent, `home_search_submitted` and `apply_attempted` events are not emitted.

@@ -72,6 +72,40 @@ export type JobsListResponse = {
     totalItems: number;
     totalPages: number;
   };
+  meta?: {
+    sort: JobsSort;
+    appliedFilters: {
+      q?: string;
+      employmentTypes?: string[];
+      remote?: JobsRemoteFilter;
+      salaryMinGte?: number;
+      salaryMaxLte?: number;
+      postedWithinDays?: 1 | 3 | 7 | 14 | 30;
+    };
+  };
+  facets?: {
+    employmentTypes: Array<{ value: string; count: number }>;
+    remote: Array<{ value: 'true' | 'false'; count: number }>;
+    cities: Array<{ value: string; count: number }>;
+  };
+};
+
+export type JobsSort = 'newest' | 'salary_asc' | 'salary_desc';
+export type JobsRemoteFilter = 'any' | 'true' | 'false';
+
+export type JobsQuery = {
+  page?: number;
+  limit?: number;
+  search?: string;
+  q?: string;
+  sort?: JobsSort;
+  employmentTypes?: string[];
+  remote?: JobsRemoteFilter;
+  salaryMinGte?: number;
+  salaryMaxLte?: number;
+  postedWithinDays?: 1 | 3 | 7 | 14 | 30;
+  includeFacets?: boolean;
+  status?: JobStatus;
 };
 
 type RequestOptions = {
@@ -109,15 +143,37 @@ async function apiRequest<T>(
   return body as T;
 }
 
-export function getJobs(
-  query?: { page?: number; limit?: number; search?: string; status?: JobStatus },
-  token?: string,
-) {
+export function buildJobsSearchParams(query?: JobsQuery): URLSearchParams {
   const params = new URLSearchParams();
-  params.set('page', String(query?.page ?? 1));
-  params.set('limit', String(query?.limit ?? 20));
+  const page = query?.page ?? 1;
+  const limit = query?.limit ?? 20;
+  params.set('page', String(page));
+  params.set('limit', String(limit));
+  if (query?.q) params.set('q', query.q);
   if (query?.search) params.set('search', query.search);
+  if (query?.sort && query.sort !== 'newest') params.set('sort', query.sort);
+  if (query?.employmentTypes?.length) {
+    params.set('employmentTypes', query.employmentTypes.join(','));
+  }
+  if (query?.remote && query.remote !== 'any') params.set('remote', query.remote);
+  if (query?.salaryMinGte !== undefined) {
+    params.set('salaryMinGte', String(query.salaryMinGte));
+  }
+  if (query?.salaryMaxLte !== undefined) {
+    params.set('salaryMaxLte', String(query.salaryMaxLte));
+  }
+  if (query?.postedWithinDays !== undefined) {
+    params.set('postedWithinDays', String(query.postedWithinDays));
+  }
+  if (query?.includeFacets) {
+    params.set('includeFacets', 'true');
+  }
   if (query?.status) params.set('status', query.status);
+  return params;
+}
+
+export function getJobs(query?: JobsQuery, token?: string) {
+  const params = buildJobsSearchParams(query);
   return apiRequest<JobsListResponse>(`/jobs?${params.toString()}`, { method: 'GET' }, { token });
 }
 

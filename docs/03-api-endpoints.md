@@ -431,7 +431,45 @@ List jobs
 
 - Public/Candidate: chỉ jobs `PUBLISHED`
 - Recruiter: chỉ jobs của chính recruiter, gồm `DRAFT`, `PUBLISHED`, `CLOSED`
-- Supports query: `page`, `limit`, `search`, `status` (status filter chỉ có ý nghĩa cho recruiter own list)
+- Legacy query vẫn giữ: `page`, `limit`, `search`, `status`
+- Additive v1 query:
+  - `q`: keyword search (`search` vẫn là alias tương thích)
+  - `sort`: `newest | salary_asc | salary_desc`
+  - `employmentTypes`: CSV, ví dụ `FULL_TIME,PART_TIME`
+  - `remote`: `any | true | false`
+  - `salaryMinGte`, `salaryMaxLte`
+  - `postedWithinDays`: `1 | 3 | 7 | 14 | 30`
+  - `includeFacets=true` (chỉ hoạt động khi **cả** `API_JOBS_FILTERS_V1_ENABLED=true` và `API_JOBS_FACETS_V1_ENABLED=true`)
+- Feature flags:
+  - `API_JOBS_FILTERS_V1_ENABLED`: bật logic filter/sort v1
+  - `API_JOBS_FACETS_V1_ENABLED`: bật `facets` response
+
+Response (additive, backward-compatible):
+
+```json
+{
+  "items": [...],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "totalItems": 120,
+    "totalPages": 6
+  },
+  "meta": {
+    "sort": "newest",
+    "appliedFilters": {
+      "q": "backend",
+      "employmentTypes": ["FULL_TIME"],
+      "remote": "any"
+    }
+  },
+  "facets": {
+    "employmentTypes": [{ "value": "FULL_TIME", "count": 80 }],
+    "remote": [{ "value": "true", "count": 21 }],
+    "cities": [{ "value": "Ho Chi Minh", "count": 30 }]
+  }
+}
+```
 
 ### GET /jobs/:id
 
@@ -537,10 +575,29 @@ Operational provider failures use a separate contract:
 ### Jobs Error Codes
 
 - `400`: transition invalid hoặc payload invalid
+- `400`: `GET /jobs` rejects `q/search` chứa dữ liệu nhạy cảm dạng email/số điện thoại
 - `401`: chưa đăng nhập cho recruiter endpoints
 - `403`: không phải recruiter owner
 - `404`: job không tồn tại hoặc không visible với role hiện tại
 - `409`: slug conflict
+
+### Web Feature Flags (Homepage/Jobs/Tracking)
+
+- `WEB_HOME_TOPCV_V1_ENABLED`: bật homepage kiểu TopCV ở `/`.
+- `WEB_JOBS_FILTERS_V1_ENABLED`: bật listing UX mới có filter/sort/pagination ở `/jobs`.
+- `NEXT_PUBLIC_WEB_TRACKING_V1_ENABLED`: bật emit event baseline phía web.
+
+Tracking consent rule:
+
+- Event chỉ được emit khi `localStorage['analytics-consent'] = 'granted'`.
+- Mặc định không emit trước consent.
+
+SEO behavior baseline:
+
+- `/jobs` có canonical về route sạch `/jobs`.
+- `/jobs` với query động (ngoài `page`, `limit`) dùng `noindex,follow`.
+- `/jobs/[slug]` chỉ emit `JobPosting` JSON-LD khi job public `PUBLISHED`.
+- `robots.txt` disallow `/dashboard` và `/api`; sitemap gồm route public.
 
 ## Applications
 

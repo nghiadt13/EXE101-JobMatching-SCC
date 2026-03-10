@@ -1,66 +1,101 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { auth } from '@/auth';
-import { getJobs } from '@/lib/jobs-client';
 import { DashboardShell } from '@/components/auth/dashboard-shell';
+import { JobListingCard } from '@/components/jobs/job-listing-card';
+import { JobsActiveFilters } from '@/components/jobs/jobs-active-filters';
+import { JobsFilterForm } from '@/components/jobs/jobs-filter-form';
+import { JobsPagination } from '@/components/jobs/jobs-pagination';
+import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { EmptyState } from '@/components/ui/empty-state';
+import { Alert } from '@/components/ui/alert';
+import { getJobs } from '@/lib/jobs-client';
+import { parseJobsQueryFromSearchParams } from '@/lib/jobs-query';
 
-export default async function JobsPage() {
-  const [session, jobs] = await Promise.all([
-    auth(),
-    getJobs({ page: 1, limit: 30 }),
-  ]);
+type JobsPageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
 
+function isEnabled(key: string): boolean {
+  const value = process.env[key];
+  return value === '1' || value === 'true' || value === 'yes';
+}
+
+export async function generateMetadata({ searchParams }: JobsPageProps): Promise<Metadata> {
+  const params = await searchParams;
+  const hasDynamicQuery = Object.keys(params).some((key) => key !== 'page' && key !== 'limit');
+  return {
+    title: 'Find Jobs',
+    description: 'Browse open jobs and apply directly from the platform.',
+    alternates: { canonical: '/jobs' },
+    robots: hasDynamicQuery ? { index: false, follow: true } : { index: true, follow: true },
+  };
+}
+
+export default async function JobsPage({ searchParams }: JobsPageProps) {
+  const jobsFiltersEnabled = isEnabled('WEB_JOBS_FILTERS_V1_ENABLED');
+
+  const [session, params] = await Promise.all([auth(), searchParams]);
   const role = session?.user?.role ?? null;
 
-  const jobsList = (
-    <section className="grid gap-4">
-      {jobs.items.map((job) => (
-        <article key={job.id} className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm transition-colors hover:border-zinc-300">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <Link href={`/jobs/${job.slug}`} className="text-lg font-semibold text-zinc-900 hover:underline">
-                {job.title}
-              </Link>
-              <p className="mt-1 text-sm text-zinc-500">{job.employmentType}</p>
-            </div>
-            <Badge>{job.status}</Badge>
-          </div>
-          <p className="mt-3 line-clamp-3 text-sm text-zinc-700">{job.description}</p>
-          <div className="mt-4">
-            <Button asChild size="sm">
-              <Link href={`/jobs/${job.slug}`}>View details and apply</Link>
-            </Button>
-          </div>
-        </article>
-      ))}
-      {!jobs.items.length ? (
-        <EmptyState
-          title="No published jobs yet"
-          description="Please check back later for new opportunities."
-        />
-      ) : null}
-    </section>
-  );
+  if (!jobsFiltersEnabled) {
+    const jobs = await getJobs({ page: 1, limit: 30 });
+    const jobsList = (
+      <section className="grid gap-4">
+        {jobs.items.map((job) => (
+          <JobListingCard key={job.id} job={job} />
+        ))}
+        {!jobs.items.length ? (
+          <EmptyState
+            title="No published jobs yet"
+            description="Please check back later for new opportunities."
+          />
+        ) : null}
+      </section>
+    );
 
-  // Candidate — render inside dashboard shell with nav continuity
-  if (role === 'CANDIDATE') {
+    if (role === 'CANDIDATE') {
+      return (
+        <DashboardShell
+          title="Open Positions"
+          description="Browse published jobs, open details, then submit your application from the detail page."
+          email={session?.user?.email}
+          role="CANDIDATE"
+          currentPath="/jobs"
+        >
+          {jobsList}
+        </DashboardShell>
+      );
+    }
+
+    const headerAction = role ? (
+      <Button asChild variant="outline" size="sm">
+        <Link href="/dashboard">Back to dashboard</Link>
+      </Button>
+    ) : (
+      <Button asChild variant="outline" size="sm">
+        <Link href="/login">Sign in</Link>
+      </Button>
+    );
+
     return (
-      <DashboardShell
-        title="Open Positions"
-        description="Browse published jobs, open details, then submit your application from the detail page."
-        email={session?.user?.email}
-        role="CANDIDATE"
-        currentPath="/jobs"
-      >
+      <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col px-6 py-12">
+        <PageHeader
+          overline="Jobs"
+          title="Open Positions"
+          description="Browse published jobs, open details, then submit your application from the detail page."
+          actions={headerAction}
+        />
         {jobsList}
-      </DashboardShell>
+      </main>
     );
   }
 
-  // Logged-in recruiter/admin — public layout, but replace Sign in CTA with dashboard link
+  const query = parseJobsQueryFromSearchParams(params);
+  const jobs = await getJobs({ ...query, includeFacets: true });
+  const apiFiltersApplied = Boolean(jobs.meta);
+
   const headerAction = role ? (
     <Button asChild variant="outline" size="sm">
       <Link href="/dashboard">Back to dashboard</Link>
@@ -71,12 +106,63 @@ export default async function JobsPage() {
     </Button>
   );
 
+  const jobsList = (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm text-zinc-600">
+          {jobs.pagination.totalItems} jobs found
+        </p>
+      </div>
+
+      <JobsFilterForm query={query} />
+      {!apiFiltersApplied ? (
+        <Alert>
+          Jobs filters UI is enabled, but API filters are currently disabled. Results may ignore some filters.
+        </Alert>
+      ) : null}
+      {apiFiltersApplied ? <JobsActiveFilters query={query} /> : null}
+
+      {jobs.items.length > 0 ? (
+        <section className="grid gap-4">
+          {jobs.items.map((job) => (
+            <JobListingCard key={job.id} job={job} />
+          ))}
+        </section>
+      ) : (
+        <EmptyState
+          title="No jobs match these filters"
+          description="Adjust filters or reset to view more opportunities."
+        />
+      )}
+
+      <JobsPagination
+        page={jobs.pagination.page}
+        totalPages={jobs.pagination.totalPages}
+        query={query}
+      />
+    </div>
+  );
+
+  if (role === 'CANDIDATE') {
+    return (
+      <DashboardShell
+        title="Open Positions"
+        description="Search and filter open jobs, then apply from the job detail page."
+        email={session?.user?.email}
+        role="CANDIDATE"
+        currentPath="/jobs"
+      >
+        {jobsList}
+      </DashboardShell>
+    );
+  }
+
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col px-6 py-12">
       <PageHeader
         overline="Jobs"
         title="Open Positions"
-        description="Browse published jobs, open details, then submit your application from the detail page."
+        description="Search, filter, and explore published opportunities."
         actions={headerAction}
       />
       {jobsList}

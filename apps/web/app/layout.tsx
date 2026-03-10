@@ -14,8 +14,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'HR Recruitment Platform',
-  description: 'AI-powered recruitment platform MVP',
+  metadataBase: new URL(process.env.NEXT_PUBLIC_WEB_URL ?? 'http://localhost:3000'),
+  title: {
+    default: 'HR Recruitment Platform',
+    template: '%s | HR Recruitment Platform',
+  },
+  description: 'Search jobs, apply faster, and manage role-based recruitment workflows.',
 };
 
 export default function RootLayout({
@@ -27,6 +31,7 @@ export default function RootLayout({
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        referrerPolicy="strict-origin-when-cross-origin"
       >
         {children}
         <Toaster position="top-right" richColors closeButton />

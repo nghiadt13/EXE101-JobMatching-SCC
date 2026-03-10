@@ -33,7 +33,14 @@ import {
   ParseStatus,
 } from '../normalization/normalization.types';
 import { CreateJobDto } from './dto/create-job.dto';
-import { QueryJobsDto } from './dto/query-jobs.dto';
+import {
+  JOB_POSTED_WITHIN_DAYS_VALUES,
+  JOB_SORT_VALUES,
+  QueryJobsDto,
+  type JobsPostedWithinDays,
+  type JobsRemoteFilter,
+  type JobsSort,
+} from './dto/query-jobs.dto';
 import { UpdateJobDto } from './dto/update-job.dto';
 import { JobsListResponse, JobView } from './jobs.types';
 import { JobSlugService } from './services/job-slug.service';
@@ -276,21 +283,28 @@ export class JobsService {
     }
 
     const page = query.page ?? 1;
-    const limit = query.limit ?? 10;
-    const where = this.buildListWhere(viewer, query);
+    const limit = query.limit ?? 20;
+    const filtersV1Enabled = this.isFeatureEnabled('API_JOBS_FILTERS_V1_ENABLED');
+    const facetsV1Enabled = this.isFeatureEnabled('API_JOBS_FACETS_V1_ENABLED');
+    const normalizedQuery = this.normalizeListQuery(query);
+    const where = filtersV1Enabled
+      ? this.buildListWhereV1(viewer, normalizedQuery)
+      : this.buildListWhereLegacy(viewer, normalizedQuery.q, normalizedQuery.status);
+    const orderBy = filtersV1Enabled
+      ? this.buildOrderBy(normalizedQuery.sort)
+      : { createdAt: 'desc' as const };
 
     const [items, totalItems] = await Promise.all([
       this.prisma.job.findMany({
         where,
         skip: (page - 1) * limit,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy,
         select: this.jobViewSelect,
       }),
       this.prisma.job.count({ where }),
     ]);
-
-    return {
+    const response: JobsListResponse = {
       items: items.map((item) => this.toView(item)),
       pagination: {
         page,
@@ -299,6 +313,38 @@ export class JobsService {
         totalPages: Math.max(1, Math.ceil(totalItems / limit)),
       },
     };
+
+    if (filtersV1Enabled) {
+      response.meta = {
+        sort: normalizedQuery.sort,
+        appliedFilters: {
+          ...(normalizedQuery.q ? { q: normalizedQuery.q } : {}),
+          ...(normalizedQuery.employmentTypes?.length
+            ? { employmentTypes: normalizedQuery.employmentTypes }
+            : {}),
+          ...(normalizedQuery.remote ? { remote: normalizedQuery.remote } : {}),
+          ...(normalizedQuery.salaryMinGte !== undefined
+            ? { salaryMinGte: normalizedQuery.salaryMinGte }
+            : {}),
+          ...(normalizedQuery.salaryMaxLte !== undefined
+            ? { salaryMaxLte: normalizedQuery.salaryMaxLte }
+            : {}),
+          ...(normalizedQuery.postedWithinDays !== undefined
+            ? { postedWithinDays: normalizedQuery.postedWithinDays }
+            : {}),
+        },
+      };
+    }
+
+    if (
+      filtersV1Enabled &&
+      facetsV1Enabled &&
+      normalizedQuery.includeFacets === true
+    ) {
+      response.facets = await this.computeFacets(where);
+    }
+
+    return response;
   }
 
   async getByIdOrSlug(
@@ -567,22 +613,23 @@ export class JobsService {
     return job;
   }
 
-  private buildListWhere(
+  private buildListWhereLegacy(
     viewer: Viewer | null,
-    query: QueryJobsDto,
+    q: string | undefined,
+    status: JobStatus | undefined,
   ): Prisma.JobWhereInput {
-    const searchFilter = query.search
+    const searchFilter = q
       ? {
           OR: [
             {
               title: {
-                contains: query.search,
+                contains: q,
                 mode: Prisma.QueryMode.insensitive,
               },
             },
             {
               description: {
-                contains: query.search,
+                contains: q,
                 mode: Prisma.QueryMode.insensitive,
               },
             },
@@ -594,7 +641,7 @@ export class JobsService {
       return {
         recruiterId: viewer.sub,
         deletedAt: null,
-        ...(query.status ? { status: query.status } : {}),
+        ...(status ? { status } : {}),
         ...searchFilter,
       };
     }
@@ -604,6 +651,245 @@ export class JobsService {
       deletedAt: null,
       ...searchFilter,
     };
+  }
+
+  private normalizeListQuery(query: QueryJobsDto): {
+    q?: string;
+    sort: JobsSort;
+    employmentTypes?: string[];
+    remote: JobsRemoteFilter;
+    salaryMinGte?: number;
+    salaryMaxLte?: number;
+    postedWithinDays?: JobsPostedWithinDays;
+    includeFacets: boolean;
+    status?: JobStatus;
+  } {
+    const q = (query.q ?? query.search)?.trim() || undefined;
+    if (q && this.isSensitiveQuery(q)) {
+      throw new BadRequestException(
+        'Query text is not allowed. Please remove personal contact details.',
+      );
+    }
+    if (
+      query.salaryMinGte !== undefined &&
+      query.salaryMaxLte !== undefined &&
+      query.salaryMinGte > query.salaryMaxLte
+    ) {
+      throw new BadRequestException(
+        'salaryMinGte must be less than or equal to salaryMaxLte',
+      );
+    }
+
+    const sort = JOB_SORT_VALUES.includes(query.sort ?? 'newest')
+      ? (query.sort ?? 'newest')
+      : 'newest';
+    const remote = query.remote ?? 'any';
+    const employmentTypes = query.employmentTypes
+      ?.map((value) => value.trim().toUpperCase())
+      .filter(Boolean)
+      .slice(0, 10);
+    const postedWithinDays = JOB_POSTED_WITHIN_DAYS_VALUES.includes(
+      query.postedWithinDays ?? 0,
+    )
+      ? query.postedWithinDays
+      : undefined;
+
+    return {
+      ...(q ? { q } : {}),
+      sort,
+      ...(employmentTypes && employmentTypes.length > 0
+        ? { employmentTypes }
+        : {}),
+      remote,
+      ...(query.salaryMinGte !== undefined
+        ? { salaryMinGte: query.salaryMinGte }
+        : {}),
+      ...(query.salaryMaxLte !== undefined
+        ? { salaryMaxLte: query.salaryMaxLte }
+        : {}),
+      ...(postedWithinDays !== undefined ? { postedWithinDays } : {}),
+      includeFacets: query.includeFacets === true,
+      ...(query.status ? { status: query.status } : {}),
+    };
+  }
+
+  private buildListWhereV1(
+    viewer: Viewer | null,
+    query: {
+      q?: string;
+      employmentTypes?: string[];
+      remote: JobsRemoteFilter;
+      salaryMinGte?: number;
+      salaryMaxLte?: number;
+      postedWithinDays?: JobsPostedWithinDays;
+      status?: JobStatus;
+    },
+  ): Prisma.JobWhereInput {
+    const andFilters: Prisma.JobWhereInput[] = [];
+
+    if (query.q) {
+      andFilters.push({
+        OR: [
+          {
+            title: {
+              contains: query.q,
+              mode: Prisma.QueryMode.insensitive,
+            },
+          },
+          {
+            description: {
+              contains: query.q,
+              mode: Prisma.QueryMode.insensitive,
+            },
+          },
+        ],
+      });
+    }
+
+    if (query.employmentTypes?.length) {
+      andFilters.push({
+        employmentType: {
+          in: query.employmentTypes,
+          mode: Prisma.QueryMode.insensitive,
+        },
+      });
+    }
+
+    if (query.remote === 'true' || query.remote === 'false') {
+      andFilters.push({
+        location: {
+          path: ['remote'],
+          equals: query.remote === 'true',
+        },
+      });
+    }
+
+    if (query.salaryMinGte !== undefined) {
+      andFilters.push({
+        OR: [
+          { salaryMax: { gte: query.salaryMinGte } },
+          { salaryMax: null },
+        ],
+      });
+    }
+    if (query.salaryMaxLte !== undefined) {
+      andFilters.push({
+        OR: [
+          { salaryMin: { lte: query.salaryMaxLte } },
+          { salaryMin: null },
+        ],
+      });
+    }
+
+    if (query.postedWithinDays !== undefined) {
+      andFilters.push({
+        publishedAt: {
+          gte: new Date(Date.now() - query.postedWithinDays * 24 * 60 * 60 * 1000),
+        },
+      });
+    }
+
+    if (viewer?.role === UserRole.RECRUITER) {
+      return {
+        recruiterId: viewer.sub,
+        deletedAt: null,
+        ...(query.status ? { status: query.status } : {}),
+        ...(andFilters.length > 0 ? { AND: andFilters } : {}),
+      };
+    }
+
+    return {
+      status: JobStatus.PUBLISHED,
+      deletedAt: null,
+      ...(andFilters.length > 0 ? { AND: andFilters } : {}),
+    };
+  }
+
+  private buildOrderBy(
+    sort: JobsSort,
+  ): Prisma.JobOrderByWithRelationInput[] | Prisma.JobOrderByWithRelationInput {
+    if (sort === 'salary_asc') {
+      return [
+        { salaryMin: 'asc' },
+        { salaryMax: 'asc' },
+        { publishedAt: 'desc' },
+        { createdAt: 'desc' },
+      ];
+    }
+    if (sort === 'salary_desc') {
+      return [
+        { salaryMax: 'desc' },
+        { salaryMin: 'desc' },
+        { publishedAt: 'desc' },
+        { createdAt: 'desc' },
+      ];
+    }
+    return [{ publishedAt: 'desc' }, { createdAt: 'desc' }];
+  }
+
+  private async computeFacets(
+    where: Prisma.JobWhereInput,
+  ): Promise<NonNullable<JobsListResponse['facets']>> {
+    const [employmentTypeRows, locationRows] = await Promise.all([
+      this.prisma.job.groupBy({
+        by: ['employmentType'],
+        where,
+        _count: { _all: true },
+      }),
+      this.prisma.job.findMany({
+        where,
+        select: { location: true },
+        take: 2000,
+      }),
+    ]);
+
+    const employmentTypes = employmentTypeRows
+      .map((row) => ({ value: row.employmentType, count: row._count._all }))
+      .filter((entry) => entry.count >= 5)
+      .sort((a, b) => b.count - a.count);
+
+    const remoteCounts = new Map<'true' | 'false', number>();
+    const cityCounts = new Map<string, number>();
+    for (const row of locationRows) {
+      const location = this.asRecord(row.location);
+      const remoteValue = location['remote'];
+      if (typeof remoteValue === 'boolean') {
+        const key: 'true' | 'false' = remoteValue ? 'true' : 'false';
+        remoteCounts.set(key, (remoteCounts.get(key) ?? 0) + 1);
+      }
+      const cityValue = this.clampString(location['city'], 120);
+      if (cityValue) {
+        cityCounts.set(cityValue, (cityCounts.get(cityValue) ?? 0) + 1);
+      }
+    }
+
+    const remote = Array.from(remoteCounts.entries())
+      .map(([value, count]) => ({ value, count }))
+      .filter((entry) => entry.count >= 5)
+      .sort((a, b) => b.count - a.count);
+    const cities = Array.from(cityCounts.entries())
+      .map(([value, count]) => ({ value, count }))
+      .filter((entry) => entry.count >= 5)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+
+    return {
+      employmentTypes,
+      remote,
+      cities,
+    };
+  }
+
+  private isFeatureEnabled(envKey: string): boolean {
+    const value = process.env[envKey];
+    return value === '1' || value === 'true' || value === 'yes';
+  }
+
+  private isSensitiveQuery(query: string): boolean {
+    const normalized = query.trim().toLowerCase();
+    const hasEmail = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/.test(normalized);
+    const hasPhone = /(?:\+?\d[\s.-]?){9,}/.test(normalized);
+    return hasEmail || hasPhone;
   }
 
   private normalizeSkills(skills: string[]): string[] {

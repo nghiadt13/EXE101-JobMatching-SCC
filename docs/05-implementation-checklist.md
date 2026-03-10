@@ -132,9 +132,9 @@ See [Migration Plan](../plans/260307-1841-schema-based-matching-pipeline-migrati
 
 ### Features
 
-- [ ] Search & filters
-- [ ] Pagination
-- [ ] Sort options
+- [x] Search & filters (homepage + `/jobs` v1)
+- [x] Pagination (`/jobs` URL-state aware)
+- [x] Sort options (`newest`, `salary_asc`, `salary_desc`)
 - [ ] Export CV/applications
 
 ## Testing Checklist
@@ -166,7 +166,16 @@ See [Migration Plan](../plans/260307-1841-schema-based-matching-pipeline-migrati
 - [ ] Publish job
 - [ ] Close job
 - [ ] Delete job
-- [ ] View job list
+- [x] View job list with filters/sort/pagination
+
+### Homepage & SEO
+
+- [x] Homepage TopCV-style sections + hero search
+- [x] Featured jobs block on homepage
+- [x] Route-level metadata for `/`, `/jobs`, `/jobs/[slug]`
+- [x] Add `sitemap.ts` and `robots.ts`
+- [x] Add JSON-LD baseline (`WebSite`, `JobPosting`)
+- [x] Add tracking baseline events (`home_search_submitted`, `apply_attempted`) behind consent + flag
 
 ### Matching & Application
 

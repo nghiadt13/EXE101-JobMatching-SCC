@@ -1276,6 +1276,20 @@ describe('Auth and User/Profile (e2e)', () => {
     expect(body.items.some((item) => item.status === 'DRAFT')).toBe(true);
   });
 
+  it('rejects invalid salary query range on jobs listing', async () => {
+    await createRequest()
+      .get('/api/jobs?salaryMinGte=5000&salaryMaxLte=1000')
+      .expect(400);
+  });
+
+  it('accepts additive jobs query parameters without breaking legacy listing', async () => {
+    const response = await createRequest()
+      .get('/api/jobs?q=backend&sort=salary_desc&remote=any&postedWithinDays=7')
+      .expect(200);
+    const body = response.body as { items: Array<{ status: string }> };
+    expect(body.items.every((item) => item.status === 'PUBLISHED')).toBe(true);
+  });
+
   it('blocks closing a draft job', async () => {
     await createRequest()
       .post('/api/jobs/job-2/close')

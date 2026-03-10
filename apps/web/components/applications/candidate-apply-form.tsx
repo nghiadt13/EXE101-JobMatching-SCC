@@ -3,6 +3,7 @@
 import { useFormStatus } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
+import { trackEvent } from '@/lib/analytics/track';
 
 type CandidateApplyFormProps = {
   jobId: string;
@@ -12,7 +13,13 @@ type CandidateApplyFormProps = {
 
 export function CandidateApplyForm({ jobId, cvs, action }: CandidateApplyFormProps) {
   return (
-    <form action={action} className="mt-6 space-y-3 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+    <form
+      action={action}
+      className="mt-6 space-y-3 rounded-2xl border border-zinc-200 bg-zinc-50 p-4"
+      onSubmit={() => {
+        trackEvent('apply_attempted', { hasPrimaryCv: cvs.some((item) => item.isPrimary) });
+      }}
+    >
       <input type="hidden" name="jobId" value={jobId} />
       <label className="block text-sm font-medium text-zinc-800" htmlFor="cvId">
         Select CV to apply

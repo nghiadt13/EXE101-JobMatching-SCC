@@ -38,4 +38,20 @@ export interface JobsListResponse {
     totalItems: number;
     totalPages: number;
   };
+  meta?: {
+    sort: 'newest' | 'salary_asc' | 'salary_desc';
+    appliedFilters: {
+      q?: string;
+      employmentTypes?: string[];
+      remote?: 'any' | 'true' | 'false';
+      salaryMinGte?: number;
+      salaryMaxLte?: number;
+      postedWithinDays?: 1 | 3 | 7 | 14 | 30;
+    };
+  };
+  facets?: {
+    employmentTypes: Array<{ value: string; count: number }>;
+    remote: Array<{ value: 'true' | 'false'; count: number }>;
+    cities: Array<{ value: string; count: number }>;
+  };
 }

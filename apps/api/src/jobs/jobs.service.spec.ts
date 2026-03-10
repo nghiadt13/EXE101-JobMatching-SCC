@@ -172,6 +172,69 @@ describe('JobsService', () => {
     expect(findManyCall?.where?.recruiterId).toBe('recruiter-1');
   });
 
+  it('applies v1 search query alias when filter flag is enabled', async () => {
+    process.env.API_JOBS_FILTERS_V1_ENABLED = 'true';
+    prismaService.job.findMany.mockResolvedValue([]);
+    prismaService.job.count.mockResolvedValue(0);
+
+    await service.list(null, { page: 1, limit: 10, search: 'nestjs' });
+
+    const findManyCalls = (
+      prismaService.job.findMany as unknown as {
+        mock: {
+          calls: Array<
+            Array<{
+              where?: {
+                AND?: Array<{ OR?: Array<{ title?: { contains?: string } }> }>;
+              };
+            }>
+          >;
+        };
+      }
+    ).mock.calls;
+    const findManyCall = findManyCalls[0]?.[0];
+    expect(findManyCall?.where?.AND?.[0]?.OR?.[0]?.title?.contains).toBe(
+      'nestjs',
+    );
+    delete process.env.API_JOBS_FILTERS_V1_ENABLED;
+  });
+
+  it('rejects invalid salary filter range for list query', async () => {
+    process.env.API_JOBS_FILTERS_V1_ENABLED = 'true';
+
+    await expect(
+      service.list(null, {
+        page: 1,
+        limit: 20,
+        salaryMinGte: 4000,
+        salaryMaxLte: 2000,
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    delete process.env.API_JOBS_FILTERS_V1_ENABLED;
+  });
+
+  it('uses salary sort order when requested in v1 mode', async () => {
+    process.env.API_JOBS_FILTERS_V1_ENABLED = 'true';
+    prismaService.job.findMany.mockResolvedValue([]);
+    prismaService.job.count.mockResolvedValue(0);
+
+    await service.list(null, { page: 1, limit: 10, sort: 'salary_desc' });
+
+    const findManyCalls = (
+      prismaService.job.findMany as unknown as {
+        mock: { calls: Array<Array<{ orderBy?: unknown }>> };
+      }
+    ).mock.calls;
+    const findManyCall = findManyCalls[0]?.[0];
+    expect(Array.isArray(findManyCall?.orderBy)).toBe(true);
+    expect(findManyCall?.orderBy).toEqual(
+      expect.arrayContaining([expect.objectContaining({ salaryMax: 'desc' })]),
+    );
+
+    delete process.env.API_JOBS_FILTERS_V1_ENABLED;
+  });
+
   it('rejects recruiter job listing when recruiter token no longer maps to an active recruiter user', async () => {
     prismaService.user.findFirst.mockResolvedValueOnce(null);
 
