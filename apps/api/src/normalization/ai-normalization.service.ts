@@ -262,7 +262,7 @@ export class AiNormalizationService {
         evidence: Array.isArray(item['evidence'])
           ? ((item['evidence'] as unknown[])
               .filter((e) => typeof e === 'string')
-              .slice(0, 3)
+              .slice(0, 3)) as string[]
           : [],
         confidence: validConfidences.has(String(item['confidence']))
           ? (String(item['confidence']) as 'high' | 'medium' | 'low')

@@ -1,12 +1,10 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
-import { redirect, notFound } from 'next/navigation';
+import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import { CandidateApplyForm } from '@/components/applications/candidate-apply-form';
-import { ExpandableChips } from '@/components/cv/expandable-chips';
 import { Alert } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
 import { createApplication } from '@/lib/applications-client';
 import { ApiError } from '@/lib/api-client';
 import { getMyCvs } from '@/lib/cv-client';
@@ -193,9 +191,8 @@ export default async function JobDetailPage({ params, searchParams }: PageProps)
               <div className="mt-8 border-b border-slate-200 dark:border-slate-800">
                 <nav className="flex gap-8">
                   <a className="pb-4 border-b-2 border-primary text-primary font-bold text-sm" href="#description">Job Description</a>
-                  {!!job.skills?.length && (
-                    <a className="pb-4 border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 font-medium text-sm" href="#skills">Skills</a>
-                  )}
+                  <a className="pb-4 border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 font-medium text-sm" href="#requirements">Requirements</a>
+                  <a className="pb-4 border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 font-medium text-sm" href="#benefits">Benefits</a>
                 </nav>
               </div>
 
@@ -207,14 +204,60 @@ export default async function JobDetailPage({ params, searchParams }: PageProps)
                   </p>
                 </section>
 
-                {!!job.skills?.length && (
-                  <section id="skills">
-                    <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                      <span className="material-symbols-outlined text-primary">verified_user</span> Key Skills
-                    </h3>
-                    <ExpandableChips title="" items={job.skills} />
-                  </section>
-                )}
+                <section id="requirements">
+                  <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary">verified_user</span> Requirements
+                  </h3>
+                  {!!job.skills?.length ? (
+                    <ul className="list-disc list-inside space-y-3 text-slate-600 dark:text-slate-400">
+                      {job.skills.map((skill: string) => (
+                        <li key={skill}>Proficiency in {skill}.</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <ul className="list-disc list-inside space-y-3 text-slate-600 dark:text-slate-400">
+                      <li>Relevant professional experience in the role.</li>
+                      <li>Strong communication and collaboration skills.</li>
+                      <li>Proficiency in Git and agile development methodologies.</li>
+                    </ul>
+                  )}
+                </section>
+
+                <section id="benefits">
+                  <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary">redeem</span> Benefits &amp; Perks
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-start gap-3">
+                      <span className="material-symbols-outlined text-primary">medical_services</span>
+                      <div>
+                        <p className="font-semibold text-sm">Full Health Insurance</p>
+                        <p className="text-xs text-slate-500">Premium dental, medical, and vision coverage.</p>
+                      </div>
+                    </div>
+                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-start gap-3">
+                      <span className="material-symbols-outlined text-primary">schedule</span>
+                      <div>
+                        <p className="font-semibold text-sm">Flexible Hours</p>
+                        <p className="text-xs text-slate-500">Core hours with flexible start and end times.</p>
+                      </div>
+                    </div>
+                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-start gap-3">
+                      <span className="material-symbols-outlined text-primary">home_work</span>
+                      <div>
+                        <p className="font-semibold text-sm">Hybrid Work Model</p>
+                        <p className="text-xs text-slate-500">3 days in-office, 2 days remote work.</p>
+                      </div>
+                    </div>
+                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-start gap-3">
+                      <span className="material-symbols-outlined text-primary">fitness_center</span>
+                      <div>
+                        <p className="font-semibold text-sm">Gym Membership</p>
+                        <p className="text-xs text-slate-500">Monthly allowance for fitness and wellness.</p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
 
                 <div className="border-t border-slate-200 dark:border-slate-800 pt-8">
                   <h3 className="text-lg font-bold mb-4">Submit Your Application</h3>
@@ -273,6 +316,10 @@ export default async function JobDetailPage({ params, searchParams }: PageProps)
               
               <div className="space-y-4">
                 <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">Company size</span>
+                  <span className="font-medium">10,000+ employees</span>
+                </div>
+                <div className="flex justify-between text-sm">
                   <span className="text-slate-500">Industry</span>
                   <span className="font-medium">Technology</span>
                 </div>
@@ -280,11 +327,48 @@ export default async function JobDetailPage({ params, searchParams }: PageProps)
                   <span className="text-slate-500">Headquarters</span>
                   <span className="font-medium">{locationStr}</span>
                 </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">Founded</span>
+                  <span className="font-medium">2010</span>
+                </div>
               </div>
               
               <button className="w-full mt-6 py-2.5 border-2 border-primary text-primary font-bold rounded-xl hover:bg-primary/5 transition-colors">
                 Follow Company
               </button>
+            </div>
+
+            <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+              <h3 className="text-lg font-bold mb-4">Similar Jobs</h3>
+              <div className="space-y-6">
+                <div className="group cursor-pointer">
+                  <div className="flex justify-between items-start mb-1">
+                    <h4 className="font-bold text-sm group-hover:text-primary transition-colors">Senior iOS Engineer</h4>
+                    <span className="text-[10px] font-bold text-slate-400">3d ago</span>
+                  </div>
+                  <p className="text-xs text-slate-500 mb-2">InnovateApp • San Francisco, CA</p>
+                  <p className="text-xs font-bold text-primary">$160k - $210k</p>
+                </div>
+                <div className="group cursor-pointer">
+                  <div className="flex justify-between items-start mb-1">
+                    <h4 className="font-bold text-sm group-hover:text-primary transition-colors">Mobile Developer (Swift)</h4>
+                    <span className="text-[10px] font-bold text-slate-400">1w ago</span>
+                  </div>
+                  <p className="text-xs text-slate-500 mb-2">FutureTech • Remote</p>
+                  <p className="text-xs font-bold text-primary">$130k - $155k</p>
+                </div>
+                <div className="group cursor-pointer">
+                  <div className="flex justify-between items-start mb-1">
+                    <h4 className="font-bold text-sm group-hover:text-primary transition-colors">Staff iOS Engineer</h4>
+                    <span className="text-[10px] font-bold text-slate-400">2h ago</span>
+                  </div>
+                  <p className="text-xs text-slate-500 mb-2">GlobalPay • Palo Alto, CA</p>
+                  <p className="text-xs font-bold text-primary">$180k - $240k</p>
+                </div>
+              </div>
+              <a className="block text-center text-sm font-bold text-slate-400 mt-6 hover:text-slate-600 dark:hover:text-slate-200 transition-colors" href="#">
+                View All Recommendations
+              </a>
             </div>
           </div>
         </div>

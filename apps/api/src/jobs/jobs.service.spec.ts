@@ -9,6 +9,7 @@ import { JobStatus, UserRole } from '@prisma/client';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DocumentStorageService } from '../documents/services/document-storage.service';
 import { DocumentTextExtractorService } from '../documents/services/document-text-extractor.service';
+import { HomepageCacheService } from '../homepage/homepage-cache.service';
 import { JobRequirementsSchemaService } from '../matching/services/job-requirements-schema.service';
 import { SkillStorageAdapterService } from '../matching/services/skill-storage-adapter.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -40,6 +41,7 @@ describe('JobsService', () => {
   };
   let aiNormalizationService: { normalizeJob: jest.Mock };
   let skillStorageAdapterService: { toStoredSkills: jest.Mock };
+  let homepageCacheService: { clearAll: jest.Mock; clearByUser: jest.Mock };
   let generateUniqueSlug: jest.Mock;
 
   const normalizedJobResult = {
@@ -93,6 +95,10 @@ describe('JobsService', () => {
     aiNormalizationService = {
       normalizeJob: jest.fn().mockResolvedValue(normalizedJobResult),
     };
+    homepageCacheService = {
+      clearAll: jest.fn(),
+      clearByUser: jest.fn(),
+    };
     skillStorageAdapterService = {
       toStoredSkills: jest.fn((skills: string[]) => ({
         skills,
@@ -132,6 +138,10 @@ describe('JobsService', () => {
             warn: jest.fn(),
             error: jest.fn(),
           },
+        },
+        {
+          provide: HomepageCacheService,
+          useValue: homepageCacheService,
         },
       ],
     }).compile();
@@ -938,5 +948,81 @@ describe('JobsService', () => {
     expect(prismaService.job.create).toHaveBeenCalledTimes(2);
     expect(documentStorageService.remove).not.toHaveBeenCalled();
     expect(result.slug).toBe('job-2');
+  });
+
+  it('saves a published job for candidate and invalidates user homepage cache', async () => {
+    prismaService.user.findFirst.mockResolvedValueOnce({
+      id: 'candidate-1',
+      role: UserRole.CANDIDATE,
+    });
+    prismaService.job.findFirst.mockResolvedValueOnce({
+      id: 'job-1',
+      recruiterId: 'recruiter-1',
+      status: JobStatus.PUBLISHED,
+    });
+    (prismaService as unknown as { savedJob: { upsert: jest.Mock } }).savedJob =
+      {
+        upsert: jest.fn().mockResolvedValue({
+          id: 'saved-1',
+          userId: 'candidate-1',
+          jobId: 'job-1',
+        }),
+      };
+
+    const result = await service.saveJob('candidate-1', 'job-1');
+
+    expect(result).toEqual({ jobId: 'job-1', isSaved: true });
+    expect(
+      (prismaService as unknown as { savedJob: { upsert: jest.Mock } }).savedJob
+        .upsert,
+    ).toHaveBeenCalledWith({
+      where: {
+        userId_jobId: {
+          userId: 'candidate-1',
+          jobId: 'job-1',
+        },
+      },
+      create: {
+        userId: 'candidate-1',
+        jobId: 'job-1',
+      },
+      update: {},
+    });
+    expect(homepageCacheService.clearByUser).toHaveBeenCalledWith(
+      'candidate-1',
+    );
+  });
+
+  it('unsaves a job and invalidates user homepage cache', async () => {
+    prismaService.user.findFirst.mockResolvedValueOnce({
+      id: 'candidate-1',
+      role: UserRole.CANDIDATE,
+    });
+    prismaService.job.findFirst.mockResolvedValueOnce({
+      id: 'job-1',
+      recruiterId: 'recruiter-1',
+      status: JobStatus.PUBLISHED,
+    });
+    (
+      prismaService as unknown as { savedJob: { deleteMany: jest.Mock } }
+    ).savedJob = {
+      deleteMany: jest.fn().mockResolvedValue({ count: 1 }),
+    };
+
+    const result = await service.unsaveJob('candidate-1', 'job-1');
+
+    expect(result).toEqual({ jobId: 'job-1', isSaved: false });
+    expect(
+      (prismaService as unknown as { savedJob: { deleteMany: jest.Mock } })
+        .savedJob.deleteMany,
+    ).toHaveBeenCalledWith({
+      where: {
+        userId: 'candidate-1',
+        jobId: 'job-1',
+      },
+    });
+    expect(homepageCacheService.clearByUser).toHaveBeenCalledWith(
+      'candidate-1',
+    );
   });
 });

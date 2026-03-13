@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
+import { auth } from '@/auth';
 import { HomepageMain } from '@/components/home/homepage-main';
+import { getHomepage } from '@/lib/homepage-client';
 
 export const metadata: Metadata = {
   title: 'HireStream - Your Career Starts Here',
@@ -8,6 +10,22 @@ export const metadata: Metadata = {
   alternates: { canonical: '/' },
 };
 
-export default function HomePage() {
-  return <HomepageMain />;
+export default async function HomePage() {
+  const session = await auth();
+  const token = session?.accessToken || undefined;
+
+  let homepageData = null;
+  try {
+    homepageData = await getHomepage({ token });
+  } catch (error) {
+    console.error('Failed to fetch homepage data', error);
+  }
+
+  return (
+    <HomepageMain
+      initialData={homepageData}
+      accessToken={token ?? null}
+      isAuthenticated={Boolean(token)}
+    />
+  );
 }
