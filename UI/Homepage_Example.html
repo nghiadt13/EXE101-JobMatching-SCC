@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>HireStream - Your Career Starts Here</title>
+<!-- Tailwind CSS v3 CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Font Awesome for Icons -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            primary: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              200: '#bfdbfe',
+              300: '#93c5fd',
+              400: '#60a5fa',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              800: '#1e40af',
+              900: '#1e3a8a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+<style data-purpose="custom-styles">
+    /* Smooth scroll behavior */
+    html {
+      scroll-behavior: smooth;
+    }
+
+    /* Custom scrollbar for logo bar */
+    .hide-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .hide-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    /* Hero Background Overlay */
+    .hero-overlay {
+      background: linear-gradient(rgba(15, 23, 42, 0.7), rgba(15, 23, 42, 0.7));
+    }
+
+    /* Transition effects */
+    .transition-standard {
+      transition: all 0.3s ease;
+    }
+
+    /* Stats Section Gradient updated to Blue */
+    .stats-gradient {
+      background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #2563eb 100%);
+    }
+
+    /* Chart Animations */
+    @keyframes grow-up {
+      from { height: 0; }
+      to { height: var(--final-height); }
+    }
+    .bar-animate {
+      animation: grow-up 1s ease-out forwards;
+    }
+
+    /* Job Card Hover */
+    .job-grid-card {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .job-grid-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Dropdown Animation */
+    .dropdown-menu {
+      display: none;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.2s ease;
+    }
+    .dropdown-active .dropdown-menu {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body class="bg-gray-50 text-slate-900 font-sans">
+<!-- BEGIN: StickyHeader -->
+<header class="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
+<nav class="w-full px-4 sm:px-8 lg:px-12 h-20 flex items-center justify-between">
+<!-- Logo -->
+<div class="flex items-center gap-2">
+<div class="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center text-white">
+<i class="fa-solid fa-bolt-lightning text-xl"></i>
+</div>
+<span class="text-2xl font-bold tracking-tight text-slate-800">HireStream</span>
+</div>
+<!-- Main Navigation -->
+<div class="hidden lg:flex items-center space-x-8">
+<a class="text-sm font-medium text-slate-600 hover:text-primary-600 transition-standard" href="#">Find Jobs</a>
+<a class="text-sm font-medium text-slate-600 hover:text-primary-600 transition-standard" href="#">Companies</a>
+<a class="text-sm font-medium text-slate-600 hover:text-primary-600 transition-standard" href="#">Salaries</a>
+<a class="px-4 py-2 border border-primary-600 text-primary-600 rounded-md text-sm font-semibold hover:bg-primary-50 transition-standard" href="#">Post a Job</a>
+</div>
+<!-- Right Side Actions: Notification, Chat, Profile -->
+<div class="flex items-center space-x-2 md:space-x-4">
+<!-- Notification Icon -->
+<button class="relative p-2.5 text-slate-600 hover:text-primary-600 hover:bg-primary-50 rounded-full transition-standard group">
+<i class="fa-regular fa-bell text-xl"></i>
+<span class="absolute top-2 right-2 flex h-2.5 w-2.5">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary-600"></span>
+</span>
+</button>
+<!-- Chat/Message Icon -->
+<button class="p-2.5 text-slate-600 hover:text-primary-600 hover:bg-primary-50 rounded-full transition-standard">
+<i class="fa-regular fa-comment-dots text-xl"></i>
+</button>
+<!-- Divider -->
+<div class="w-px h-6 bg-gray-200 hidden md:block"></div>
+<!-- User Profile Avatar with Dropdown -->
+<div class="relative" id="profile-dropdown-container">
+<button class="flex items-center gap-3 p-1 rounded-full hover:bg-gray-100 transition-standard focus:outline-none" id="profile-btn">
+<div class="w-10 h-10 rounded-full overflow-hidden border-2 border-primary-100">
+<img alt="User" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDJWS7D-glrmKnFu1VhcuuzOu_7JGrK2arpYsJhWT1gTvdQviF_WOQofU7PVeH7WcAnTep-bGy3eDxC-u5JWJ6btQ_PpU8N7RLp6ze8iuUAyxMNaPvh7vsNqNncmWtgpXqIkFfN-CwD9wvu3QBjNDz0P-aYmdSzPgd5pPKYsFLSoGF3ETtkfmQJmnIBQiJXzHR3C5WIeRcyyfW5do8LWB-YCjSE7LC6BWr8-hHiTUWfuLW5jH4sd6yFney9N9Bx4mjD9jH2lhNszDE"/>
+</div>
+<div class="hidden md:block text-left pr-2">
+<p class="text-xs font-bold text-slate-800 leading-none">Alex Rivera</p>
+<p class="text-[10px] text-gray-500 mt-1">Free Plan</p>
+</div>
+<i class="fa-solid fa-chevron-down text-[10px] text-gray-400 mr-1 hidden md:block transition-transform duration-200" id="dropdown-arrow"></i>
+</button>
+<!-- Dropdown Menu -->
+<div class="dropdown-menu absolute right-0 top-full pt-2 w-56 z-[60]" id="profile-menu">
+<div class="bg-white rounded-xl shadow-xl border border-gray-100 py-2">
+<div class="px-4 py-3 border-b border-gray-50 mb-1">
+<p class="text-sm font-semibold text-slate-900">Alex Rivera</p>
+<p class="text-xs text-gray-500 truncate">alex.rivera@example.com</p>
+</div>
+<a class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-primary-50 hover:text-primary-600 transition-standard" href="#">
+<i class="fa-solid fa-user-gear w-4 text-center"></i> Settings
+            </a>
+<a class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-primary-50 hover:text-primary-600 transition-standard" href="#">
+<i class="fa-solid fa-briefcase w-4 text-center"></i> My Applications
+            </a>
+<a class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-primary-50 hover:text-primary-600 transition-standard" href="#">
+<i class="fa-solid fa-file-invoice w-4 text-center"></i> My CVs
+            </a>
+<div class="h-px bg-gray-50 my-1 mx-2"></div>
+<a class="flex items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-standard" href="#">
+<i class="fa-solid fa-arrow-right-from-bracket w-4 text-center"></i> Log out
+            </a>
+</div>
+</div>
+</div>
+</div>
+</nav>
+</header>
+<!-- END: StickyHeader -->
+<main>
+<!-- BEGIN: HeroSection -->
+<section class="relative h-[600px] flex items-center justify-center overflow-hidden">
+<!-- Background Image -->
+<img alt="Office Collaboration" class="absolute inset-0 w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDfgq41SCyJjCh8zdZiRw6w8jt0VVFLbbLZt7ykfAFG5aMhH40ASM8UMZ9MfGO8putfc51TN2a1kZKzgL-xf1h2OCA2zfSWVROPUmoryvq3LWede7BycCZTqzh84lcsbOCYi2E_Uci0U4tKT8uz1n9flsEcFS-JQpNGsZwDylU6idlM9bD_qSH0Ka99HwwLlw_9-MwVTdiTw3FGdxMlEg-6TyTfakh-LEv5JrJRl1lGhd3E8PBaADKLpsv489FaNa0QW7cfRgIorbk"/>
+<div class="absolute inset-0 hero-overlay"></div>
+<div class="relative z-10 max-w-4xl w-full px-4 text-center">
+<h1 class="text-4xl md:text-6xl font-extrabold text-white mb-6 leading-tight">
+          Find Your Dream Job <br/><span class="text-primary-400">Where You Belong.</span>
+</h1>
+<p class="text-lg text-gray-300 mb-10 max-w-2xl mx-auto">
+          Over 500,000 active job openings from top-tier companies and innovative startups worldwide.
+        </p>
+<!-- Search Bar -->
+<div class="bg-white p-2 rounded-2xl shadow-2xl flex flex-col md:flex-row items-center gap-2 max-w-3xl mx-auto" data-purpose="job-search-bar">
+<div class="flex-1 flex items-center px-4 w-full">
+<i class="fa-solid fa-magnifying-glass text-gray-400 mr-3"></i>
+<input class="w-full border-none focus:ring-0 text-slate-800 py-3" placeholder="Job title, keywords..." type="text"/>
+</div>
+<div class="hidden md:block w-px h-8 bg-gray-200"></div>
+<div class="flex-1 flex items-center px-4 w-full">
+<i class="fa-solid fa-location-dot text-gray-400 mr-3"></i>
+<input class="w-full border-none focus:ring-0 text-slate-800 py-3" placeholder="City or remote" type="text"/>
+</div>
+<button class="w-full md:w-auto bg-primary-600 text-white px-8 py-3.5 rounded-xl font-bold hover:bg-primary-700 transition-standard">
+            Search Jobs
+          </button>
+</div>
+<div class="mt-8 flex flex-wrap justify-center gap-4 text-white/80 text-sm">
+<span>Popular:</span>
+<a class="underline hover:text-white" href="#">Software Engineer</a>
+<a class="underline hover:text-white" href="#">Product Designer</a>
+<a class="underline hover:text-white" href="#">Marketing Manager</a>
+</div>
+</div>
+</section>
+<!-- END: HeroSection -->
+<!-- BEGIN: Statistics Dashboard Section (Updated to Blue/White scheme) -->
+<section class="py-12 px-4 -mt-16 relative z-20">
+<div class="max-w-7xl mx-auto rounded-3xl overflow-hidden shadow-2xl stats-gradient p-8 text-white">
+<div class="flex flex-col lg:flex-row gap-8">
+<!-- Left Info: Mascot & Quick Metrics -->
+<div class="lg:w-1/3 space-y-8">
+<div class="flex items-center gap-4">
+<div class="relative">
+<div class="w-20 h-20 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/20">
+<i class="fa-solid fa-robot text-4xl text-white"></i>
+</div>
+<div class="absolute -top-1 -right-1 w-4 h-4 bg-primary-400 rounded-full border-2 border-primary-900 animate-pulse"></div>
+</div>
+<div>
+<h2 class="text-2xl font-bold">Job Market Today</h2>
+<p class="text-primary-100 text-sm">March 13, 2026</p>
+</div>
+</div>
+<div class="grid grid-cols-1 gap-4">
+<div class="bg-white/10 p-5 rounded-2xl border border-white/10 backdrop-blur-sm hover:bg-white/20 transition-all">
+<p class="text-3xl font-bold">5,059</p>
+<p class="text-primary-100 text-sm font-medium">New Jobs in last 24h</p>
+</div>
+<div class="bg-white/10 p-5 rounded-2xl border border-white/10 backdrop-blur-sm hover:bg-white/20 transition-all">
+<p class="text-3xl font-bold">63,198</p>
+<p class="text-primary-100 text-sm font-medium">Total Active Openings</p>
+</div>
+<div class="bg-white/10 p-5 rounded-2xl border border-white/10 backdrop-blur-sm hover:bg-white/20 transition-all">
+<p class="text-3xl font-bold">18,402</p>
+<p class="text-primary-100 text-sm font-medium">Hiring Companies</p>
+</div>
+</div>
+</div>
+<!-- Right Data: Visual Charts -->
+<div class="lg:w-2/3 grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- Growth Chart Placeholder -->
+<div class="bg-white/5 p-6 rounded-2xl border border-white/10">
+<div class="flex justify-between items-center mb-6">
+<h3 class="text-sm font-bold uppercase tracking-wider text-white"><i class="fa-solid fa-chart-line mr-2"></i> Job Opportunity Growth</h3>
+</div>
+<div class="h-48 flex items-end justify-between relative">
+<!-- Simplified SVG Curve - Updated to white stroke -->
+<svg class="absolute inset-0 w-full h-full" preserveaspectratio="none" viewbox="0 0 100 100">
+<path d="M0 80 Q 20 75, 40 85 T 60 50 T 80 40 T 100 20" fill="none" stroke="#ffffff" stroke-width="3"></path>
+</svg>
+<!-- Grid Lines -->
+<div class="absolute inset-0 flex flex-col justify-between opacity-10">
+<div class="w-full border-t border-white"></div>
+<div class="w-full border-t border-white"></div>
+<div class="w-full border-t border-white"></div>
+<div class="w-full border-t border-white"></div>
+</div>
+</div>
+<div class="flex justify-between mt-4 text-[10px] text-primary-100/70">
+<span>11/02</span>
+<span>17/02</span>
+<span>23/02</span>
+<span>01/03</span>
+<span>07/03</span>
+<span>13/03</span>
+</div>
+</div>
+<!-- Hiring Demand Bar Chart -->
+<div class="bg-white/5 p-6 rounded-2xl border border-white/10">
+<div class="flex justify-between items-center mb-6">
+<h3 class="text-sm font-bold uppercase tracking-wider text-white"><i class="fa-solid fa-chart-bar mr-2"></i> Demand by Industry</h3>
+<select class="bg-white/10 border border-white/20 rounded text-xs px-2 py-1 focus:ring-0 focus:border-white/40 text-white">
+<option class="text-slate-800">Industries</option>
+</select>
+</div>
+<div class="h-48 flex items-end justify-around gap-2 px-2">
+<!-- Updated to shades of white/blue -->
+<div class="w-8 bg-white rounded-t-sm bar-animate" style="--final-height: 90%; height: 0;"></div>
+<div class="w-8 bg-primary-200 rounded-t-sm bar-animate" style="--final-height: 70%; height: 0;"></div>
+<div class="w-8 bg-primary-300 rounded-t-sm bar-animate" style="--final-height: 60%; height: 0;"></div>
+<div class="w-8 bg-primary-400 rounded-t-sm bar-animate" style="--final-height: 45%; height: 0;"></div>
+<div class="w-8 bg-primary-100 rounded-t-sm bar-animate" style="--final-height: 40%; height: 0;"></div>
+</div>
+<div class="mt-4 flex flex-wrap gap-2 text-[10px] text-primary-50">
+<span class="flex items-center gap-1"><span class="w-2 h-2 bg-white rounded-full"></span> Sales</span>
+<span class="flex items-center gap-1"><span class="w-2 h-2 bg-primary-200 rounded-full"></span> Admin</span>
+<span class="flex items-center gap-1"><span class="w-2 h-2 bg-primary-300 rounded-full"></span> Service</span>
+<span class="flex items-center gap-1"><span class="w-2 h-2 bg-primary-400 rounded-full"></span> Marketing</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- END: Statistics Dashboard Section -->
+<!-- BEGIN: TrustedCompanies -->
+<section class="bg-white py-12 border-b border-gray-100">
+<div class="max-w-7xl mx-auto px-4">
+<p class="text-center text-gray-400 text-sm font-semibold uppercase tracking-widest mb-8">Trusted by 10,000+ top companies</p>
+<div class="flex flex-wrap justify-center items-center gap-10 md:gap-20 opacity-40 grayscale">
+<i class="fa-brands fa-google text-4xl"></i>
+<i class="fa-brands fa-microsoft text-4xl"></i>
+<i class="fa-brands fa-amazon text-4xl"></i>
+<i class="fa-brands fa-apple text-4xl"></i>
+<i class="fa-brands fa-airbnb text-4xl"></i>
+<i class="fa-brands fa-slack text-4xl"></i>
+</div>
+</div>
+</section>
+<!-- END: TrustedCompanies -->
+<!-- BEGIN: TopCategories -->
+<section class="py-20 bg-gray-50">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="flex justify-between items-end mb-12">
+<div>
+<h2 class="text-3xl font-bold text-slate-900">Explore by Category</h2>
+<p class="text-gray-500 mt-2">Find the right path for your professional growth.</p>
+</div>
+<a class="text-primary-600 font-semibold hover:underline" href="#">View all categories <i class="fa-solid fa-arrow-right ml-1"></i></a>
+</div>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+<div class="bg-white p-8 rounded-2xl border border-gray-100 hover:border-primary-500 hover:shadow-xl transition-all cursor-pointer group">
+<div class="w-14 h-14 bg-blue-50 rounded-xl flex items-center justify-center text-primary-600 mb-6 group-hover:bg-primary-600 group-hover:text-white transition-standard">
+<i class="fa-solid fa-code text-2xl"></i>
+</div>
+<h3 class="font-bold text-lg text-slate-800">Tech &amp; Software</h3>
+<p class="text-gray-500 text-sm mt-1">1,240 Openings</p>
+</div>
+<div class="bg-white p-8 rounded-2xl border border-gray-100 hover:border-primary-500 hover:shadow-xl transition-all cursor-pointer group">
+<div class="w-14 h-14 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600 mb-6 group-hover:bg-primary-600 group-hover:text-white transition-standard">
+<i class="fa-solid fa-pen-nib text-2xl"></i>
+</div>
+<h3 class="font-bold text-lg text-slate-800">Design &amp; Creative</h3>
+<p class="text-gray-500 text-sm mt-1">840 Openings</p>
+</div>
+<div class="bg-white p-8 rounded-2xl border border-gray-100 hover:border-primary-500 hover:shadow-xl transition-all cursor-pointer group">
+<div class="w-14 h-14 bg-green-50 rounded-xl flex items-center justify-center text-green-600 mb-6 group-hover:bg-primary-600 group-hover:text-white transition-standard">
+<i class="fa-solid fa-chart-line text-2xl"></i>
+</div>
+<h3 class="font-bold text-lg text-slate-800">Marketing &amp; Sales</h3>
+<p class="text-gray-500 text-sm mt-1">920 Openings</p>
+</div>
+<div class="bg-white p-8 rounded-2xl border border-gray-100 hover:border-primary-500 hover:shadow-xl transition-all cursor-pointer group">
+<div class="w-14 h-14 bg-orange-50 rounded-xl flex items-center justify-center text-orange-600 mb-6 group-hover:bg-primary-600 group-hover:text-white transition-standard">
+<i class="fa-solid fa-landmark text-2xl"></i>
+</div>
+<h3 class="font-bold text-lg text-slate-800">Finance &amp; Banking</h3>
+<p class="text-gray-500 text-sm mt-1">450 Openings</p>
+</div>
+</div>
+</div>
+</section>
+<!-- END: TopCategories -->
+<!-- BEGIN: FeaturedJobsGrid -->
+<section class="py-20 bg-white">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+<div>
+<h2 class="text-3xl font-bold text-slate-900">Best Jobs For You</h2>
+<p class="text-gray-500 mt-1 flex items-center gap-2">
+<span class="w-2 h-2 bg-green-500 rounded-full"></span> Recommendations by HireStream AI
+            </p>
+</div>
+<a class="text-primary-600 font-bold hover:underline" href="#">View all <i class="fa-solid fa-chevron-right text-xs ml-1"></i></a>
+</div>
+<!-- Location Filter Bar -->
+<div class="flex items-center gap-4 mb-8 overflow-x-auto pb-2 hide-scrollbar">
+<div class="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg text-gray-500 shrink-0">
+<i class="fa-solid fa-filter text-xs"></i>
+<span class="text-sm font-medium">Filter by: Location</span>
+<i class="fa-solid fa-chevron-down text-[10px] ml-2"></i>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-5 py-2 bg-primary-600 text-white rounded-full text-sm font-semibold transition-standard">All Locations</button>
+<button class="px-5 py-2 bg-gray-100 text-gray-600 hover:bg-gray-200 rounded-full text-sm font-semibold transition-standard">Hà Nội</button>
+<button class="px-5 py-2 bg-gray-100 text-gray-600 hover:bg-gray-200 rounded-full text-sm font-semibold transition-standard">Ba Đình</button>
+<button class="px-5 py-2 bg-gray-100 text-gray-600 hover:bg-gray-200 rounded-full text-sm font-semibold transition-standard">Hoàn Kiếm</button>
+<button class="px-5 py-2 bg-gray-100 text-gray-600 hover:bg-gray-200 rounded-full text-sm font-semibold transition-standard">Hai Bà Trưng</button>
+<button class="px-5 py-2 bg-gray-100 text-gray-600 hover:bg-gray-200 rounded-full text-sm font-semibold transition-standard">Đống Đa</button>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<!-- Job Card 1 -->
+<div class="job-grid-card border border-gray-200 rounded-2xl p-6 bg-white flex flex-col h-full relative group">
+<div class="flex justify-between items-start mb-4">
+<div class="w-14 h-14 rounded-xl border border-gray-100 p-2 flex items-center justify-center">
+<i class="fa-brands fa-apple text-3xl text-gray-800"></i>
+</div>
+<button class="w-8 h-8 rounded-full flex items-center justify-center border border-gray-100 text-gray-400 hover:text-red-500 hover:border-red-100 transition-standard">
+<i class="fa-regular fa-heart"></i>
+</button>
+</div>
+<div class="flex-grow">
+<h3 class="text-lg font-bold text-slate-900 group-hover:text-primary-600 transition-standard leading-tight mb-1 cursor-pointer">iOS Developer Fulltime</h3>
+<p class="text-gray-500 text-sm mb-2">Apple Inc. Vietnam</p>
+<p class="text-gray-600 text-sm mb-4 line-clamp-2">Develop cutting-edge mobile applications using Swift and SwiftUI for the Apple ecosystem.</p>
+<div class="flex items-center gap-2 mb-4">
+<span class="text-primary-600 font-bold text-sm bg-primary-50 px-2 py-0.5 rounded">15 - 35 Triệu</span>
+</div>
+</div>
+<div class="flex items-center justify-between mt-auto pt-4 border-t border-gray-50">
+<div class="flex flex-wrap gap-2">
+<span class="px-3 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">Hà Nội</span>
+</div>
+<a class="bg-primary-600 text-white text-sm font-bold flex items-center gap-1 hover:gap-2 px-4 py-2 rounded-full hover:bg-primary-700 transition-all" href="#">
+                Xem chi tiết <i class="fa-solid fa-arrow-right text-xs"></i>
+</a>
+</div>
+</div>
+<!-- Job Card 2 -->
+<div class="job-grid-card border border-gray-200 rounded-2xl p-6 bg-white flex flex-col h-full relative group">
+<div class="flex justify-between items-start mb-4">
+<div class="w-14 h-14 rounded-xl border border-gray-100 p-2 flex items-center justify-center overflow-hidden bg-orange-50">
+<i class="fa-solid fa-lemon text-3xl text-orange-400"></i>
+</div>
+<button class="w-8 h-8 rounded-full flex items-center justify-center border border-gray-100 text-gray-400 hover:text-red-500 hover:border-red-100 transition-standard">
+<i class="fa-regular fa-heart"></i>
+</button>
+</div>
+<div class="flex-grow">
+<h3 class="text-lg font-bold text-slate-900 group-hover:text-primary-600 transition-standard leading-tight mb-1 cursor-pointer">Sale Representative (Global)</h3>
+<p class="text-gray-500 text-sm mb-2">MIKY GROUP JSC</p>
+<p class="text-gray-600 text-sm mb-4 line-clamp-2">Expand our market reach globally by building relationships with international enterprise clients.</p>
+<div class="flex items-center gap-2 mb-4">
+<span class="text-primary-600 font-bold text-sm bg-primary-50 px-2 py-0.5 rounded">8 - 20 Triệu</span>
+</div>
+</div>
+<div class="flex items-center justify-between mt-auto pt-4 border-t border-gray-50">
+<div class="flex flex-wrap gap-2">
+<span class="px-3 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">Remote OK</span>
+</div>
+<a class="bg-primary-600 text-white text-sm font-bold flex items-center gap-1 hover:gap-2 px-4 py-2 rounded-full hover:bg-primary-700 transition-all" href="#">
+                Xem chi tiết <i class="fa-solid fa-arrow-right text-xs"></i>
+</a>
+</div>
+</div>
+<!-- Job Card 3 -->
+<div class="job-grid-card border border-gray-200 rounded-2xl p-6 bg-white flex flex-col h-full relative group">
+<div class="flex justify-between items-start mb-4">
+<div class="w-14 h-14 rounded-xl border border-gray-100 p-2 flex items-center justify-center bg-blue-50">
+<i class="fa-solid fa-building-columns text-3xl text-blue-600"></i>
+</div>
+<button class="w-8 h-8 rounded-full flex items-center justify-center border border-gray-100 text-gray-400 hover:text-red-500 hover:border-red-100 transition-standard">
+<i class="fa-regular fa-heart"></i>
+</button>
+</div>
+<div class="flex-grow">
+<h3 class="text-lg font-bold text-slate-900 group-hover:text-primary-600 transition-standard leading-tight mb-1 cursor-pointer">Accountant Manager</h3>
+<p class="text-gray-500 text-sm mb-2">Tech Online Vietnam</p>
+<p class="text-gray-600 text-sm mb-4 line-clamp-2">Lead our financial department and ensure compliance with Vietnamese accounting standards.</p>
+<div class="flex items-center gap-2 mb-4">
+<span class="text-primary-600 font-bold text-sm bg-primary-50 px-2 py-0.5 rounded">Up to 25 Triệu</span>
+</div>
+</div>
+<div class="flex items-center justify-between mt-auto pt-4 border-t border-gray-50">
+<div class="flex flex-wrap gap-2">
+<span class="px-3 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">Hà Nội</span>
+</div>
+<a class="bg-primary-600 text-white text-sm font-bold flex items-center gap-1 hover:gap-2 px-4 py-2 rounded-full hover:bg-primary-700 transition-all" href="#">
+                Xem chi tiết <i class="fa-solid fa-arrow-right text-xs"></i>
+</a>
+</div>
+</div>
+<!-- Job Card 4 -->
+<div class="job-grid-card border border-gray-200 rounded-2xl p-6 bg-white flex flex-col h-full relative group">
+<div class="flex justify-between items-start mb-4">
+<div class="w-14 h-14 rounded-xl border border-gray-100 p-2 flex items-center justify-center bg-slate-50">
+<i class="fa-brands fa-figma text-3xl text-purple-600"></i>
+</div>
+<button class="w-8 h-8 rounded-full flex items-center justify-center border border-gray-100 text-gray-400 hover:text-red-500 hover:border-red-100 transition-standard">
+<i class="fa-regular fa-heart"></i>
+</button>
+</div>
+<div class="flex-grow">
+<h3 class="text-lg font-bold text-slate-900 group-hover:text-primary-600 transition-standard leading-tight mb-1 cursor-pointer">Lead Product Designer</h3>
+<p class="text-gray-500 text-sm mb-2">Figma Design Lab</p>
+<p class="text-gray-600 text-sm mb-4 line-clamp-2">Shape the future of collaborative design tools with a user-centric approach.</p>
+<div class="flex items-center gap-2 mb-4">
+<span class="text-primary-600 font-bold text-sm bg-primary-50 px-2 py-0.5 rounded">20 - 50 Triệu</span>
+</div>
+</div>
+<div class="flex items-center justify-between mt-auto pt-4 border-t border-gray-50">
+<div class="flex flex-wrap gap-2">
+<span class="px-3 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">Remote</span>
+</div>
+<a class="bg-primary-600 text-white text-sm font-bold flex items-center gap-1 hover:gap-2 px-4 py-2 rounded-full hover:bg-primary-700 transition-all" href="#">
+                Xem chi tiết <i class="fa-solid fa-arrow-right text-xs"></i>
+</a>
+</div>
+</div>
+<!-- Job Card 5 -->
+<div class="job-grid-card border border-gray-200 rounded-2xl p-6 bg-white flex flex-col h-full relative group">
+<div class="flex justify-between items-start mb-4">
+<div class="w-14 h-14 rounded-xl border border-gray-100 p-2 flex items-center justify-center bg-red-50">
+<i class="fa-solid fa-graduation-cap text-3xl text-red-500"></i>
+</div>
+<button class="w-8 h-8 rounded-full flex items-center justify-center border border-gray-100 text-gray-400 hover:text-red-500 hover:border-red-100 transition-standard">
+<i class="fa-regular fa-heart"></i>
+</button>
+</div>
+<div class="flex-grow">
+<h3 class="text-lg font-bold text-slate-900 group-hover:text-primary-600 transition-standard leading-tight mb-1 cursor-pointer">Educational Consultant</h3>
+<p class="text-gray-500 text-sm mb-2">EDUVATOR JSC</p>
+<p class="text-gray-600 text-sm mb-4 line-clamp-2">Advise students on career paths and higher education opportunities abroad.</p>
+<div class="flex items-center gap-2 mb-4">
+<span class="text-primary-600 font-bold text-sm bg-primary-50 px-2 py-0.5 rounded">15 - 25 Triệu</span>
+</div>
+</div>
+<div class="flex items-center justify-between mt-auto pt-4 border-t border-gray-50">
+<div class="flex flex-wrap gap-2">
+<span class="px-3 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">Hồ Chí Minh</span>
+</div>
+<a class="bg-primary-600 text-white text-sm font-bold flex items-center gap-1 hover:gap-2 px-4 py-2 rounded-full hover:bg-primary-700 transition-all" href="#">
+                Xem chi tiết <i class="fa-solid fa-arrow-right text-xs"></i>
+</a>
+</div>
+</div>
+<!-- Job Card 6 -->
+<div class="job-grid-card border border-gray-200 rounded-2xl p-6 bg-white flex flex-col h-full relative group">
+<div class="flex justify-between items-start mb-4">
+<div class="w-14 h-14 rounded-xl border border-gray-100 p-2 flex items-center justify-center bg-green-50">
+<i class="fa-brands fa-spotify text-3xl text-green-500"></i>
+</div>
+<button class="w-8 h-8 rounded-full flex items-center justify-center border border-gray-100 text-gray-400 hover:text-red-500 hover:border-red-100 transition-standard">
+<i class="fa-regular fa-heart"></i>
+</button>
+</div>
+<div class="flex-grow">
+<h3 class="text-lg font-bold text-slate-900 group-hover:text-primary-600 transition-standard leading-tight mb-1 cursor-pointer">Senior Data Analyst</h3>
+<p class="text-gray-500 text-sm mb-2">Spotify Global</p>
+<p class="text-gray-600 text-sm mb-4 line-clamp-2">Use big data to understand user listening habits and drive product strategy.</p>
+<div class="flex items-center gap-2 mb-4">
+<span class="text-primary-600 font-bold text-sm bg-primary-50 px-2 py-0.5 rounded">Negotiable</span>
+</div>
+</div>
+<div class="flex items-center justify-between mt-auto pt-4 border-t border-gray-50">
+<div class="flex flex-wrap gap-2">
+<span class="px-3 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">London, UK</span>
+</div>
+<a class="bg-primary-600 text-white text-sm font-bold flex items-center gap-1 hover:gap-2 px-4 py-2 rounded-full hover:bg-primary-700 transition-all" href="#">
+                Xem chi tiết <i class="fa-solid fa-arrow-right text-xs"></i>
+</a>
+</div>
+</div>
+</div>
+<div class="text-center mt-12">
+<button class="text-primary-600 font-bold border-2 border-primary-600 px-8 py-3 rounded-xl hover:bg-primary-600 hover:text-white transition-all shadow-md active:scale-95">
+            Explore 63,192 More Jobs
+          </button>
+</div>
+</div>
+</section>
+<!-- END: FeaturedJobsGrid -->
+<!-- BEGIN: HowItWorks -->
+<section class="py-24 bg-primary-900 text-white relative overflow-hidden">
+<!-- Background Shapes -->
+<div class="absolute top-0 right-0 w-96 h-96 bg-primary-800 rounded-full -translate-y-1/2 translate-x-1/2 opacity-20 blur-3xl"></div>
+<div class="absolute bottom-0 left-0 w-64 h-64 bg-primary-700 rounded-full translate-y-1/2 -translate-x-1/2 opacity-20 blur-3xl"></div>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+<div class="text-center mb-16">
+<h2 class="text-3xl md:text-4xl font-bold">How HireStream Works</h2>
+<p class="text-primary-300 mt-4">Three simple steps to your next career milestone.</p>
+</div>
+<div class="grid md:grid-cols-3 gap-12 text-center">
+<div class="flex flex-col items-center group">
+<div class="w-20 h-20 bg-primary-800 rounded-full flex items-center justify-center mb-6 border border-primary-700 shadow-lg group-hover:scale-110 transition-transform">
+<i class="fa-solid fa-user-plus text-3xl text-primary-400"></i>
+</div>
+<h3 class="text-xl font-bold mb-3">Create Account</h3>
+<p class="text-primary-200">Sign up in seconds. Tell us about your expertise and career aspirations.</p>
+</div>
+<div class="flex flex-col items-center group">
+<div class="w-20 h-20 bg-primary-800 rounded-full flex items-center justify-center mb-6 border border-primary-700 shadow-lg group-hover:scale-110 transition-transform">
+<i class="fa-solid fa-file-arrow-up text-3xl text-primary-400"></i>
+</div>
+<h3 class="text-xl font-bold mb-3">Upload CV</h3>
+<p class="text-primary-200">Our AI-powered CV parser will help you stand out to hiring managers.</p>
+</div>
+<div class="flex flex-col items-center group">
+<div class="w-20 h-20 bg-primary-800 rounded-full flex items-center justify-center mb-6 border border-primary-700 shadow-lg group-hover:scale-110 transition-transform">
+<i class="fa-solid fa-briefcase text-3xl text-primary-400"></i>
+</div>
+<h3 class="text-xl font-bold mb-3">Get Hired</h3>
+<p class="text-primary-200">Apply to jobs with one click and track your applications in real-time.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- END: HowItWorks -->
+</main>
+<!-- BEGIN: Footer -->
+<footer class="bg-white pt-20 pb-10 border-t border-gray-100">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
+<!-- Brand & Newsletter -->
+<div class="col-span-1 lg:col-span-1">
+<div class="flex items-center gap-2 mb-6">
+<div class="w-8 h-8 bg-primary-600 rounded-md flex items-center justify-center text-white">
+<i class="fa-solid fa-bolt-lightning"></i>
+</div>
+<span class="text-xl font-bold text-slate-800">HireStream</span>
+</div>
+<p class="text-gray-500 mb-6">Join our newsletter to receive the latest job openings directly in your inbox.</p>
+<div class="flex">
+<input class="w-full bg-gray-50 border-gray-200 rounded-l-lg focus:ring-primary-500 focus:border-primary-500 px-4" placeholder="Email address" type="email"/>
+<button class="bg-primary-600 text-white px-4 py-2 rounded-r-lg hover:bg-primary-700 transition-standard">
+<i class="fa-solid fa-paper-plane"></i>
+</button>
+</div>
+</div>
+<!-- Quick Links -->
+<div>
+<h4 class="font-bold text-slate-900 mb-6">Quick Links</h4>
+<ul class="space-y-4 text-gray-500 text-sm">
+<li><a class="hover:text-primary-600 transition-standard" href="#">Browse Jobs</a></li>
+<li><a class="hover:text-primary-600 transition-standard" href="#">Company Profile</a></li>
+<li><a class="hover:text-primary-600 transition-standard" href="#">Job Notifications</a></li>
+<li><a class="hover:text-primary-600 transition-standard" href="#">Career Advice</a></li>
+</ul>
+</div>
+<!-- Support -->
+<div>
+<h4 class="font-bold text-slate-900 mb-6">Support</h4>
+<ul class="space-y-4 text-gray-500 text-sm">
+<li><a class="hover:text-primary-600 transition-standard" href="#">Privacy Policy</a></li>
+<li><a class="hover:text-primary-600 transition-standard" href="#">Terms of Service</a></li>
+<li><a class="hover:text-primary-600 transition-standard" href="#">Cookie Policy</a></li>
+<li><a class="hover:text-primary-600 transition-standard" href="#">Help Center</a></li>
+</ul>
+</div>
+<!-- Social Icons -->
+<div>
+<h4 class="font-bold text-slate-900 mb-6">Connect With Us</h4>
+<div class="flex space-x-4">
+<a class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 hover:bg-primary-600 hover:text-white transition-all" href="#">
+<i class="fa-brands fa-linkedin-in"></i>
+</a>
+<a class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 hover:bg-primary-600 hover:text-white transition-all" href="#">
+<i class="fa-brands fa-twitter"></i>
+</a>
+<a class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 hover:bg-primary-600 hover:text-white transition-all" href="#">
+<i class="fa-brands fa-instagram"></i>
+</a>
+<a class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 hover:bg-primary-600 hover:text-white transition-all" href="#">
+<i class="fa-brands fa-facebook-f"></i>
+</a>
+</div>
+</div>
+</div>
+<div class="pt-8 border-t border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-400">
+<p>© 2023 HireStream Recruitment Inc. All rights reserved.</p>
+<div class="flex space-x-6">
+<a class="hover:text-slate-600" href="#">Sitemap</a>
+<a class="hover:text-slate-600" href="#">English (US)</a>
+</div>
+</div>
+</div>
+</footer>
+<!-- END: Footer -->
+<script data-purpose="interactions">
+    // Profile Dropdown Interaction
+    const profileBtn = document.getElementById('profile-btn');
+    const dropdownContainer = document.getElementById('profile-dropdown-container');
+    const dropdownArrow = document.getElementById('dropdown-arrow');
+
+    profileBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      dropdownContainer.classList.toggle('dropdown-active');
+      if (dropdownArrow) {
+        dropdownArrow.classList.toggle('rotate-180');
+      }
+    });
+
+    // Close dropdown when clicking outside
+    window.addEventListener('click', () => {
+      if (dropdownContainer.classList.contains('dropdown-active')) {
+        dropdownContainer.classList.remove('dropdown-active');
+        if (dropdownArrow) {
+          dropdownArrow.classList.remove('rotate-180');
+        }
+      }
+    });
+
+    // Optional: Hover behavior
+    dropdownContainer.addEventListener('mouseenter', () => {
+        dropdownContainer.classList.add('dropdown-active');
+        if (dropdownArrow) dropdownArrow.classList.add('rotate-180');
+    });
+    dropdownContainer.addEventListener('mouseleave', () => {
+        dropdownContainer.classList.remove('dropdown-active');
+        if (dropdownArrow) dropdownArrow.classList.remove('rotate-180');
+    });
+
+    // Simple UI feedback for search bar interaction
+    const searchInputs = document.querySelectorAll('input');
+    searchInputs.forEach(input => {
+      input.addEventListener('focus', () => {
+        input.parentElement.classList.add('ring-2', 'ring-primary-100');
+      });
+      input.addEventListener('blur', () => {
+        input.parentElement.classList.remove('ring-2', 'ring-primary-100');
+      });
+    });
+
+    // Heart icon toggle animation
+    const heartBtns = document.querySelectorAll('.fa-heart');
+    heartBtns.forEach(btn => {
+      btn.parentElement.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        btn.classList.toggle('fa-regular');
+        btn.classList.toggle('fa-solid');
+        btn.classList.toggle('text-red-500');
+      });
+    });
+  </script>
+</body></html>

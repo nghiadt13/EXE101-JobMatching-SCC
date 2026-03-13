@@ -9,10 +9,11 @@ import type {
   HomepageResponse,
 } from '@/lib/homepage-client';
 import {
-  getHomepage,
   saveHomepageJob,
   unsaveHomepageJob,
 } from '@/lib/homepage-client';
+import { getJobs } from '@/lib/jobs-client';
+import type { JobItem } from '@/lib/jobs-client';
 import { SiteHeader } from '@/components/layout/site-header';
 
 const FALLBACK_HOMEPAGE: HomepageResponse = {
@@ -147,6 +148,114 @@ const STATIC_SOCIAL_LINKS = [
   { icon: 'fa-brands fa-facebook-f', href: '#' },
 ];
 
+const HOMEPAGE_LOCATION_FILTERS = [
+  { slug: 'mien-bac', label: 'Miền Bắc' },
+  { slug: 'mien-nam', label: 'Miền Nam' },
+  { slug: 'ngau-nhien', label: 'Ngẫu nhiên' },
+  { slug: 'ha-noi', label: 'Hà Nội' },
+  { slug: 'tp-ho-chi-minh', label: 'Thành phố Hồ Chí Minh' },
+] as const;
+
+type HomepageLocationSlug = (typeof HOMEPAGE_LOCATION_FILTERS)[number]['slug'];
+
+function normalizeText(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+}
+
+function buildSalaryText(min: number | null, max: number | null): string {
+  const toMillion = (value: number) => {
+    const million = value / 1_000_000;
+    return Number.isInteger(million) ? String(million) : million.toFixed(1);
+  };
+  if (min !== null && max !== null) {
+    return `${toMillion(min)} - ${toMillion(max)} million VND`;
+  }
+  if (min !== null) {
+    return `From ${toMillion(min)} million VND`;
+  }
+  if (max !== null) {
+    return `Up to ${toMillion(max)} million VND`;
+  }
+  return 'Negotiable';
+}
+
+function buildLocationLabel(
+  location: Record<string, unknown> | null | undefined,
+): string {
+  if (!location) return 'Remote';
+  if (location.remote === true) return 'Remote';
+  const city = typeof location.city === 'string' ? location.city.trim() : '';
+  const country =
+    typeof location.country === 'string' ? location.country.trim() : '';
+  if (city) return city;
+  if (country) return country;
+  return 'Remote';
+}
+
+function toHomepageJob(job: JobItem): HomepageFeaturedJob {
+  return {
+    id: job.id,
+    slug: job.slug,
+    title: job.title,
+    companyName: job.companyName ?? 'Confidential Company',
+    companyLogoUrl: job.companyLogoUrl ?? null,
+    companyIconKey: job.companyIconKey ?? null,
+    shortDescription: job.description.trim().slice(0, 180),
+    salaryText: buildSalaryText(job.salaryMin, job.salaryMax),
+    locationLabel: buildLocationLabel(
+      job.location as Record<string, unknown> | null,
+    ),
+    isSaved: false,
+  };
+}
+
+function mergeUniqueJobs(
+  current: HomepageFeaturedJob[],
+  incoming: HomepageFeaturedJob[],
+): HomepageFeaturedJob[] {
+  const map = new Map<string, HomepageFeaturedJob>();
+  for (const job of current) {
+    map.set(job.id, job);
+  }
+  for (const job of incoming) {
+    map.set(job.id, job);
+  }
+  return Array.from(map.values());
+}
+
+function matchesLocationFilter(
+  locationLabel: string,
+  selectedLocation: HomepageLocationSlug,
+): boolean {
+  const normalized = normalizeText(locationLabel);
+  const isHanoi = normalized.includes('ha noi');
+  const isHcm =
+    normalized.includes('ho chi minh') || normalized.includes('tp hcm');
+
+  if (selectedLocation === 'ha-noi') return isHanoi;
+  if (selectedLocation === 'tp-ho-chi-minh') return isHcm;
+  if (selectedLocation === 'mien-bac') return isHanoi;
+  if (selectedLocation === 'mien-nam') return isHcm;
+  return true;
+}
+
+function parseLocationInputToSlug(value: string): HomepageLocationSlug | null {
+  const normalized = normalizeText(value);
+  if (!normalized) return null;
+  if (normalized.includes('mien bac')) return 'mien-bac';
+  if (normalized.includes('mien nam')) return 'mien-nam';
+  if (normalized.includes('ngau nhien')) return 'ngau-nhien';
+  if (normalized.includes('ha noi')) return 'ha-noi';
+  if (normalized.includes('ho chi minh') || normalized.includes('tp hcm')) {
+    return 'tp-ho-chi-minh';
+  }
+  return null;
+}
+
 function normalizeIconClass(iconKey: string | null | undefined): string {
   if (!iconKey || iconKey.trim().length === 0) {
     return 'fa-solid fa-building';
@@ -203,13 +312,24 @@ export function HomepageMain({
   const [homepageData, setHomepageData] = useState<HomepageResponse>(
     initialData ?? FALLBACK_HOMEPAGE,
   );
-  const [selectedLocation, setSelectedLocation] = useState<string>('all');
+  const [selectedLocation, setSelectedLocation] =
+    useState<HomepageLocationSlug>('ngau-nhien');
   const [savingJobIds, setSavingJobIds] = useState<Set<string>>(new Set());
   const [actionError, setActionError] = useState<string | null>(null);
+  const [searchKeyword, setSearchKeyword] = useState<string>('');
+  const [searchLocationInput, setSearchLocationInput] = useState<string>('');
+  const [featuredJobs, setFeaturedJobs] = useState<HomepageFeaturedJob[]>(
+    initialData?.featuredJobs ?? [],
+  );
+  const [jobsPage, setJobsPage] = useState<number>(1);
+  const [hasMoreJobs, setHasMoreJobs] = useState<boolean>(true);
+  const [isLoadingMoreJobs, setIsLoadingMoreJobs] = useState<boolean>(false);
+  const [isSearchingJobs, setIsSearchingJobs] = useState<boolean>(false);
 
   useEffect(() => {
     if (initialData) {
       setHomepageData(initialData);
+      setFeaturedJobs(initialData.featuredJobs);
     }
   }, [initialData]);
 
@@ -226,30 +346,21 @@ export function HomepageMain({
   }, []);
 
   const visibleFeaturedJobs = useMemo(() => {
-    if (selectedLocation === 'all') return homepageData.featuredJobs;
-    const filter = homepageData.locationFilters.find(
-      (item) => item.slug === selectedLocation,
+    const filtered = featuredJobs.filter((job) =>
+      matchesLocationFilter(job.locationLabel, selectedLocation),
     );
-    if (!filter) return homepageData.featuredJobs;
-    return homepageData.featuredJobs.filter((job) =>
-      job.locationLabel.toLowerCase().includes(filter.label.toLowerCase()),
-    );
-  }, [
-    homepageData.featuredJobs,
-    homepageData.locationFilters,
-    selectedLocation,
-  ]);
+    // Keep deterministic rendering for SSR/CSR hydration consistency.
+    // "Ngau nhien" behaves as mixed/all jobs without randomizing order at render time.
+    return filtered;
+  }, [featuredJobs, selectedLocation]);
 
   const unreadCount = homepageData.currentUser?.unreadNotificationCount ?? 1;
   const displayedCategories = MOCK_CATEGORIES;
 
   const setJobSavedState = (jobId: string, isSaved: boolean) => {
-    setHomepageData((prev) => ({
-      ...prev,
-      featuredJobs: prev.featuredJobs.map((job) =>
-        job.id === jobId ? { ...job, isSaved } : job,
-      ),
-    }));
+    setFeaturedJobs((prev) =>
+      prev.map((job) => (job.id === jobId ? { ...job, isSaved } : job)),
+    );
   };
 
   const toggleJobSave = async (job: HomepageFeaturedJob) => {
@@ -281,21 +392,51 @@ export function HomepageMain({
     }
   };
 
-  const handleLocationSelect = async (slug: string) => {
+  const handleLocationSelect = (slug: HomepageLocationSlug) => {
     setSelectedLocation(slug);
-    if (slug === 'all' && initialData) {
-      setHomepageData(initialData);
-      return;
+  };
+
+  const fetchJobs = async (page: number, append: boolean) => {
+    const response = await getJobs({
+      page,
+      limit: 6,
+      q: searchKeyword.trim() || undefined,
+      status: 'PUBLISHED',
+    });
+    const mapped = response.items.map(toHomepageJob);
+    setFeaturedJobs((prev) => (append ? mergeUniqueJobs(prev, mapped) : mapped));
+    setJobsPage(response.pagination.page);
+    setHasMoreJobs(response.pagination.page < response.pagination.totalPages);
+  };
+
+  const handleSearchJobs = async () => {
+    setActionError(null);
+    setIsSearchingJobs(true);
+    const parsedLocation = parseLocationInputToSlug(searchLocationInput);
+    if (parsedLocation) {
+      setSelectedLocation(parsedLocation);
     }
     try {
-      const data = await getHomepage({
-        location: slug === 'all' ? undefined : slug,
-        token: accessToken ?? undefined,
-      });
-      setHomepageData(data);
+      await fetchJobs(1, false);
     } catch (error) {
-      console.error('Failed to filter homepage', error);
-      setActionError('Could not refresh jobs for selected location.');
+      console.error('Failed to search jobs from homepage', error);
+      setActionError('Could not search jobs right now.');
+    } finally {
+      setIsSearchingJobs(false);
+    }
+  };
+
+  const handleLoadMoreJobs = async () => {
+    if (isLoadingMoreJobs || !hasMoreJobs) return;
+    setActionError(null);
+    setIsLoadingMoreJobs(true);
+    try {
+      await fetchJobs(jobsPage + 1, true);
+    } catch (error) {
+      console.error('Failed to load more jobs', error);
+      setActionError('Could not load more jobs right now.');
+    } finally {
+      setIsLoadingMoreJobs(false);
     }
   };
 
@@ -340,6 +481,10 @@ export function HomepageMain({
                   className="w-full border-none py-3 text-slate-800 focus:ring-0"
                   placeholder="Job title, keywords..."
                   type="text"
+                  value={searchKeyword}
+                  onChange={(event) => {
+                    setSearchKeyword(event.target.value);
+                  }}
                 />
               </div>
               <div className="hidden h-8 w-px bg-gray-200 md:block" />
@@ -347,15 +492,23 @@ export function HomepageMain({
                 <i className="fa-solid fa-location-dot mr-3 text-gray-400" />
                 <input
                   className="w-full border-none py-3 text-slate-800 focus:ring-0"
-                  placeholder="City or remote"
+                  placeholder="Miền Bắc, Miền Nam, Hà Nội, TP.HCM..."
                   type="text"
+                  value={searchLocationInput}
+                  onChange={(event) => {
+                    setSearchLocationInput(event.target.value);
+                  }}
                 />
               </div>
               <button
                 className="w-full rounded-xl bg-primary-600 px-8 py-3.5 font-bold text-white transition-standard hover:bg-primary-700 md:w-auto"
                 type="button"
+                disabled={isSearchingJobs}
+                onClick={() => {
+                  void handleSearchJobs();
+                }}
               >
-                Search Jobs
+                {isSearchingJobs ? 'Searching...' : 'Search Jobs'}
               </button>
             </div>
             <div className="mt-8 flex flex-wrap justify-center gap-4 text-sm text-white/80">
@@ -594,22 +747,13 @@ export function HomepageMain({
                 <span className="text-sm font-medium">Filter by: Location</span>
                 <i className="fa-solid fa-chevron-down ml-2 text-[10px]" />
               </div>
-              <button
-                className={`transition-standard rounded-full px-5 py-2 text-sm font-semibold ${selectedLocation === 'all' ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-                type="button"
-                onClick={() => {
-                  void handleLocationSelect('all');
-                }}
-              >
-                All Locations
-              </button>
-              {homepageData.locationFilters.map((location) => (
+              {HOMEPAGE_LOCATION_FILTERS.map((location) => (
                 <button
                   key={location.slug}
                   className={`transition-standard rounded-full px-5 py-2 text-sm font-semibold ${selectedLocation === location.slug ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
                   type="button"
                   onClick={() => {
-                    void handleLocationSelect(location.slug);
+                    handleLocationSelect(location.slug);
                   }}
                 >
                   {location.label}
@@ -693,8 +837,13 @@ export function HomepageMain({
               <button
                 className="rounded-xl border-2 border-primary-600 px-8 py-3 font-bold text-primary-600 shadow-md transition-all hover:bg-primary-600 hover:text-white active:scale-95"
                 type="button"
+                disabled={!hasMoreJobs || isLoadingMoreJobs}
+                onClick={() => {
+                  void handleLoadMoreJobs();
+                }}
               >
-                Explore more jobs <i className="fa-solid fa-arrow-down ml-2 text-sm" />
+                {isLoadingMoreJobs ? 'Loading...' : 'Explore more jobs'}{' '}
+                <i className="fa-solid fa-arrow-down ml-2 text-sm" />
               </button>
             </div>
           </div>

@@ -260,9 +260,9 @@ export class AiNormalizationService {
               | 'not_applicable')
           : ('missing' as const),
         evidence: Array.isArray(item['evidence'])
-          ? ((item['evidence'] as unknown[])
+          ? (item['evidence'] as unknown[])
               .filter((e) => typeof e === 'string')
-              .slice(0, 3)) as string[]
+              .slice(0, 3)
           : [],
         confidence: validConfidences.has(String(item['confidence']))
           ? (String(item['confidence']) as 'high' | 'medium' | 'low')
@@ -324,9 +324,9 @@ export class AiNormalizationService {
             ? Math.max(0, Math.round(summary['relevantExperienceMonths']))
             : 0,
         skills: Array.isArray(summary['skills'])
-          ? ((summary['skills'] as unknown[]).filter(
+          ? (summary['skills'] as unknown[]).filter(
               (s) => typeof s === 'string',
-            ) as string[])
+            )
           : [],
         location:
           typeof summaryLocation['city'] === 'string' ||
@@ -344,9 +344,7 @@ export class AiNormalizationService {
             : null,
       },
       warnings: Array.isArray(src['warnings'])
-        ? ((src['warnings'] as unknown[]).filter(
-            (w) => typeof w === 'string',
-          ) as string[])
+        ? (src['warnings'] as unknown[]).filter((w) => typeof w === 'string')
         : [],
     };
   }

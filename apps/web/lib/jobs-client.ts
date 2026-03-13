@@ -62,6 +62,9 @@ export type RequirementsSchema = RequirementsSchemaV1 | RequirementsSchemaV2;
 export type JobItem = {
   id: string;
   recruiterId: string;
+  companyName: string | null;
+  companyLogoUrl: string | null;
+  companyIconKey: string | null;
   title: string;
   slug: string;
   description: string;

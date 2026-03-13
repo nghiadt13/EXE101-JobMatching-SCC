@@ -1074,6 +1074,11 @@ export class JobsService {
   private toView(item: {
     id: string;
     recruiterId: string;
+    company: {
+      name: string;
+      logoUrl: string | null;
+      iconKey: string | null;
+    } | null;
     title: string;
     slug: string;
     description: string;
@@ -1117,6 +1122,9 @@ export class JobsService {
 
     return {
       ...item,
+      companyName: item.company?.name ?? null,
+      companyLogoUrl: item.company?.logoUrl ?? null,
+      companyIconKey: item.company?.iconKey ?? null,
       skills: this.readPersistedOrNormalizedSkills(item.skills, item.location),
       inputMode:
         this.normalizeInputMode(normalization['inputMode']) ?? 'manual',
@@ -1145,6 +1153,13 @@ export class JobsService {
     return {
       id: true,
       recruiterId: true,
+      company: {
+        select: {
+          name: true,
+          logoUrl: true,
+          iconKey: true,
+        },
+      },
       title: true,
       slug: true,
       description: true,

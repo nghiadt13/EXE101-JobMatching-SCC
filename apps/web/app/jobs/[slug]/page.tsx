@@ -9,6 +9,7 @@ import { createApplication } from '@/lib/applications-client';
 import { ApiError } from '@/lib/api-client';
 import { getMyCvs } from '@/lib/cv-client';
 import { getJobDetail } from '@/lib/jobs-client';
+import type { JobItem } from '@/lib/jobs-client';
 import { PUBLIC_JOBS_LISTING_ROUTE } from '@/lib/routes';
 import { safeJsonLdSerialize } from '@/lib/seo';
 import { SiteHeader } from '@/components/layout/site-header';
@@ -18,6 +19,22 @@ type PageProps = {
   params: Promise<{ slug: string }>;
   searchParams: Promise<{ applied?: string; error?: string }>;
 };
+
+function normalizeIconClass(iconKey: string | null | undefined): string {
+  if (!iconKey || iconKey.trim().length === 0) {
+    return 'fa-solid fa-building';
+  }
+  if (
+    iconKey.includes('fa-solid') ||
+    iconKey.includes('fa-regular') ||
+    iconKey.includes('fa-brands')
+  ) {
+    return iconKey;
+  }
+  return iconKey.startsWith('fa-')
+    ? `fa-solid ${iconKey}`
+    : `fa-solid fa-${iconKey}`;
+}
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -46,11 +63,14 @@ export default async function JobDetailPage({ params, searchParams }: PageProps)
   let job;
   try {
     job = await getJobDetail(slug);
-  } catch (error) {
+  } catch {
     // Fallback to mock data for UI testing if backend is unavailable or job not found
     job = {
       id: 'mock-id',
       recruiterId: 'mock-recruiter',
+      companyName: 'TechCorp Inc.',
+      companyLogoUrl: null,
+      companyIconKey: 'fa-building',
       title: slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'iOS Developer Fulltime',
       slug: slug,
       description: 'We are looking for a highly skilled iOS Developer to join our core engineering team in Cupertino. As an iOS Developer at TechCorp, you will be responsible for building high-quality, scalable mobile applications that provide an exceptional user experience for millions of users worldwide. You will work closely with product managers, designers, and other engineers to define, design, and ship new features.',
@@ -70,7 +90,7 @@ export default async function JobDetailPage({ params, searchParams }: PageProps)
       closedAt: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
-    } as any;
+    } as JobItem;
   }
 
   const canApply = session?.user?.role === 'CANDIDATE' && Boolean(session.accessToken);
@@ -123,12 +143,21 @@ export default async function JobDetailPage({ params, searchParams }: PageProps)
       }
     : null;
 
-  const city = job.location && typeof job.location.city === 'string' ? job.location.city : '';
-  const country = job.location && typeof job.location.country === 'string' ? job.location.country : '';
+  const district =
+    job.location && typeof job.location.district === 'string'
+      ? job.location.district
+      : '';
+  const city =
+    job.location && typeof job.location.city === 'string' ? job.location.city : '';
+  const country =
+    job.location && typeof job.location.country === 'string'
+      ? job.location.country
+      : '';
 
-  const locationStr = city && country 
-    ? `${city}, ${country}`
-    : city || country || 'Remote';
+  const locationParts = [district, city, country].filter(
+    (part) => part.trim().length > 0,
+  );
+  const locationStr = locationParts.length > 0 ? locationParts.join(', ') : 'Remote';
 
   const salaryText = job.salaryMin && job.salaryMax 
     ? `$${job.salaryMin.toLocaleString()} - $${job.salaryMax.toLocaleString()}`
@@ -137,6 +166,14 @@ export default async function JobDetailPage({ params, searchParams }: PageProps)
     : job.salaryMax
     ? `Up to $${job.salaryMax.toLocaleString()}`
     : 'Negotiable';
+
+  const companyName = job.companyName?.trim() || 'Confidential Company';
+  const companyLogoUrl =
+    typeof job.companyLogoUrl === 'string' &&
+    job.companyLogoUrl.trim().length > 0
+      ? job.companyLogoUrl
+      : null;
+  const companyIconClass = normalizeIconClass(job.companyIconKey);
 
   return (
     <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex flex-col font-sans">
@@ -161,12 +198,23 @@ export default async function JobDetailPage({ params, searchParams }: PageProps)
               <div className="flex flex-col md:flex-row gap-6 items-start justify-between">
                 <div className="flex gap-4">
                   <div className="size-20 shrink-0 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center overflow-hidden border border-slate-200 dark:border-slate-700">
-                    <i className="fa-solid fa-building text-3xl text-slate-400"></i>
+                    {companyLogoUrl ? (
+                      <Image
+                        src={companyLogoUrl}
+                        alt={companyName}
+                        width={80}
+                        height={80}
+                        className="h-full w-full object-contain p-2"
+                        unoptimized
+                      />
+                    ) : (
+                      <i className={`${companyIconClass} text-3xl text-slate-400`} />
+                    )}
                   </div>
                   <div className="space-y-1">
                     <h1 className="text-2xl font-bold">{job.title}</h1>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-slate-600 dark:text-slate-400">
-                      <span className="flex items-center gap-1"><span className="material-symbols-outlined text-sm">business</span>TechCorp Inc.</span>
+                      <span className="flex items-center gap-1"><span className="material-symbols-outlined text-sm">business</span>{companyName}</span>
                       <span className="flex items-center gap-1"><span className="material-symbols-outlined text-sm">location_on</span>{locationStr}</span>
                       <span className="flex items-center gap-1 text-primary font-semibold"><span className="material-symbols-outlined text-sm">payments</span>{salaryText}</span>
                     </div>
@@ -306,10 +354,21 @@ export default async function JobDetailPage({ params, searchParams }: PageProps)
               <h3 className="text-lg font-bold mb-4">About the Company</h3>
               <div className="flex items-center gap-4 mb-6">
                 <div className="size-12 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden">
-                  <i className="fa-solid fa-building text-xl text-primary"></i>
+                  {companyLogoUrl ? (
+                    <Image
+                      src={companyLogoUrl}
+                      alt={companyName}
+                      width={48}
+                      height={48}
+                      className="h-full w-full object-contain p-1"
+                      unoptimized
+                    />
+                  ) : (
+                    <i className={`${companyIconClass} text-xl text-primary`} />
+                  )}
                 </div>
                 <div>
-                  <p className="font-bold">TechCorp Inc.</p>
+                  <p className="font-bold">{companyName}</p>
                   <a className="text-xs text-primary font-medium hover:underline" href="#">View Company Profile</a>
                 </div>
               </div>

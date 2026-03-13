@@ -12,6 +12,9 @@ import {
 export interface JobView {
   id: string;
   recruiterId: string;
+  companyName: string | null;
+  companyLogoUrl: string | null;
+  companyIconKey: string | null;
   title: string;
   slug: string;
   description: string;

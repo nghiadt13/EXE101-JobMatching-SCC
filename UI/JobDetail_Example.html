@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Job Detail - iOS Developer - HireStream</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                          DEFAULT: "#2563eb",
+                          50: '#eff6ff',
+                          100: '#dbeafe',
+                          200: '#bfdbfe',
+                          300: '#93c5fd',
+                          400: '#60a5fa',
+                          500: '#3b82f6',
+                          600: '#2563eb',
+                          700: '#1d4ed8',
+                          800: '#1e40af',
+                          900: '#1e3a8a',
+                        },
+                        "primary-hover": "#1d4ed8",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#0f172a",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Public Sans', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        
+        /* Transition effects */
+        .transition-standard {
+          transition: all 0.3s ease;
+        }
+        
+        /* Dropdown Animation */
+        .dropdown-menu {
+          display: none;
+          opacity: 0;
+          transform: translateY(10px);
+          transition: all 0.2s ease;
+        }
+        .dropdown-active .dropdown-menu {
+          display: block;
+          opacity: 1;
+          transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 antialiased">
+<header class="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
+<nav class="w-full px-4 sm:px-8 lg:px-12 h-20 flex items-center justify-between">
+<!-- Logo -->
+<div class="flex items-center gap-2">
+<div class="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center text-white">
+<i class="fa-solid fa-bolt-lightning text-xl"></i>
+</div>
+<span class="text-2xl font-bold tracking-tight text-slate-800">HireStream</span>
+</div>
+<!-- Main Navigation -->
+<div class="hidden lg:flex items-center space-x-8">
+<a class="text-sm font-medium text-slate-600 hover:text-primary-600 transition-standard" href="#">Find Jobs</a>
+<a class="text-sm font-medium text-slate-600 hover:text-primary-600 transition-standard" href="#">Companies</a>
+<a class="text-sm font-medium text-slate-600 hover:text-primary-600 transition-standard" href="#">Salaries</a>
+<a class="px-4 py-2 border border-primary-600 text-primary-600 rounded-md text-sm font-semibold hover:bg-primary-50 transition-standard" href="#">Post a Job</a>
+</div>
+<!-- Right Side Actions: Notification, Chat, Profile -->
+<div class="flex items-center space-x-2 md:space-x-4">
+<!-- Notification Icon -->
+<button class="relative p-2.5 text-slate-600 hover:text-primary-600 hover:bg-primary-50 rounded-full transition-standard group">
+<i class="fa-regular fa-bell text-xl"></i>
+<span class="absolute top-2 right-2 flex h-2.5 w-2.5">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary-600"></span>
+</span>
+</button>
+<!-- Chat/Message Icon -->
+<button class="p-2.5 text-slate-600 hover:text-primary-600 hover:bg-primary-50 rounded-full transition-standard">
+<i class="fa-regular fa-comment-dots text-xl"></i>
+</button>
+<!-- Divider -->
+<div class="w-px h-6 bg-gray-200 hidden md:block"></div>
+<!-- User Profile Avatar with Dropdown -->
+<div class="relative" id="profile-dropdown-container">
+<button class="flex items-center gap-3 p-1 rounded-full hover:bg-gray-100 transition-standard focus:outline-none" id="profile-btn">
+<div class="w-10 h-10 rounded-full overflow-hidden border-2 border-primary-100">
+<img alt="User" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDJWS7D-glrmKnFu1VhcuuzOu_7JGrK2arpYsJhWT1gTvdQviF_WOQofU7PVeH7WcAnTep-bGy3eDxC-u5JWJ6btQ_PpU8N7RLp6ze8iuUAyxMNaPvh7vsNqNncmWtgpXqIkFfN-CwD9wvu3QBjNDz0P-aYmdSzPgd5pPKYsFLSoGF3ETtkfmQJmnIBQiJXzHR3C5WIeRcyyfW5do8LWB-YCjSE7LC6BWr8-hHiTUWfuLW5jH4sd6yFney9N9Bx4mjD9jH2lhNszDE"/>
+</div>
+<div class="hidden md:block text-left pr-2">
+<p class="text-xs font-bold text-slate-800 leading-none">Alex Rivera</p>
+<p class="text-[10px] text-gray-500 mt-1">Free Plan</p>
+</div>
+<i class="fa-solid fa-chevron-down text-[10px] text-gray-400 mr-1 hidden md:block transition-transform duration-200" id="dropdown-arrow"></i>
+</button>
+<!-- Dropdown Menu -->
+<div class="dropdown-menu absolute right-0 top-full pt-2 w-56 z-[60]" id="profile-menu">
+<div class="bg-white rounded-xl shadow-xl border border-gray-100 py-2">
+<div class="px-4 py-3 border-b border-gray-50 mb-1">
+<p class="text-sm font-semibold text-slate-900">Alex Rivera</p>
+<p class="text-xs text-gray-500 truncate">alex.rivera@example.com</p>
+</div>
+<a class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-primary-50 hover:text-primary-600 transition-standard" href="#">
+<i class="fa-solid fa-user-gear w-4 text-center"></i> Settings
+            </a>
+<a class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-primary-50 hover:text-primary-600 transition-standard" href="#">
+<i class="fa-solid fa-briefcase w-4 text-center"></i> My Applications
+            </a>
+<a class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-primary-50 hover:text-primary-600 transition-standard" href="#">
+<i class="fa-solid fa-file-invoice w-4 text-center"></i> My CVs
+            </a>
+<div class="h-px bg-gray-50 my-1 mx-2"></div>
+<a class="flex items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-standard" href="#">
+<i class="fa-solid fa-arrow-right-from-bracket w-4 text-center"></i> Log out
+            </a>
+</div>
+</div>
+</div>
+</div>
+</nav>
+</header>
+<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+<nav class="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 mb-8">
+<a class="hover:text-primary transition-colors" href="#">Home</a>
+<span class="material-symbols-outlined text-xs">chevron_right</span>
+<a class="hover:text-primary transition-colors" href="#">Jobs</a>
+<span class="material-symbols-outlined text-xs">chevron_right</span>
+<span class="text-slate-900 dark:text-slate-100 font-medium">iOS Developer</span>
+</nav>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+<div class="lg:col-span-2 space-y-6">
+<div class="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+<div class="flex flex-col @md:flex-row gap-6 items-start justify-between">
+<div class="flex gap-4">
+<div class="size-20 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center overflow-hidden border border-slate-200 dark:border-slate-700">
+<img class="w-12 h-12 object-contain" data-alt="TechCorp professional company logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCLA0D9xuydoq4I9xpSXBWY0Y-ZwACXGY011WyEGrCGLxSAiGv9z56kp_IIR935Rmuz1kuEy50nIiYiXnQW7iQrZ9ghL-GGHRbEw_GcMxA_uWrbBVmhR77BaXMjNEJSbH03IfNgfdbHJ_QZfwDjeaQYXYFYM_QYLQI3L7I62V05A-EHr0uiaQCg3VCMKVsuyTsN625eQtB4p373VYWMVSAsuaGu1rdP7m-bHMYXNqTYrYp6y0kUjitcZzyT638s9R53pyGb7U37rS8"/>
+</div>
+<div class="space-y-1">
+<h1 class="text-2xl font-bold">iOS Developer Fulltime</h1>
+<div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-slate-600 dark:text-slate-400">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-sm">business</span>TechCorp</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-sm">location_on</span>Cupertino, CA</span>
+<span class="flex items-center gap-1 text-primary font-semibold"><span class="material-symbols-outlined text-sm">payments</span>$140k - $180k</span>
+</div>
+<div class="flex items-center gap-3 mt-2">
+<span class="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-xs rounded text-slate-500">Full-time</span>
+<span class="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-xs rounded text-slate-500">Posted 2 days ago</span>
+</div>
+</div>
+</div>
+<div class="flex w-full @md:w-auto gap-3">
+<button class="flex-1 @md:flex-none px-6 py-3 bg-primary text-white font-bold rounded-xl hover:bg-primary-hover transition-colors shadow-lg shadow-primary/20">
+                            Apply Now
+                        </button>
+<button class="flex items-center justify-center size-12 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined text-slate-600 dark:text-slate-300">bookmark</span>
+</button>
+</div>
+</div>
+<div class="mt-8 border-b border-slate-200 dark:border-slate-800">
+<nav class="flex gap-8">
+<a class="pb-4 border-b-2 border-primary text-primary font-bold text-sm" href="#">Job Description</a>
+<a class="pb-4 border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 font-medium text-sm" href="#">Requirements</a>
+<a class="pb-4 border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 font-medium text-sm" href="#">Benefits</a>
+</nav>
+</div>
+<div class="py-8 space-y-8">
+<section id="description">
+<h3 class="text-lg font-bold mb-4">About the Role</h3>
+<p class="text-slate-600 dark:text-slate-400 leading-relaxed">
+                            We are looking for a highly skilled iOS Developer to join our core engineering team in Cupertino. As an iOS Developer at TechCorp, you will be responsible for building high-quality, scalable mobile applications that provide an exceptional user experience for millions of users worldwide. You will work closely with product managers, designers, and other engineers to define, design, and ship new features.
+                        </p>
+</section>
+<section id="requirements">
+<h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">verified_user</span> Requirements
+                        </h3>
+<ul class="list-disc list-inside space-y-3 text-slate-600 dark:text-slate-400">
+<li>5+ years of professional experience in iOS development using Swift.</li>
+<li>Strong understanding of SwiftUI and Combine framework.</li>
+<li>Experience with RESTful APIs to connect iOS applications to back-end services.</li>
+<li>Knowledge of UI/UX standards for mobile design.</li>
+<li>Proficiency in Git and agile development methodologies.</li>
+<li>Experience with local storage, threading, and performance tuning.</li>
+</ul>
+</section>
+<section id="benefits">
+<h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">redeem</span> Benefits &amp; Perks
+                        </h3>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-start gap-3">
+<span class="material-symbols-outlined text-primary">medical_services</span>
+<div>
+<p class="font-semibold text-sm">Full Health Insurance</p>
+<p class="text-xs text-slate-500">Premium dental, medical, and vision coverage.</p>
+</div>
+</div>
+<div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-start gap-3">
+<span class="material-symbols-outlined text-primary">schedule</span>
+<div>
+<p class="font-semibold text-sm">Flexible Hours</p>
+<p class="text-xs text-slate-500">Core hours with flexible start and end times.</p>
+</div>
+</div>
+<div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-start gap-3">
+<span class="material-symbols-outlined text-primary">home_work</span>
+<div>
+<p class="font-semibold text-sm">Hybrid Work Model</p>
+<p class="text-xs text-slate-500">3 days in-office, 2 days remote work.</p>
+</div>
+</div>
+<div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-start gap-3">
+<span class="material-symbols-outlined text-primary">fitness_center</span>
+<div>
+<p class="font-semibold text-sm">Gym Membership</p>
+<p class="text-xs text-slate-500">Monthly allowance for fitness and wellness.</p>
+</div>
+</div>
+</div>
+</section>
+</div>
+</div>
+</div>
+<div class="space-y-6">
+<div class="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+<h3 class="text-lg font-bold mb-4">About the Company</h3>
+<div class="flex items-center gap-4 mb-6">
+<div class="size-12 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden">
+<img class="w-8 h-8 object-contain" data-alt="TechCorp mini brand logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDzKDzJLQ3ez40RnHNBJ4n_cbOoYTsTg4BWgnm8JyvFMUlAAdZqAwLuU_sBiFGcjeS3SJFIPE-MqZ95wsr1auAwUxicyXuaGLEZxMZsbTJcorPmy0PLMU__kAo7o-8qR9KoyAyhRxfeIo44Nc4o1fOk_McoJEFHVpSHLrzeo4KGCbyM8X31aYt5OtRZrejkOW1YK5g7urNgOljv12QIU0bLy6G__smyn257VqcCVF3IVnb6FMNtmAntPSLaXbXio0xCU0v3ukNML-g"/>
+</div>
+<div>
+<p class="font-bold">TechCorp Inc.</p>
+<a class="text-xs text-primary font-medium hover:underline" href="#">View Company Profile</a>
+</div>
+</div>
+<div class="space-y-4">
+<div class="flex justify-between text-sm">
+<span class="text-slate-500">Company size</span>
+<span class="font-medium">10,000+ employees</span>
+</div>
+<div class="flex justify-between text-sm">
+<span class="text-slate-500">Industry</span>
+<span class="font-medium">Consumer Electronics</span>
+</div>
+<div class="flex justify-between text-sm">
+<span class="text-slate-500">Headquarters</span>
+<span class="font-medium">Cupertino, CA</span>
+</div>
+<div class="flex justify-between text-sm">
+<span class="text-slate-500">Founded</span>
+<span class="font-medium">1976</span>
+</div>
+</div>
+<button class="w-full mt-6 py-2.5 border-2 border-primary text-primary font-bold rounded-xl hover:bg-primary/5 transition-colors">
+                    Follow Company
+                </button>
+</div>
+<div class="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+<h3 class="text-lg font-bold mb-4">Similar Jobs</h3>
+<div class="space-y-6">
+<div class="group cursor-pointer">
+<div class="flex justify-between items-start mb-1">
+<h4 class="font-bold text-sm group-hover:text-primary transition-colors">Senior iOS Engineer</h4>
+<span class="text-[10px] font-bold text-slate-400">3d ago</span>
+</div>
+<p class="text-xs text-slate-500 mb-2">InnovateApp • San Francisco, CA</p>
+<p class="text-xs font-bold text-primary">$160k - $210k</p>
+</div>
+<div class="group cursor-pointer">
+<div class="flex justify-between items-start mb-1">
+<h4 class="font-bold text-sm group-hover:text-primary transition-colors">Mobile Developer (Swift)</h4>
+<span class="text-[10px] font-bold text-slate-400">1w ago</span>
+</div>
+<p class="text-xs text-slate-500 mb-2">FutureTech • Remote</p>
+<p class="text-xs font-bold text-primary">$130k - $155k</p>
+</div>
+<div class="group cursor-pointer">
+<div class="flex justify-between items-start mb-1">
+<h4 class="font-bold text-sm group-hover:text-primary transition-colors">Staff iOS Engineer</h4>
+<span class="text-[10px] font-bold text-slate-400">2h ago</span>
+</div>
+<p class="text-xs text-slate-500 mb-2">GlobalPay • Palo Alto, CA</p>
+<p class="text-xs font-bold text-primary">$180k - $240k</p>
+</div>
+</div>
+<a class="block text-center text-sm font-bold text-slate-400 mt-6 hover:text-slate-600 dark:hover:text-slate-200 transition-colors" href="#">
+                    View All Recommendations
+                </a>
+</div>
+</div>
+</div>
+</main>
+<footer class="mt-12 py-10 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="flex flex-col md:flex-row justify-between items-center gap-6">
+<div class="flex items-center gap-2">
+<div class="size-6 bg-primary rounded flex items-center justify-center text-white">
+<i class="fa-solid fa-bolt-lightning text-xs"></i>
+</div>
+<span class="text-lg font-bold">HireStream</span>
+</div>
+<div class="flex gap-8 text-sm text-slate-500">
+<a class="hover:text-primary transition-colors" href="#">Privacy Policy</a>
+<a class="hover:text-primary transition-colors" href="#">Terms of Service</a>
+<a class="hover:text-primary transition-colors" href="#">Contact Us</a>
+</div>
+<div class="flex gap-4">
+<span class="material-symbols-outlined text-slate-400 cursor-pointer hover:text-primary">language</span>
+<span class="material-symbols-outlined text-slate-400 cursor-pointer hover:text-primary">share</span>
+</div>
+</div>
+<p class="text-center text-xs text-slate-400 mt-8">© 2024 HireStream. All rights reserved.</p>
+</div>
+</footer>
+<script data-purpose="interactions">
+    // Profile Dropdown Interaction
+    const profileBtn = document.getElementById('profile-btn');
+    const dropdownContainer = document.getElementById('profile-dropdown-container');
+    const dropdownArrow = document.getElementById('dropdown-arrow');
+
+    profileBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      dropdownContainer.classList.toggle('dropdown-active');
+      if (dropdownArrow) {
+        dropdownArrow.classList.toggle('rotate-180');
+      }
+    });
+
+    // Close dropdown when clicking outside
+    window.addEventListener('click', () => {
+      if (dropdownContainer.classList.contains('dropdown-active')) {
+        dropdownContainer.classList.remove('dropdown-active');
+        if (dropdownArrow) {
+          dropdownArrow.classList.remove('rotate-180');
+        }
+      }
+    });
+
+    // Optional: Hover behavior
+    dropdownContainer.addEventListener('mouseenter', () => {
+        dropdownContainer.classList.add('dropdown-active');
+        if (dropdownArrow) dropdownArrow.classList.add('rotate-180');
+    });
+    dropdownContainer.addEventListener('mouseleave', () => {
+        dropdownContainer.classList.remove('dropdown-active');
+        if (dropdownArrow) dropdownArrow.classList.remove('rotate-180');
+    });
+</script>
+</body></html>
