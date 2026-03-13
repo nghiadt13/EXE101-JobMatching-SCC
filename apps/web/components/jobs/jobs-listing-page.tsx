@@ -53,6 +53,8 @@ export async function JobsListingPage({
           title="Open Positions"
           description="Browse published jobs, open details, then submit your application from the detail page."
           email={session?.user?.email}
+          userName={session?.user?.name}
+          userAvatarUrl={session?.user?.image}
           role="CANDIDATE"
           currentPath={currentPath}
         >
@@ -135,6 +137,8 @@ export async function JobsListingPage({
         title="Open Positions"
         description="Search and filter open jobs, then apply from the job detail page."
         email={session?.user?.email}
+          userName={session?.user?.name}
+          userAvatarUrl={session?.user?.image}
         role="CANDIDATE"
         currentPath={currentPath}
       >
@@ -155,3 +159,4 @@ export async function JobsListingPage({
     </main>
   );
 }
+

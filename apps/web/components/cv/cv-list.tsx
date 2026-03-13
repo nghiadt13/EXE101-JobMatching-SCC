@@ -147,7 +147,7 @@ export function CvList({
                 </p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {cv.isPrimary && (
-                    <span className="rounded-full bg-zinc-900 px-2 py-1 text-xs font-medium text-white">
+                    <span className="rounded-full bg-primary-600 px-2 py-1 text-xs font-medium text-white">
                       Primary CV
                     </span>
                   )}

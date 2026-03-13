@@ -40,13 +40,13 @@ export function ConfirmForm({
       </Button>
       <dialog
         ref={dialogRef}
-        className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-6 shadow-xl backdrop:bg-zinc-900/40"
+        className="w-full max-w-sm rounded-2xl border border-primary-100 bg-white p-6 shadow-xl backdrop:bg-primary-900/30"
         onClick={(e) => {
           if (e.target === dialogRef.current) dialogRef.current?.close();
         }}
       >
-        <h2 className="text-lg font-semibold text-zinc-900">{title}</h2>
-        {description ? <p className="mt-2 text-sm text-zinc-600">{description}</p> : null}
+        <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
+        {description ? <p className="mt-2 text-sm text-slate-600">{description}</p> : null}
         <div className="mt-6 flex justify-end gap-3">
           <Button
             variant="outline"

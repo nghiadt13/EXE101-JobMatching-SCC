@@ -33,6 +33,8 @@ export default async function AdminDashboardPage() {
       title="Admin Dashboard"
       description="Manage system-level resources and monitor platform health."
       email={session.user.email}
+      userName={session.user.name}
+      userAvatarUrl={session.user.image}
       role="ADMIN"
       currentPath="/dashboard/admin"
     >
@@ -54,3 +56,4 @@ export default async function AdminDashboardPage() {
     </DashboardShell>
   );
 }
+

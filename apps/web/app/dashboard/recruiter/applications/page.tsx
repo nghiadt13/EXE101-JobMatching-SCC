@@ -60,6 +60,8 @@ export default async function RecruiterApplicationsPage() {
       title="Applications Review"
       description="Review and update the status of candidate applications."
       email={session.user.email}
+      userName={session.user.name}
+      userAvatarUrl={session.user.image}
       role="RECRUITER"
       currentPath="/dashboard/recruiter/applications"
       breadcrumbs={[
@@ -71,3 +73,4 @@ export default async function RecruiterApplicationsPage() {
     </DashboardShell>
   );
 }
+

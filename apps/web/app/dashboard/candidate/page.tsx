@@ -32,6 +32,8 @@ export default async function CandidateDashboardPage() {
       title="Candidate Dashboard"
       description="Track your applications and update your profile and CV."
       email={session.user.email}
+      userName={session.user.name}
+      userAvatarUrl={session.user.image}
       role="CANDIDATE"
       currentPath="/dashboard/candidate"
     >
@@ -69,3 +71,4 @@ export default async function CandidateDashboardPage() {
     </DashboardShell>
   );
 }
+

@@ -50,6 +50,8 @@ export default async function ProfilePage() {
       title="My Account"
       description="Update your profile information."
       email={session.user.email}
+      userName={session.user.name}
+      userAvatarUrl={session.user.image}
       role={session.user.role}
       currentPath="/dashboard/profile"
       breadcrumbs={[
@@ -61,3 +63,4 @@ export default async function ProfilePage() {
     </DashboardShell>
   );
 }
+

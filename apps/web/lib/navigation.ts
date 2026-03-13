@@ -53,6 +53,12 @@ const navIcons: Record<NavIconName, LucideIcon> = {
   'clipboard-list': ClipboardList,
 };
 
+const DASHBOARD_ROOT_PATHS = new Set([
+  '/dashboard/candidate',
+  '/dashboard/recruiter',
+  '/dashboard/admin',
+]);
+
 export function getNavIcon(iconName: NavIconName): LucideIcon {
   return navIcons[iconName];
 }
@@ -86,6 +92,10 @@ export function isNavItemActive(itemHref: string, currentPath: string | undefine
       || currentPath.startsWith(`${LEGACY_JOBS_LISTING_ROUTE}/`)
       || currentPath.startsWith(`${LEGACY_JOBS_LISTING_ROUTE}?`)
     );
+  }
+
+  if (DASHBOARD_ROOT_PATHS.has(itemHref)) {
+    return currentPath === itemHref || currentPath.startsWith(`${itemHref}?`);
   }
 
   if (currentPath === itemHref) return true;

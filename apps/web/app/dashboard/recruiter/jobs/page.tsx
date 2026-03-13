@@ -134,6 +134,8 @@ export default async function RecruiterJobsPage({ searchParams }: PageProps) {
       title="Job Management"
       description="Create jobs manually or upload a JD file, then review draft quality and publish when ready."
       email={session.user.email}
+      userName={session.user.name}
+      userAvatarUrl={session.user.image}
       role="RECRUITER"
       currentPath="/dashboard/recruiter/jobs"
       breadcrumbs={[
@@ -180,3 +182,4 @@ export default async function RecruiterJobsPage({ searchParams }: PageProps) {
     </DashboardShell>
   );
 }
+

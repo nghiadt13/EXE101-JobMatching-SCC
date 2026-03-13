@@ -16,6 +16,8 @@ export default async function CandidateApplicationsPage() {
       title="My Applications"
       description="Track the status of jobs you have applied to."
       email={session.user.email}
+      userName={session.user.name}
+      userAvatarUrl={session.user.image}
       role="CANDIDATE"
       currentPath="/dashboard/candidate/applications"
       breadcrumbs={[
@@ -27,3 +29,4 @@ export default async function CandidateApplicationsPage() {
     </DashboardShell>
   );
 }
+

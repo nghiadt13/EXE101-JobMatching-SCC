@@ -129,6 +129,8 @@ export default async function CandidateCvsPage({ searchParams }: PageProps) {
       title="CV Management"
       description="Upload, review, and manage your CVs."
       email={session.user.email}
+      userName={session.user.name}
+      userAvatarUrl={session.user.image}
       role="CANDIDATE"
       currentPath="/dashboard/candidate/cvs"
       breadcrumbs={[
@@ -158,3 +160,4 @@ export default async function CandidateCvsPage({ searchParams }: PageProps) {
     </DashboardShell>
   );
 }
+

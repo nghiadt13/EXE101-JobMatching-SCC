@@ -117,6 +117,8 @@ export default async function RecruiterJobDetailPage({ params, searchParams }: P
     <DashboardShell
       title="Edit Job"
       email={session.user.email}
+      userName={session.user.name}
+      userAvatarUrl={session.user.image}
       role="RECRUITER"
       currentPath={`/dashboard/recruiter/jobs/${id}`}
       breadcrumbs={[

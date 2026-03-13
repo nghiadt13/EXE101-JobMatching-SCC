@@ -51,6 +51,8 @@ export default async function AdminUsersPage() {
       title="Users Management"
       description={`${usersData.pagination.totalItems} registered users.`}
       email={session.user.email}
+      userName={session.user.name}
+      userAvatarUrl={session.user.image}
       role="ADMIN"
       currentPath="/dashboard/admin/users"
       breadcrumbs={[
@@ -68,3 +70,4 @@ export default async function AdminUsersPage() {
     </DashboardShell>
   );
 }
+

@@ -32,6 +32,8 @@ export default async function RecruiterDashboardPage() {
       title="Recruiter Dashboard"
       description="Manage jobs, review candidates, and track application progress."
       email={session.user.email}
+      userName={session.user.name}
+      userAvatarUrl={session.user.image}
       role="RECRUITER"
       currentPath="/dashboard/recruiter"
     >
@@ -55,3 +57,4 @@ export default async function RecruiterDashboardPage() {
     </DashboardShell>
   );
 }
+

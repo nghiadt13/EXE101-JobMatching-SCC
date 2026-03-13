@@ -2,9 +2,8 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { signOut } from 'next-auth/react';
 import type {
   HomepageFeaturedJob,
   HomepageResponse,
@@ -14,9 +13,7 @@ import {
   saveHomepageJob,
   unsaveHomepageJob,
 } from '@/lib/homepage-client';
-
-const FALLBACK_AVATAR =
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuDJWS7D-glrmKnFu1VhcuuzOu_7JGrK2arpYsJhWT1gTvdQviF_WOQofU7PVeH7WcAnTep-bGy3eDxC-u5JWJ6btQ_PpU8N7RLp6ze8iuUAyxMNaPvh7vsNqNncmWtgpXqIkFfN-CwD9wvu3QBjNDz0P-aYmdSzPgd5pPKYsFLSoGF3ETtkfmQJmnIBQiJXzHR3C5WIeRcyyfW5do8LWB-YCjSE7LC6BWr8-hHiTUWfuLW5jH4sd6yFney9N9Bx4mjD9jH2lhNszDE';
+import { SiteHeader } from '@/components/layout/site-header';
 
 const FALLBACK_HOMEPAGE: HomepageResponse = {
   currentUser: null,
@@ -203,30 +200,18 @@ export function HomepageMain({
   accessToken,
   isAuthenticated,
 }: HomepageMainProps) {
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [homepageData, setHomepageData] = useState<HomepageResponse>(
     initialData ?? FALLBACK_HOMEPAGE,
   );
   const [selectedLocation, setSelectedLocation] = useState<string>('all');
   const [savingJobIds, setSavingJobIds] = useState<Set<string>>(new Set());
   const [actionError, setActionError] = useState<string | null>(null);
-  const dropdownRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (initialData) {
       setHomepageData(initialData);
     }
   }, [initialData]);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (!dropdownRef.current?.contains(event.target as Node)) {
-        setIsDropdownOpen(false);
-      }
-    };
-    window.addEventListener('click', handleClickOutside);
-    return () => window.removeEventListener('click', handleClickOutside);
-  }, []);
 
   const growthSeries = useMemo(() => MOCK_JOB_GROWTH_SERIES, []);
   const growthPath = useMemo(() => buildTrendPath(growthSeries), [growthSeries]);
@@ -255,9 +240,6 @@ export function HomepageMain({
     selectedLocation,
   ]);
 
-  const userDisplayName =
-    homepageData.currentUser?.name ?? (isAuthenticated ? 'User' : 'Guest');
-  const userPlan = homepageData.currentUser?.planName ?? 'Free Plan';
   const unreadCount = homepageData.currentUser?.unreadNotificationCount ?? 1;
   const displayedCategories = MOCK_CATEGORIES;
 
@@ -322,153 +304,16 @@ export function HomepageMain({
       className="bg-gray-50 text-slate-900"
       style={{ fontFamily: 'var(--font-inter), sans-serif' }}
     >
-      <header className="sticky top-0 z-50 border-b border-gray-100 bg-white shadow-sm">
-        <nav className="flex h-20 w-full items-center justify-between px-4 sm:px-8 lg:px-12">
-          <div className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-600 text-white">
-              <i className="fa-solid fa-bolt-lightning text-xl" />
-            </div>
-            <span className="text-2xl font-bold tracking-tight text-slate-800">
-              HireStream
-            </span>
-          </div>
-          <div className="hidden items-center space-x-8 lg:flex">
-            <Link
-              className="text-sm font-medium text-slate-600 transition-standard hover:text-primary-600"
-              href="/jobs"
-            >
-              Find Jobs
-            </Link>
-            <a
-              className="text-sm font-medium text-slate-600 transition-standard hover:text-primary-600"
-              href="#"
-            >
-              Companies
-            </a>
-            <a
-              className="text-sm font-medium text-slate-600 transition-standard hover:text-primary-600"
-              href="#"
-            >
-              Salaries
-            </a>
-            <Link
-              className="rounded-md border border-primary-600 px-4 py-2 text-sm font-semibold text-primary-600 transition-standard hover:bg-primary-50"
-              href="/dashboard/recruiter/jobs"
-            >
-              Post a Job
-            </Link>
-          </div>
-          <div className="flex items-center space-x-2 md:space-x-4">
-            <button
-              className="transition-standard group relative rounded-full p-2.5 text-slate-600 hover:bg-primary-50 hover:text-primary-600"
-              type="button"
-            >
-              <i className="fa-regular fa-bell text-xl" />
-              <span className="absolute top-2 right-2 flex h-2.5 w-2.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary-400 opacity-75" />
-                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary-600" />
-              </span>
-              <span className="sr-only">{unreadCount} unread notifications</span>
-            </button>
-            <button
-              className="transition-standard rounded-full p-2.5 text-slate-600 hover:bg-primary-50 hover:text-primary-600"
-              type="button"
-            >
-              <i className="fa-regular fa-comment-dots text-xl" />
-            </button>
-            <div className="hidden h-6 w-px bg-gray-200 md:block" />
-            <div
-              ref={dropdownRef}
-              className={`relative ${isDropdownOpen ? 'dropdown-active' : ''}`}
-              onMouseEnter={() => setIsDropdownOpen(true)}
-              onMouseLeave={() => setIsDropdownOpen(false)}
-            >
-              <button
-                className="transition-standard flex items-center gap-3 rounded-full p-1 hover:bg-gray-100 focus:outline-none"
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  setIsDropdownOpen((prev) => !prev);
-                }}
-              >
-                <div className="h-10 w-10 overflow-hidden rounded-full border-2 border-primary-100">
-                  <Image
-                    alt="User"
-                    className="h-full w-full object-cover"
-                    src={homepageData.currentUser?.avatarUrl || FALLBACK_AVATAR}
-                    width={40}
-                    height={40}
-                    unoptimized
-                  />
-                </div>
-                <div className="hidden pr-2 text-left md:block">
-                  <p className="text-xs leading-none font-bold text-slate-800">
-                    {userDisplayName}
-                  </p>
-                  <p className="mt-1 text-[10px] text-gray-500">{userPlan}</p>
-                </div>
-                <i
-                  className={`fa-solid fa-chevron-down mr-1 hidden text-[10px] text-gray-400 transition-transform duration-200 md:block ${isDropdownOpen ? 'rotate-180' : ''}`}
-                />
-              </button>
-              <div className="dropdown-menu absolute top-full right-0 z-[60] w-56 pt-2">
-                <div className="rounded-xl border border-gray-100 bg-white py-2 shadow-xl">
-                  <div className="mb-1 border-b border-gray-50 px-4 py-3">
-                    <p className="text-sm font-semibold text-slate-900">
-                      {userDisplayName}
-                    </p>
-                    <p className="truncate text-xs text-gray-500">
-                      {isAuthenticated ? 'Signed in account' : 'Guest account'}
-                    </p>
-                  </div>
-                  <Link
-                    className="transition-standard flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-primary-50 hover:text-primary-600"
-                    href="/dashboard/profile"
-                  >
-                    <i className="fa-solid fa-user-gear w-4 text-center" />
-                    Settings
-                  </Link>
-                  <Link
-                    className="transition-standard flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-primary-50 hover:text-primary-600"
-                    href="/dashboard/candidate/applications"
-                  >
-                    <i className="fa-solid fa-briefcase w-4 text-center" />
-                    My Applications
-                  </Link>
-                  <Link
-                    className="transition-standard flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-primary-50 hover:text-primary-600"
-                    href="/dashboard/candidate/cvs"
-                  >
-                    <i className="fa-solid fa-file-invoice w-4 text-center" />
-                    My CVs
-                  </Link>
-                  <div className="mx-2 my-1 h-px bg-gray-50" />
-                  {isAuthenticated ? (
-                    <button
-                      className="transition-standard flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-red-500 hover:bg-red-50"
-                      type="button"
-                      onClick={() => {
-                        void signOut({ callbackUrl: '/login' });
-                      }}
-                    >
-                      <i className="fa-solid fa-arrow-right-from-bracket w-4 text-center" />
-                      Log out
-                    </button>
-                  ) : (
-                    <Link
-                      className="transition-standard flex items-center gap-3 px-4 py-2.5 text-sm text-primary-600 hover:bg-primary-50"
-                      href="/login"
-                    >
-                      <i className="fa-solid fa-right-to-bracket w-4 text-center" />
-                      Log in
-                    </Link>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </nav>
-      </header>
+      <SiteHeader
+        isAuthenticated={isAuthenticated}
+        unreadCount={unreadCount}
+        user={{
+          name: homepageData.currentUser?.name,
+          email: undefined,
+          avatarUrl: homepageData.currentUser?.avatarUrl,
+          planName: homepageData.currentUser?.planName,
+        }}
+      />
       <main>
         <section className="relative flex h-[600px] items-center justify-center overflow-hidden">
           <Image

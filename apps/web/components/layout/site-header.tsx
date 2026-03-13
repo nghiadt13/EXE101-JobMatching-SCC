@@ -3,10 +3,34 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
+import { signOut } from 'next-auth/react';
 
-export function SiteHeader() {
+const FALLBACK_AVATAR =
+  'https://lh3.googleusercontent.com/aida-public/AB6AXuDJWS7D-glrmKnFu1VhcuuzOu_7JGrK2arpYsJhWT1gTvdQviF_WOQofU7PVeH7WcAnTep-bGy3eDxC-u5JWJ6btQ_PpU8N7RLp6ze8iuUAyxMNaPvh7vsNqNncmWtgpXqIkFfN-CwD9wvu3QBjNDz0P-aYmdSzPgd5pPKYsFLSoGF3ETtkfmQJmnIBQiJXzHR3C5WIeRcyyfW5do8LWB-YCjSE7LC6BWr8-hHiTUWfuLW5jH4sd6yFney9N9Bx4mjD9jH2lhNszDE';
+
+type SiteHeaderUser = {
+  name?: string | null;
+  email?: string | null;
+  avatarUrl?: string | null;
+  planName?: string | null;
+};
+
+type SiteHeaderProps = {
+  user?: SiteHeaderUser | null;
+  unreadCount?: number;
+  isAuthenticated?: boolean;
+};
+
+export function SiteHeader({
+  user,
+  unreadCount = 1,
+  isAuthenticated = false,
+}: SiteHeaderProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
+  const userDisplayName = user?.name?.trim() || (isAuthenticated ? 'User' : 'Guest');
+  const userPlan = user?.planName?.trim() || 'Free Plan';
+  const userEmail = user?.email?.trim() || (isAuthenticated ? 'Signed in account' : 'Guest account');
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -32,20 +56,29 @@ export function SiteHeader() {
         </Link>
 
         <div className="hidden items-center space-x-8 lg:flex">
-          <Link className="transition-standard text-sm font-medium text-slate-600 hover:text-primary-600" href="/jobs">
-            Find Jobs
+          <Link
+            className="transition-standard flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-primary-600"
+            href="/jobs"
+          >
+            Find Jobs <i className="fa-solid fa-chevron-down text-[10px]" />
           </Link>
-          <a className="transition-standard text-sm font-medium text-slate-600 hover:text-primary-600" href="#">
-            Companies
-          </a>
-          <a className="transition-standard text-sm font-medium text-slate-600 hover:text-primary-600" href="#">
-            Salaries
-          </a>
           <a
-            className="transition-standard rounded-md border border-primary-600 px-4 py-2 text-sm font-semibold text-primary-600 hover:bg-primary-50"
+            className="transition-standard flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-primary-600"
             href="#"
           >
-            Post a Job
+            Companies <i className="fa-solid fa-chevron-down text-[10px]" />
+          </a>
+          <Link
+            className="transition-standard flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-primary-600"
+            href="/dashboard/candidate/cvs"
+          >
+            CreateCV <i className="fa-solid fa-chevron-down text-[10px]" />
+          </Link>
+          <a
+            className="transition-standard flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-primary-600"
+            href="#"
+          >
+            Tools <i className="fa-solid fa-chevron-down text-[10px]" />
           </a>
         </div>
 
@@ -59,6 +92,7 @@ export function SiteHeader() {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary-400 opacity-75" />
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary-600" />
             </span>
+            <span className="sr-only">{unreadCount} unread notifications</span>
           </button>
 
           <button
@@ -88,15 +122,15 @@ export function SiteHeader() {
                 <Image
                   alt="User"
                   className="h-full w-full object-cover"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDJWS7D-glrmKnFu1VhcuuzOu_7JGrK2arpYsJhWT1gTvdQviF_WOQofU7PVeH7WcAnTep-bGy3eDxC-u5JWJ6btQ_PpU8N7RLp6ze8iuUAyxMNaPvh7vsNqNncmWtgpXqIkFfN-CwD9wvu3QBjNDz0P-aYmdSzPgd5pPKYsFLSoGF3ETtkfmQJmnIBQiJXzHR3C5WIeRcyyfW5do8LWB-YCjSE7LC6BWr8-hHiTUWfuLW5jH4sd6yFney9N9Bx4mjD9jH2lhNszDE"
+                  src={user?.avatarUrl || FALLBACK_AVATAR}
                   width={40}
                   height={40}
                   unoptimized
                 />
               </div>
               <div className="hidden pr-2 text-left md:block">
-                <p className="text-xs leading-none font-bold text-slate-800">Alex Rivera</p>
-                <p className="mt-1 text-[10px] text-gray-500">Free Plan</p>
+                <p className="text-xs leading-none font-bold text-slate-800">{userDisplayName}</p>
+                <p className="mt-1 text-[10px] text-gray-500">{userPlan}</p>
               </div>
               <i
                 className={`fa-solid fa-chevron-down mr-1 hidden text-[10px] text-gray-400 transition-transform duration-200 md:block ${
@@ -108,34 +142,46 @@ export function SiteHeader() {
             <div className="dropdown-menu absolute top-full right-0 z-[60] w-56 pt-2">
               <div className="rounded-xl border border-gray-100 bg-white py-2 shadow-xl">
                 <div className="mb-1 border-b border-gray-50 px-4 py-3">
-                  <p className="text-sm font-semibold text-slate-900">Alex Rivera</p>
-                  <p className="truncate text-xs text-gray-500">alex.rivera@example.com</p>
+                  <p className="text-sm font-semibold text-slate-900">{userDisplayName}</p>
+                  <p className="truncate text-xs text-gray-500">{userEmail}</p>
                 </div>
                 <Link
                   className="transition-standard flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-primary-50 hover:text-primary-600"
-                  href="/dashboard"
+                  href="/dashboard/profile"
                 >
-                  <i className="fa-solid fa-user-gear w-4 text-center" /> Dashboard
+                  <i className="fa-solid fa-user-gear w-4 text-center" /> Settings
                 </Link>
-                <a
+                <Link
                   className="transition-standard flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-primary-50 hover:text-primary-600"
-                  href="#"
+                  href="/dashboard/candidate/applications"
                 >
                   <i className="fa-solid fa-briefcase w-4 text-center" /> My Applications
-                </a>
-                <a
+                </Link>
+                <Link
                   className="transition-standard flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-primary-50 hover:text-primary-600"
-                  href="#"
+                  href="/dashboard/candidate/cvs"
                 >
                   <i className="fa-solid fa-file-invoice w-4 text-center" /> My CVs
-                </a>
+                </Link>
                 <div className="mx-2 my-1 h-px bg-gray-50" />
-                <a
-                  className="transition-standard flex items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50"
-                  href="#"
-                >
-                  <i className="fa-solid fa-arrow-right-from-bracket w-4 text-center" /> Log out
-                </a>
+                {isAuthenticated ? (
+                  <button
+                    className="transition-standard flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-red-500 hover:bg-red-50"
+                    type="button"
+                    onClick={() => {
+                      void signOut({ callbackUrl: '/login' });
+                    }}
+                  >
+                    <i className="fa-solid fa-arrow-right-from-bracket w-4 text-center" /> Log out
+                  </button>
+                ) : (
+                  <Link
+                    className="transition-standard flex items-center gap-3 px-4 py-2.5 text-sm text-primary-600 hover:bg-primary-50"
+                    href="/login"
+                  >
+                    <i className="fa-solid fa-right-to-bracket w-4 text-center" /> Log in
+                  </Link>
+                )}
               </div>
             </div>
           </div>
