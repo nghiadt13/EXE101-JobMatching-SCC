@@ -25,7 +25,7 @@ import { CreateJobDto } from './dto/create-job.dto';
 import { QueryJobsDto } from './dto/query-jobs.dto';
 import { UpdateJobDto } from './dto/update-job.dto';
 import { JobsService } from './jobs.service';
-import { JobView, JobsListResponse } from './jobs.types';
+import { JobView, JobsListResponse, SaveJobResponse } from './jobs.types';
 
 @Controller('jobs')
 export class JobsController {
@@ -116,5 +116,23 @@ export class JobsController {
     @Param('id') id: string,
   ): Promise<JobView> {
     return this.jobsService.close(user.sub, id);
+  }
+
+  @Post(':id/save')
+  @UseGuards(JwtAuthGuard)
+  saveJob(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+  ): Promise<SaveJobResponse> {
+    return this.jobsService.saveJob(user.sub, id);
+  }
+
+  @Delete(':id/save')
+  @UseGuards(JwtAuthGuard)
+  unsaveJob(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+  ): Promise<SaveJobResponse> {
+    return this.jobsService.unsaveJob(user.sub, id);
   }
 }

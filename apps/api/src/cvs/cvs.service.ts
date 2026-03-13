@@ -82,7 +82,8 @@ export class CvsService {
     } catch {
       throw new UnprocessableEntityException({
         code: ERROR_CODES.cvParseFailed,
-        message: 'Could not read CV file. Upload a readable PDF or DOCX and try again.',
+        message:
+          'Could not read CV file. Upload a readable PDF or DOCX and try again.',
         details: { stage: 'text_extraction' },
       });
     }
@@ -136,7 +137,6 @@ export class CvsService {
 
   // buildNormalizedCvData is kept for reference but no longer called during upload.
   // @deprecated — LLM normalization now happens at apply-time via JdDrivenEvaluationService
-
 
   async list(userId: string, query: QueryCvsDto): Promise<CvsListResponse> {
     const candidate = await this.getCandidateOrThrow(userId);
@@ -259,7 +259,8 @@ export class CvsService {
     // Only rebuild candidateProfile if there is existing normalized data.
     // New CVs (pending_apply) have no normalizedProfile — skip candidateProfile build.
     const hasNormalizedProfile =
-      Object.keys(this.asRecord(mergedParsedData['normalizedProfile'])).length > 0;
+      Object.keys(this.asRecord(mergedParsedData['normalizedProfile'])).length >
+      0;
     const candidateProfile = hasNormalizedProfile
       ? this.buildCandidateProfile(mergedParsedData, effectiveSkills)
       : null;
@@ -281,7 +282,8 @@ export class CvsService {
           : {}),
         ...(candidateProfile !== null
           ? {
-              candidateProfile: candidateProfile as unknown as Prisma.InputJsonValue,
+              candidateProfile:
+                candidateProfile as unknown as Prisma.InputJsonValue,
               candidateProfileVersion: candidateProfile.version,
             }
           : shouldWriteCvDerivedFields
@@ -289,7 +291,7 @@ export class CvsService {
                 candidateProfile: Prisma.JsonNull,
                 candidateProfileVersion: null,
               }
-          : {}),
+            : {}),
       },
       select: this.cvViewSelect,
     });
@@ -407,8 +409,6 @@ export class CvsService {
     return cv;
   }
 
-
-
   private readParseStatus(value: Prisma.JsonValue): ParseStatus {
     const record = this.asRecord(value);
     const parseStatus = record['parseStatus'];
@@ -449,10 +449,9 @@ export class CvsService {
     const parseStatus = this.normalizeParseStatus(parsedData.parseStatus);
     const skills = Array.isArray(item.skills) ? (item.skills as string[]) : [];
     const isPendingApply = parseStatus === 'pending_apply';
-    const resolvedCandidateProfile =
-      isPendingApply
-        ? null
-        : Object.keys(candidateProfile).length > 0
+    const resolvedCandidateProfile = isPendingApply
+      ? null
+      : Object.keys(candidateProfile).length > 0
         ? candidateProfile
         : this.buildCandidateProfile(
             parsedData as unknown as Record<string, unknown>,
@@ -464,7 +463,7 @@ export class CvsService {
       'version' in resolvedCandidateProfile &&
       typeof (resolvedCandidateProfile as { version?: unknown }).version ===
         'string'
-        ? ((resolvedCandidateProfile as { version: string }).version as string)
+        ? (resolvedCandidateProfile as { version: string }).version
         : null;
 
     return {
@@ -484,9 +483,7 @@ export class CvsService {
           ? (resolvedCandidateProfile as CvView['candidateProfile'])
           : null,
       candidateProfileVersion:
-        item.candidateProfileVersion ??
-        resolvedCandidateProfileVersion ??
-        null,
+        item.candidateProfileVersion ?? resolvedCandidateProfileVersion ?? null,
       parseTelemetry:
         Object.keys(parseTelemetry).length > 0
           ? (parseTelemetry as unknown as CvView['parseTelemetry'])
@@ -515,8 +512,6 @@ export class CvsService {
       // MatchingService reads rawText via a separate targeted query.
     } satisfies Prisma.CVSelect;
   }
-
-
 
   private buildCandidateProfile(
     parsedData: Record<string, unknown>,

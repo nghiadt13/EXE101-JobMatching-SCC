@@ -8,6 +8,7 @@ import { CommonModule } from './common/common.module';
 import { CvsModule } from './cvs/cvs.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { JobsModule } from './jobs/jobs.module';
+import { HomepageModule } from './homepage/homepage.module';
 import { MatchingModule } from './matching/matching.module';
 import { ProfileModule } from './profile/profile.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -28,6 +29,7 @@ import { NormalizationModule } from './normalization/normalization.module';
     ProfileModule,
     CvsModule,
     JobsModule,
+    HomepageModule,
     MatchingModule,
     DashboardModule,
   ],

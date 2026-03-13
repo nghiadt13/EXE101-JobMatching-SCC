@@ -224,7 +224,9 @@ export class ApplicationsService {
   }
 
   private toView(item: ApplicationRecord): ApplicationView {
-    const matchingSnapshot = this.normalizeMatchingSnapshot(item.matchingSnapshot);
+    const matchingSnapshot = this.normalizeMatchingSnapshot(
+      item.matchingSnapshot,
+    );
     return {
       id: item.id,
       jobId: item.jobId,

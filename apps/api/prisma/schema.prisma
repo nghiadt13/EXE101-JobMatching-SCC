@@ -35,12 +35,15 @@ model User {
   name      String
   role      UserRole  @default(CANDIDATE)
   avatar    String?
+  planName  String    @default("Free Plan")
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
   candidate Candidate?
   jobs      Job[]
+  savedJobs SavedJob[]
+  notifications Notification[]
 
   @@index([email])
   @@index([role])
@@ -93,9 +96,14 @@ model Job {
   id             String    @id @default(uuid())
   recruiterId    String
   recruiter      User      @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
+  companyId      String?
+  company        Company?  @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  categoryId     String?
+  category       JobCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   title          String
   slug           String    @unique
   description    String    @db.Text
+  shortDescription String?
   skills         Json
   skillAtoms     Json?
   requirementsSchema Json?
@@ -112,12 +120,107 @@ model Job {
   deletedAt      DateTime?
 
   applications Application[]
+  savedByUsers SavedJob[]
 
   @@index([recruiterId])
+  @@index([companyId])
+  @@index([categoryId])
   @@index([status])
   @@index([publishedAt])
   @@index([slug])
   @@index([deletedAt])
+}
+
+model Company {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String?  @unique
+  logoUrl   String?
+  iconKey   String?
+  isTrusted Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  jobs Job[]
+
+  @@index([isTrusted])
+}
+
+model JobCategory {
+  id        String   @id @default(uuid())
+  slug      String   @unique
+  name      String
+  iconKey   String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  jobs Job[]
+
+  @@index([sortOrder])
+}
+
+model SavedJob {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobId     String
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, jobId])
+  @@index([userId])
+  @@index([jobId])
+}
+
+model HomepageContent {
+  id                     String   @id @default(uuid())
+  slug                   String   @unique @default("home-main")
+  heroHeadline           String
+  heroSubheadline        String
+  heroBackgroundImageUrl String
+  popularKeywords        Json
+  footerQuickLinks       Json
+  footerSupportLinks     Json
+  footerSocialLinks      Json
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+}
+
+model MarketStatDaily {
+  id              String   @id @default(uuid())
+  statDate        DateTime @db.Date @unique
+  newJobs24h      Int      @default(0)
+  activeJobs      Int      @default(0)
+  hiringCompanies Int      @default(0)
+  createdAt       DateTime @default(now())
+
+  @@index([statDate(sort: Desc)])
+}
+
+model IndustryDemandDaily {
+  id            String   @id @default(uuid())
+  statDate      DateTime @db.Date
+  industryKey   String
+  industryLabel String
+  demandValue   Int      @default(0)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  @@unique([statDate, industryKey])
+  @@index([statDate(sort: Desc)])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  body      String?  @db.Text
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
 }
 
 model Application {

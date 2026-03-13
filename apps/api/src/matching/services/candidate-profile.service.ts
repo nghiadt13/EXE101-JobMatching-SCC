@@ -47,7 +47,9 @@ export class CandidateProfileService {
         Array.isArray(profile?.projects) && profile.projects.length
           ? profile.projects
           : this.readProjects(input.parsedData.projects),
-      location: this.readProfileLocation(profile) ?? this.readLocation(input.parsedData),
+      location:
+        this.readProfileLocation(profile) ??
+        this.readLocation(input.parsedData),
       warnings: this.buildWarnings(profile, input.skills),
     };
   }

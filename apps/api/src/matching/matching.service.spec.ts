@@ -171,7 +171,11 @@ describe('MatchingService', () => {
       parsedData: {
         normalizedProfile: {
           skills: ['TypeScript', 'Docker'],
-          rawQuality: { score: 40, needsManualReview: true, reason: 'weak text' },
+          rawQuality: {
+            score: 40,
+            needsManualReview: true,
+            reason: 'weak text',
+          },
         },
         summary: 'Backend engineer with Docker experience',
       },
@@ -188,7 +192,11 @@ describe('MatchingService', () => {
         __normalization: {
           normalizedProfile: {
             skills: ['Docker', 'Kubernetes'],
-            rawQuality: { score: 45, needsManualReview: true, reason: 'weak jd' },
+            rawQuality: {
+              score: 45,
+              needsManualReview: true,
+              reason: 'weak jd',
+            },
           },
         },
       },
@@ -201,9 +209,7 @@ describe('MatchingService', () => {
     });
 
     expect(result.matchingVersion).toBe('schema_v1');
-    expect(result.warnings).toContain(
-      'CV parsing needs manual review',
-    );
+    expect(result.warnings).toContain('CV parsing needs manual review');
     expect(result.warnings).toContain('Job parsing needs manual review');
   });
 });

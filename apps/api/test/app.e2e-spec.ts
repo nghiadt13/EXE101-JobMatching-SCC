@@ -1043,7 +1043,9 @@ describe('Auth and User/Profile (e2e)', () => {
               reason: '',
             },
             jobMeta: {
-              requirements: ['Need recruiter with at least 3 years of experience.'],
+              requirements: [
+                'Need recruiter with at least 3 years of experience.',
+              ],
               benefits: [],
               employmentType: 'FULL_TIME',
             },

@@ -18,7 +18,9 @@ export class SchemaMatchingEvaluatorService {
     const requirements = [
       ...requirementsSchema.mustHaves,
       ...requirementsSchema.niceToHaves,
-    ].map((requirement) => this.evaluateRequirement(requirement, candidateProfile));
+    ].map((requirement) =>
+      this.evaluateRequirement(requirement, candidateProfile),
+    );
 
     const mustHave = this.averageScore(
       requirements.filter(
@@ -34,9 +36,15 @@ export class SchemaMatchingEvaluatorService {
           !this.isCategoryBucketRequirement(item),
       ),
     );
-    const experience = this.averageScore(requirements.filter((item) => item.category === 'experience'));
-    const education = this.averageScore(requirements.filter((item) => item.category === 'education'));
-    const language = this.averageScore(requirements.filter((item) => item.category === 'language'));
+    const experience = this.averageScore(
+      requirements.filter((item) => item.category === 'experience'),
+    );
+    const education = this.averageScore(
+      requirements.filter((item) => item.category === 'education'),
+    );
+    const language = this.averageScore(
+      requirements.filter((item) => item.category === 'language'),
+    );
     const location = this.scoreLocation(requirementsSchema, candidateProfile);
 
     const final = Math.round(
@@ -62,12 +70,20 @@ export class SchemaMatchingEvaluatorService {
           final,
         },
         requirements,
-        strengths: requirements.filter((item) => item.status === 'met').slice(0, 4).map((item) => item.label),
-        gaps: requirements.filter((item) => item.status === 'missing').slice(0, 4).map((item) => item.label),
-        warnings: Array.from(new Set([
-          ...requirementsSchema.warnings,
-          ...candidateProfile.warnings,
-        ])).slice(0, 6),
+        strengths: requirements
+          .filter((item) => item.status === 'met')
+          .slice(0, 4)
+          .map((item) => item.label),
+        gaps: requirements
+          .filter((item) => item.status === 'missing')
+          .slice(0, 4)
+          .map((item) => item.label),
+        warnings: Array.from(
+          new Set([
+            ...requirementsSchema.warnings,
+            ...candidateProfile.warnings,
+          ]),
+        ).slice(0, 6),
       },
     };
   }
@@ -123,7 +139,9 @@ export class SchemaMatchingEvaluatorService {
   ): string[] {
     const evidence: string[] = [];
     const keywords = requirement.keywords;
-    const profileSkills = candidateProfile.skills.map((skill) => skill.toLowerCase());
+    const profileSkills = candidateProfile.skills.map((skill) =>
+      skill.toLowerCase(),
+    );
 
     for (const skill of candidateProfile.skills) {
       if (keywords.some((keyword) => skill.toLowerCase().includes(keyword))) {
@@ -136,7 +154,9 @@ export class SchemaMatchingEvaluatorService {
         .join(' ')
         .toLowerCase();
       if (keywords.some((keyword) => haystack.includes(keyword))) {
-        evidence.push(`Experience: ${experience.role || experience.company}`.trim());
+        evidence.push(
+          `Experience: ${experience.role || experience.company}`.trim(),
+        );
       }
     }
 
@@ -150,13 +170,19 @@ export class SchemaMatchingEvaluatorService {
     }
 
     for (const language of candidateProfile.languages) {
-      if (keywords.some((keyword) => language.toLowerCase().includes(keyword))) {
+      if (
+        keywords.some((keyword) => language.toLowerCase().includes(keyword))
+      ) {
         evidence.push(`Language: ${language}`);
       }
     }
 
     for (const certification of candidateProfile.certifications) {
-      if (keywords.some((keyword) => certification.toLowerCase().includes(keyword))) {
+      if (
+        keywords.some((keyword) =>
+          certification.toLowerCase().includes(keyword),
+        )
+      ) {
         evidence.push(`Certification: ${certification}`);
       }
     }
@@ -165,7 +191,10 @@ export class SchemaMatchingEvaluatorService {
       requirement.category === 'education' &&
       candidateProfile.education.some((entry) =>
         keywords.some((keyword) =>
-          [entry.degree, entry.field, entry.school].join(' ').toLowerCase().includes(keyword),
+          [entry.degree, entry.field, entry.school]
+            .join(' ')
+            .toLowerCase()
+            .includes(keyword),
         ),
       )
     ) {
@@ -175,7 +204,11 @@ export class SchemaMatchingEvaluatorService {
     if (
       requirement.category === 'skill' &&
       evidence.length === 0 &&
-      profileSkills.some((skill) => keywords.some((keyword) => keyword.includes(skill) || skill.includes(keyword)))
+      profileSkills.some((skill) =>
+        keywords.some(
+          (keyword) => keyword.includes(skill) || skill.includes(keyword),
+        ),
+      )
     ) {
       evidence.push('Related skill evidence found');
     }
@@ -187,7 +220,10 @@ export class SchemaMatchingEvaluatorService {
     if (items.length === 0) {
       return 100;
     }
-    const total = items.reduce((sum, item) => sum + this.statusScore(item.status), 0);
+    const total = items.reduce(
+      (sum, item) => sum + this.statusScore(item.status),
+      0,
+    );
     return total / items.length;
   }
 
@@ -218,8 +254,10 @@ export class SchemaMatchingEvaluatorService {
     const city = candidateProfile.location?.city.toLowerCase() ?? '';
     const country = candidateProfile.location?.country.toLowerCase() ?? '';
     if (
-      (locationPreference.city && city === locationPreference.city.toLowerCase()) ||
-      (locationPreference.country && country === locationPreference.country.toLowerCase())
+      (locationPreference.city &&
+        city === locationPreference.city.toLowerCase()) ||
+      (locationPreference.country &&
+        country === locationPreference.country.toLowerCase())
     ) {
       return 100;
     }

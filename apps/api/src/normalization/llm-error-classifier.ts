@@ -29,7 +29,10 @@ export function classifyLlmError(error: unknown): LlmFailureDetails {
     };
   }
 
-  if (statusCode === 429 || /(rate|quota|resource_exhausted|too_many_requests)/i.test(signal)) {
+  if (
+    statusCode === 429 ||
+    /(rate|quota|resource_exhausted|too_many_requests)/i.test(signal)
+  ) {
     return {
       category: 'rate_limited',
       statusCode,
@@ -39,7 +42,12 @@ export function classifyLlmError(error: unknown): LlmFailureDetails {
     };
   }
 
-  if ((statusCode !== null && statusCode >= 500) || /(bad gateway|gateway timeout|service unavailable|internal server error)/i.test(signal)) {
+  if (
+    (statusCode !== null && statusCode >= 500) ||
+    /(bad gateway|gateway timeout|service unavailable|internal server error)/i.test(
+      signal,
+    )
+  ) {
     return {
       category: 'upstream_5xx',
       statusCode,
@@ -49,7 +57,11 @@ export function classifyLlmError(error: unknown): LlmFailureDetails {
     };
   }
 
-  if (/(econnreset|econnrefused|ehostunreach|eai_again|enotfound|socket hang up|network|fetch failed|connection error)/i.test(signal)) {
+  if (
+    /(econnreset|econnrefused|ehostunreach|eai_again|enotfound|socket hang up|network|fetch failed|connection error)/i.test(
+      signal,
+    )
+  ) {
     return {
       category: 'network',
       statusCode,
@@ -120,7 +132,8 @@ function readProviderCode(error: unknown): string | null {
   }
 
   const record = error as Record<string, unknown>;
-  const direct = toNonEmptyString(record['code']) ?? toNonEmptyString(record['type']);
+  const direct =
+    toNonEmptyString(record['code']) ?? toNonEmptyString(record['type']);
   if (direct) {
     return direct;
   }

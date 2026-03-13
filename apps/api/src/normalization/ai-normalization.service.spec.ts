@@ -127,7 +127,9 @@ describe('AiNormalizationService', () => {
   });
 
   it('classifies timeout failures with retryable details', async () => {
-    geminiClient.generateText.mockRejectedValue(new Error('Timeout after 60000ms'));
+    geminiClient.generateText.mockRejectedValue(
+      new Error('Timeout after 60000ms'),
+    );
 
     await expect(service.normalizeCv('slow cv text')).rejects.toMatchObject({
       code: 'AI_SERVICE_UNAVAILABLE',
@@ -157,7 +159,9 @@ describe('AiNormalizationService', () => {
       }),
     );
 
-    await expect(service.normalizeCv('rate limited cv text')).rejects.toMatchObject({
+    await expect(
+      service.normalizeCv('rate limited cv text'),
+    ).rejects.toMatchObject({
       code: 'AI_SERVICE_UNAVAILABLE',
       kind: 'service_unavailable',
       details: expect.objectContaining({

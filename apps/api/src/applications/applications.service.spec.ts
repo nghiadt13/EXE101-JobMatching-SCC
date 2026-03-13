@@ -260,7 +260,11 @@ describe('ApplicationsService', () => {
                   jobMeta: {
                     requirements: ['3+ years AWS EC2 experience'],
                   },
-                  rawQuality: { score: 90, needsManualReview: false, reason: '' },
+                  rawQuality: {
+                    score: 90,
+                    needsManualReview: false,
+                    reason: '',
+                  },
                 },
               },
             },

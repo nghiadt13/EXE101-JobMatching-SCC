@@ -115,7 +115,11 @@ export class JobRequirementsSchemaService {
       }
 
       const importance = this.mapImportanceV2(rawRequirement);
-      const item = this.createRequirementV2(rawRequirement, category, importance);
+      const item = this.createRequirementV2(
+        rawRequirement,
+        category,
+        importance,
+      );
       if (this.acceptRequirementV2(item, seen)) {
         requirements.push(item);
       }
@@ -179,13 +183,17 @@ export class JobRequirementsSchemaService {
     if (/(degree|bachelor|master|graduate|university|college)/i.test(value)) {
       return 'education';
     }
-    if (/(certificate|certification|aws certified|azure certified)/i.test(value)) {
+    if (
+      /(certificate|certification|aws certified|azure certified)/i.test(value)
+    ) {
       return 'certification';
     }
     if (/(remote|onsite|hybrid|location|based in|relocate)/i.test(value)) {
       return 'location';
     }
-    if (/(year|years|month|months|experience|internship|hands-on)/i.test(value)) {
+    if (
+      /(year|years|month|months|experience|internship|hands-on)/i.test(value)
+    ) {
       return 'experience';
     }
     return this.extractKeywords(value).length <= 4 ? 'skill' : 'general';
@@ -247,14 +255,40 @@ export class JobRequirementsSchemaService {
       .map((line) => line.trim())
       .map((line) => line.replace(/^[-*•\d.\)\s]+/, '').trim())
       .filter((line) => line.length >= 8)
-      .filter((line) => /(must|required|requirement|preferred|bonus|plus|experience|degree|language|certification|remote|hybrid)/i.test(line))
+      .filter((line) =>
+        /(must|required|requirement|preferred|bonus|plus|experience|degree|language|certification|remote|hybrid)/i.test(
+          line,
+        ),
+      )
       .slice(0, 20);
   }
 
   private readonly stopWords = new Set([
-    'and', 'the', 'for', 'with', 'from', 'that', 'have', 'will', 'must', 'your',
-    'this', 'role', 'years', 'year', 'months', 'month', 'experience', 'plus',
-    'nice', 'preferred', 'ability', 'strong', 'good', 'using', 'knowledge',
+    'and',
+    'the',
+    'for',
+    'with',
+    'from',
+    'that',
+    'have',
+    'will',
+    'must',
+    'your',
+    'this',
+    'role',
+    'years',
+    'year',
+    'months',
+    'month',
+    'experience',
+    'plus',
+    'nice',
+    'preferred',
+    'ability',
+    'strong',
+    'good',
+    'using',
+    'knowledge',
   ]);
 
   // --- V2 helpers ---
@@ -280,7 +314,10 @@ export class JobRequirementsSchemaService {
     };
   }
 
-  private acceptRequirementV2(item: RequirementItemV2, seen: Set<string>): boolean {
+  private acceptRequirementV2(
+    item: RequirementItemV2,
+    seen: Set<string>,
+  ): boolean {
     if (!item.label || item.keywords.length === 0) return false;
     const key = `${item.category}:${item.keywords.join('|')}`;
     if (seen.has(key)) return false;
@@ -289,32 +326,54 @@ export class JobRequirementsSchemaService {
   }
 
   private mapImportanceV2(value: string): ImportanceLevel {
-    if (/(nice to have|preferred|plus|bonus|advantage)/i.test(value)) return 'low';
-    if (/(required|must have|critical|mandatory)/i.test(value)) return 'critical';
+    if (/(nice to have|preferred|plus|bonus|advantage)/i.test(value))
+      return 'low';
+    if (/(required|must have|critical|mandatory)/i.test(value))
+      return 'critical';
     return 'medium';
   }
 
-  private isHardConstraint(value: string, category: RequirementCategory): boolean {
-    if (category === 'education' && /(required|must|minimum|bachelor|master|degree)/i.test(value)) {
+  private isHardConstraint(
+    value: string,
+    category: RequirementCategory,
+  ): boolean {
+    if (
+      category === 'education' &&
+      /(required|must|minimum|bachelor|master|degree)/i.test(value)
+    ) {
       return true;
     }
-    if (category === 'certification' && /(required|must|mandatory)/i.test(value)) {
+    if (
+      category === 'certification' &&
+      /(required|must|mandatory)/i.test(value)
+    ) {
       return true;
     }
-    if (category === 'experience' && /(minimum|at least|required).*(year|month)/i.test(value)) {
+    if (
+      category === 'experience' &&
+      /(minimum|at least|required).*(year|month)/i.test(value)
+    ) {
       return true;
     }
     return false;
   }
 
-  private mapConstraintType(category: RequirementCategory): ConstraintItem['type'] {
+  private mapConstraintType(
+    category: RequirementCategory,
+  ): ConstraintItem['type'] {
     switch (category) {
-      case 'education': return 'education';
-      case 'certification': return 'certification';
-      case 'experience': return 'experience_years';
-      case 'language': return 'language';
-      case 'location': return 'location';
-      default: return 'other';
+      case 'education':
+        return 'education';
+      case 'certification':
+        return 'certification';
+      case 'experience':
+        return 'experience_years';
+      case 'language':
+        return 'language';
+      case 'location':
+        return 'location';
+      default:
+        return 'other';
     }
   }
 }

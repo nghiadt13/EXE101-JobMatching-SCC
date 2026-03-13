@@ -1,13 +1,45 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f5f7fb;
+  --background: #f9fafb;
   --foreground: #0f172a;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  --color-slate-50: #f8fafc;
+  --color-slate-800: #1e293b;
+  --color-slate-900: #0f172a;
+  --color-blue-50: #eff6ff;
+  --color-blue-600: #2563eb;
+  --color-indigo-50: #eef2ff;
+  --color-indigo-600: #4f46e5;
+  --color-green-50: #f0fdf4;
+  --color-green-500: #22c55e;
+  --color-green-600: #16a34a;
+  --color-orange-50: #fff7ed;
+  --color-orange-600: #ea580c;
+  --color-red-50: #fef2f2;
+  --color-red-500: #ef4444;
+  --color-purple-600: #9333ea;
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-200: #bfdbfe;
+  --color-primary-300: #93c5fd;
+  --color-primary-400: #60a5fa;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
+  --color-primary-800: #1e40af;
+  --color-primary-900: #1e3a8a;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -19,7 +51,7 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), sans-serif;
+  font-family: var(--font-inter), sans-serif;
 }
 
 ::selection {
@@ -39,4 +71,60 @@ dialog {
 
 dialog[open] {
   opacity: 1;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hero-overlay {
+  background: linear-gradient(rgb(15 23 42 / 0.7), rgb(15 23 42 / 0.7));
+}
+
+.transition-standard {
+  transition: all 0.3s ease;
+}
+
+.stats-gradient {
+  background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #2563eb 100%);
+}
+
+@keyframes grow-up {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--final-height);
+  }
+}
+
+.bar-animate {
+  animation: grow-up 1s ease-out forwards;
+}
+
+.job-grid-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.job-grid-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+}
+
+.dropdown-menu {
+  display: none;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.2s ease;
+}
+
+.dropdown-active .dropdown-menu {
+  display: block;
+  opacity: 1;
+  transform: translateY(0);
 }

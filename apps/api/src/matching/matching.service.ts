@@ -72,13 +72,15 @@ export class MatchingService {
     const job = await this.getJobOrThrow(jobId, actor);
     const requirementsSchema = this.resolveRequirementsSchema(job);
 
-    const isV2 = 'version' in requirementsSchema && requirementsSchema.version === REQUIREMENTS_SCHEMA_V2;
+    const isV2 =
+      'version' in requirementsSchema &&
+      requirementsSchema.version === REQUIREMENTS_SCHEMA_V2;
 
     if (isV2) {
       const cvRawText = await this.getCvRawText(cv);
       const evaluation = await this.jdDrivenEvaluationService.evaluate({
         cvRawText,
-        requirementsSchema: requirementsSchema as RequirementsSchemaV2,
+        requirementsSchema: requirementsSchema,
       });
 
       const warnings = Array.from(
@@ -102,7 +104,7 @@ export class MatchingService {
     // --- V1 Legacy Pipeline ---
     const candidateProfile = this.resolveCandidateProfile(cv);
     const evaluation = this.schemaMatchingEvaluator.evaluate(
-      requirementsSchema as RequirementsSchemaV1,
+      requirementsSchema,
       candidateProfile,
     );
     const warnings = Array.from(
@@ -158,7 +160,6 @@ export class MatchingService {
       });
     }
   }
-
 
   async calculateIntegrationPayload(
     cvId: string,
@@ -233,7 +234,9 @@ export class MatchingService {
       return true;
     }
     if (actor.role === UserRole.RECRUITER) {
-      return job.status === JobStatus.PUBLISHED || job.recruiterId === actor.sub;
+      return (
+        job.status === JobStatus.PUBLISHED || job.recruiterId === actor.sub
+      );
     }
     return job.status === JobStatus.PUBLISHED;
   }
@@ -245,9 +248,7 @@ export class MatchingService {
     }
 
     const parsedData = this.readJsonObject(cv.parsedData);
-    const normalizedProfile = this.readJsonObject(
-      parsedData.normalizedProfile,
-    );
+    const normalizedProfile = this.readJsonObject(parsedData.normalizedProfile);
     return this.candidateProfileService.create({
       normalizedProfile:
         Object.keys(normalizedProfile).length > 0
@@ -258,7 +259,9 @@ export class MatchingService {
     });
   }
 
-  private resolveRequirementsSchema(job: JobRecord): RequirementsSchemaV1 | RequirementsSchemaV2 {
+  private resolveRequirementsSchema(
+    job: JobRecord,
+  ): RequirementsSchemaV1 | RequirementsSchemaV2 {
     const stored = this.readJsonObject(job.requirementsSchema);
     if (Object.keys(stored).length > 0) {
       if (stored['version'] === REQUIREMENTS_SCHEMA_V2) {
@@ -290,10 +293,16 @@ export class MatchingService {
     location: Prisma.JsonValue | null,
   ): string[] {
     const warnings: string[] = [];
-    if (this.needsManualReview(this.readJsonObject(parsedData).normalizedProfile)) {
+    if (
+      this.needsManualReview(this.readJsonObject(parsedData).normalizedProfile)
+    ) {
       warnings.push('CV parsing needs manual review');
     }
-    if (this.needsManualReview(this.extractNormalizedProfileFromLocation(location))) {
+    if (
+      this.needsManualReview(
+        this.extractNormalizedProfileFromLocation(location),
+      )
+    ) {
       warnings.push('Job parsing needs manual review');
     }
     return warnings;
@@ -312,7 +321,9 @@ export class MatchingService {
     location: Prisma.JsonValue | null,
   ): Prisma.JsonValue | null {
     const root = this.readJsonObject(location);
-    const normalization = this.readJsonObject(root[JOB_LOCATION_NORMALIZATION_KEY]);
+    const normalization = this.readJsonObject(
+      root[JOB_LOCATION_NORMALIZATION_KEY],
+    );
     return normalization.normalizedProfile ?? null;
   }
 
@@ -351,7 +362,10 @@ export class MatchingService {
       return value.trim();
     }
     if (Array.isArray(value)) {
-      return value.filter((entry) => typeof entry === 'string').join(' ').trim();
+      return value
+        .filter((entry) => typeof entry === 'string')
+        .join(' ')
+        .trim();
     }
     if (value && typeof value === 'object') {
       return Object.values(value)

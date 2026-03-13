@@ -48,12 +48,19 @@ export class AiNormalizationService {
     const prompt = this.buildJdEvalPrompt(cvRawText, requirementsSchema);
 
     try {
-      const first = await client.generateText(prompt, this.readRemainingTimeMs(deadline));
+      const first = await client.generateText(
+        prompt,
+        this.readRemainingTimeMs(deadline),
+      );
       const directJson = this.extractJson(first);
-      const parsed = directJson ?? (await this.tryRepairJson(client, first, deadline));
+      const parsed =
+        directJson ?? (await this.tryRepairJson(client, first, deadline));
 
       if (!parsed) {
-        throw new AiNormalizationError('parse_failed', 'JD evaluation returned invalid JSON');
+        throw new AiNormalizationError(
+          'parse_failed',
+          'JD evaluation returned invalid JSON',
+        );
       }
 
       const evaluation = this.normalizeJdEvaluation(parsed, requirementsSchema);
@@ -78,7 +85,11 @@ export class AiNormalizationService {
         reason: failure.reason,
       });
       if (error instanceof AiNormalizationError) throw error;
-      throw new AiNormalizationError('service_unavailable', 'LLM provider request failed', failure);
+      throw new AiNormalizationError(
+        'service_unavailable',
+        'LLM provider request failed',
+        failure,
+      );
     }
   }
 
@@ -97,7 +108,8 @@ export class AiNormalizationService {
         this.readRemainingTimeMs(deadline),
       );
       const directJson = this.extractJson(first);
-      const parsed = directJson ?? (await this.tryRepairJson(client, first, deadline));
+      const parsed =
+        directJson ?? (await this.tryRepairJson(client, first, deadline));
 
       if (!parsed) {
         throw new AiNormalizationError(
@@ -161,7 +173,10 @@ export class AiNormalizationService {
     );
   }
 
-  private buildJdEvalPrompt(cvRawText: string, schema: RequirementsSchemaV2): string {
+  private buildJdEvalPrompt(
+    cvRawText: string,
+    schema: RequirementsSchemaV2,
+  ): string {
     const outputTemplate = {
       version: JD_CONTEXTUAL_EVAL_V1,
       requirementEvaluations: schema.requirements.map((r) => ({
@@ -186,7 +201,7 @@ export class AiNormalizationService {
     };
 
     return [
-      'You are an HR evaluation assistant. Given a job\'s requirements and a candidate\'s CV text, evaluate how well the candidate meets each requirement.',
+      "You are an HR evaluation assistant. Given a job's requirements and a candidate's CV text, evaluate how well the candidate meets each requirement.",
       '',
       '## Job Requirements Schema',
       JSON.stringify(schema, null, 2),
@@ -221,7 +236,12 @@ export class AiNormalizationService {
     const src = this.asRecord(raw);
     const requirementIds = new Set(schema.requirements.map((r) => r.id));
     const constraintIds = new Set(schema.constraints.map((c) => c.id));
-    const validStatuses = new Set(['met', 'partial', 'missing', 'not_applicable']);
+    const validStatuses = new Set([
+      'met',
+      'partial',
+      'missing',
+      'not_applicable',
+    ]);
     const validConfidences = new Set(['high', 'medium', 'low']);
 
     const rawReqEvals = Array.isArray(src['requirementEvaluations'])
@@ -233,16 +253,20 @@ export class AiNormalizationService {
       .map((item) => ({
         requirementId: String(item['requirementId'] ?? ''),
         status: validStatuses.has(String(item['status']))
-          ? (String(item['status']) as 'met' | 'partial' | 'missing' | 'not_applicable')
-          : 'missing' as const,
+          ? (String(item['status']) as
+              | 'met'
+              | 'partial'
+              | 'missing'
+              | 'not_applicable')
+          : ('missing' as const),
         evidence: Array.isArray(item['evidence'])
-          ? (item['evidence'] as unknown[])
+          ? ((item['evidence'] as unknown[])
               .filter((e) => typeof e === 'string')
-              .slice(0, 3) as string[]
+              .slice(0, 3)
           : [],
         confidence: validConfidences.has(String(item['confidence']))
           ? (String(item['confidence']) as 'high' | 'medium' | 'low')
-          : 'low' as const,
+          : ('low' as const),
       }));
 
     // Ensure all requirements have an evaluation (fill missing with 'missing')
@@ -270,8 +294,14 @@ export class AiNormalizationService {
       }));
 
     for (const constraint of schema.constraints) {
-      if (!constraintEvaluations.find((e) => e.constraintId === constraint.id)) {
-        constraintEvaluations.push({ constraintId: constraint.id, met: false, evidence: '' });
+      if (
+        !constraintEvaluations.find((e) => e.constraintId === constraint.id)
+      ) {
+        constraintEvaluations.push({
+          constraintId: constraint.id,
+          met: false,
+          evidence: '',
+        });
       }
     }
 
@@ -283,7 +313,8 @@ export class AiNormalizationService {
       requirementEvaluations,
       constraintEvaluations,
       candidateSummary: {
-        headline: typeof summary['headline'] === 'string' ? summary['headline'] : '',
+        headline:
+          typeof summary['headline'] === 'string' ? summary['headline'] : '',
         totalExperienceMonths:
           typeof summary['totalExperienceMonths'] === 'number'
             ? Math.max(0, Math.round(summary['totalExperienceMonths']))
@@ -293,18 +324,29 @@ export class AiNormalizationService {
             ? Math.max(0, Math.round(summary['relevantExperienceMonths']))
             : 0,
         skills: Array.isArray(summary['skills'])
-          ? (summary['skills'] as unknown[]).filter((s) => typeof s === 'string') as string[]
+          ? ((summary['skills'] as unknown[]).filter(
+              (s) => typeof s === 'string',
+            ) as string[])
           : [],
         location:
-          typeof summaryLocation['city'] === 'string' || typeof summaryLocation['country'] === 'string'
+          typeof summaryLocation['city'] === 'string' ||
+          typeof summaryLocation['country'] === 'string'
             ? {
-                city: typeof summaryLocation['city'] === 'string' ? summaryLocation['city'] : '',
-                country: typeof summaryLocation['country'] === 'string' ? summaryLocation['country'] : '',
+                city:
+                  typeof summaryLocation['city'] === 'string'
+                    ? summaryLocation['city']
+                    : '',
+                country:
+                  typeof summaryLocation['country'] === 'string'
+                    ? summaryLocation['country']
+                    : '',
               }
             : null,
       },
       warnings: Array.isArray(src['warnings'])
-        ? (src['warnings'] as unknown[]).filter((w) => typeof w === 'string') as string[]
+        ? ((src['warnings'] as unknown[]).filter(
+            (w) => typeof w === 'string',
+          ) as string[])
         : [],
     };
   }

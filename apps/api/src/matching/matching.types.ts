@@ -1,5 +1,8 @@
 import { UserRole } from '@prisma/client';
-import { SchemaMatchingSnapshot, MatchingSnapshotV2 } from './types/schema-matching.types';
+import {
+  SchemaMatchingSnapshot,
+  MatchingSnapshotV2,
+} from './types/schema-matching.types';
 
 export type MatchingActor = {
   sub: string;

@@ -1,25 +1,13 @@
 import type { Metadata } from 'next';
-import { JobsListingPage } from '@/components/jobs/jobs-listing-page';
+import { HomepageMain } from '@/components/home/homepage-main';
 
-const baseMetadata: Metadata = {
-  title: 'Find Jobs',
-  description: 'Browse open jobs and apply directly from the platform.',
+export const metadata: Metadata = {
+  title: 'HireStream - Your Career Starts Here',
+  description:
+    'Over 500,000 active job openings from top-tier companies and innovative startups worldwide.',
   alternates: { canonical: '/' },
 };
 
-type HomePageProps = {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-};
-
-export async function generateMetadata({ searchParams }: HomePageProps): Promise<Metadata> {
-  const params = await searchParams;
-  const hasDynamicQuery = Object.keys(params).some((key) => key !== 'page' && key !== 'limit');
-  return {
-    ...baseMetadata,
-    robots: hasDynamicQuery ? { index: false, follow: true } : { index: true, follow: true },
-  };
-}
-
-export default async function Home({ searchParams }: HomePageProps) {
-  return <JobsListingPage searchParams={await searchParams} currentPath="/" />;
+export default function HomePage() {
+  return <HomepageMain />;
 }

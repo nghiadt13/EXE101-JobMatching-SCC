@@ -58,3 +58,8 @@ export interface JobsListResponse {
     cities: Array<{ value: string; count: number }>;
   };
 }
+
+export interface SaveJobResponse {
+  jobId: string;
+  isSaved: boolean;
+}

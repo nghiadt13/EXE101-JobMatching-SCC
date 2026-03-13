@@ -1,4 +1,8 @@
-import { Injectable, ServiceUnavailableException, UnprocessableEntityException } from '@nestjs/common';
+import {
+  Injectable,
+  ServiceUnavailableException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { AppLogger } from '../../common/logging/app-logger.service';
 import { AiNormalizationService } from '../../normalization/ai-normalization.service';
 import { AiNormalizationError } from '../../normalization/normalization.errors';
@@ -39,12 +43,14 @@ export class JdDrivenEvaluationService {
         });
         if (error.kind === 'service_unavailable') {
           throw new ServiceUnavailableException({
-            message: 'AI evaluation service is unavailable. Please try again later.',
+            message:
+              'AI evaluation service is unavailable. Please try again later.',
             details: { stage: 'jd_cv_evaluation' },
           });
         }
         throw new UnprocessableEntityException({
-          message: 'AI could not evaluate this CV against the job requirements.',
+          message:
+            'AI could not evaluate this CV against the job requirements.',
           details: { stage: 'jd_cv_evaluation' },
         });
       }
@@ -52,7 +58,11 @@ export class JdDrivenEvaluationService {
     }
 
     const { skillScore, constraintScore, finalScore } =
-      this.scoreDeterministically(evaluation.requirementEvaluations, evaluation.constraintEvaluations, requirementsSchema);
+      this.scoreDeterministically(
+        evaluation.requirementEvaluations,
+        evaluation.constraintEvaluations,
+        requirementsSchema,
+      );
 
     const snapshot = this.buildSnapshot(
       evaluation.requirementEvaluations,
@@ -87,7 +97,9 @@ export class JdDrivenEvaluationService {
 
     for (const reqEval of requirementEvaluations) {
       if (reqEval.status === 'not_applicable') continue;
-      const requirement = schema.requirements.find((r) => r.id === reqEval.requirementId);
+      const requirement = schema.requirements.find(
+        (r) => r.id === reqEval.requirementId,
+      );
       if (!requirement) continue;
       const weight = IMPORTANCE_WEIGHTS[requirement.importance];
       const score = this.statusScore(reqEval.status);
@@ -99,11 +111,14 @@ export class JdDrivenEvaluationService {
 
     // constraint_score: % of required constraints met
     const requiredConstraints = constraintEvaluations.filter(
-      (ce) => schema.constraints.find((c) => c.id === ce.constraintId)?.required,
+      (ce) =>
+        schema.constraints.find((c) => c.id === ce.constraintId)?.required,
     );
     const constraintScore =
       requiredConstraints.length > 0
-        ? (requiredConstraints.filter((c) => c.met).length / requiredConstraints.length) * 100
+        ? (requiredConstraints.filter((c) => c.met).length /
+            requiredConstraints.length) *
+          100
         : 100;
 
     // final: 0.85 * skill + 0.15 * constraint (matching policy)
@@ -118,9 +133,12 @@ export class JdDrivenEvaluationService {
 
   private statusScore(status: RequirementEvaluation['status']): number {
     switch (status) {
-      case 'met': return 100;
-      case 'partial': return 55;
-      default: return 0;
+      case 'met':
+        return 100;
+      case 'partial':
+        return 55;
+      default:
+        return 0;
     }
   }
 
@@ -137,16 +155,28 @@ export class JdDrivenEvaluationService {
     const strengths = requirementEvaluations
       .filter((e) => e.status === 'met')
       .slice(0, 4)
-      .map((e) => schema.requirements.find((r) => r.id === e.requirementId)?.label ?? e.requirementId);
+      .map(
+        (e) =>
+          schema.requirements.find((r) => r.id === e.requirementId)?.label ??
+          e.requirementId,
+      );
 
     const gaps = requirementEvaluations
       .filter((e) => e.status === 'missing')
       .slice(0, 4)
-      .map((e) => schema.requirements.find((r) => r.id === e.requirementId)?.label ?? e.requirementId);
+      .map(
+        (e) =>
+          schema.requirements.find((r) => r.id === e.requirementId)?.label ??
+          e.requirementId,
+      );
 
     const constraintsFailed = constraintEvaluations
       .filter((ce) => !ce.met)
-      .map((ce) => schema.constraints.find((c) => c.id === ce.constraintId)?.label ?? ce.constraintId);
+      .map(
+        (ce) =>
+          schema.constraints.find((c) => c.id === ce.constraintId)?.label ??
+          ce.constraintId,
+      );
 
     return {
       version: MATCHING_SNAPSHOT_V2,
@@ -157,7 +187,10 @@ export class JdDrivenEvaluationService {
       strengths,
       gaps,
       constraintsFailed,
-      warnings: Array.from(new Set([...warnings, ...schema.warnings])).slice(0, 6),
+      warnings: Array.from(new Set([...warnings, ...schema.warnings])).slice(
+        0,
+        6,
+      ),
     };
   }
 }

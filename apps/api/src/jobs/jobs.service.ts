@@ -21,6 +21,7 @@ import {
 } from '../documents/document-upload.constants';
 import { DocumentStorageService } from '../documents/services/document-storage.service';
 import { DocumentTextExtractorService } from '../documents/services/document-text-extractor.service';
+import { HomepageCacheService } from '../homepage/homepage-cache.service';
 import { JobRequirementsSchemaService } from '../matching/services/job-requirements-schema.service';
 import { SkillStorageAdapterService } from '../matching/services/skill-storage-adapter.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -42,7 +43,7 @@ import {
   type JobsSort,
 } from './dto/query-jobs.dto';
 import { UpdateJobDto } from './dto/update-job.dto';
-import { JobsListResponse, JobView } from './jobs.types';
+import { JobsListResponse, JobView, SaveJobResponse } from './jobs.types';
 import { JobSlugService } from './services/job-slug.service';
 
 type Viewer = {
@@ -70,6 +71,7 @@ export class JobsService {
     private readonly jobSlugService: JobSlugService,
     private readonly documentStorageService: DocumentStorageService,
     private readonly documentTextExtractorService: DocumentTextExtractorService,
+    private readonly homepageCache: HomepageCacheService,
     private readonly jobRequirementsSchemaService: JobRequirementsSchemaService,
     private readonly skillStorageAdapter: SkillStorageAdapterService,
   ) {}
@@ -103,7 +105,7 @@ export class JobsService {
       location,
     });
 
-    return this.withUniqueJobSlug(dto.title, async (slug) => {
+    const result = await this.withUniqueJobSlug(dto.title, async (slug) => {
       const created = await this.prisma.job.create({
         data: {
           recruiterId,
@@ -126,6 +128,8 @@ export class JobsService {
 
       return this.toView(created);
     });
+    this.homepageCache.clearAll();
+    return result;
   }
 
   async createFromFile(
@@ -228,7 +232,9 @@ export class JobsService {
         parseStatus: this.readParseStatus(created.location),
       });
 
-      return this.toView(created);
+      const response = this.toView(created);
+      this.homepageCache.clearAll();
+      return response;
     } catch (error) {
       this.logger.error(
         'job_upload_failed',
@@ -284,12 +290,18 @@ export class JobsService {
 
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
-    const filtersV1Enabled = this.isFeatureEnabled('API_JOBS_FILTERS_V1_ENABLED');
+    const filtersV1Enabled = this.isFeatureEnabled(
+      'API_JOBS_FILTERS_V1_ENABLED',
+    );
     const facetsV1Enabled = this.isFeatureEnabled('API_JOBS_FACETS_V1_ENABLED');
     const normalizedQuery = this.normalizeListQuery(query);
     const where = filtersV1Enabled
       ? this.buildListWhereV1(viewer, normalizedQuery)
-      : this.buildListWhereLegacy(viewer, normalizedQuery.q, normalizedQuery.status);
+      : this.buildListWhereLegacy(
+          viewer,
+          normalizedQuery.q,
+          normalizedQuery.status,
+        );
     const orderBy = filtersV1Enabled
       ? this.buildOrderBy(normalizedQuery.sort)
       : { createdAt: 'desc' as const };
@@ -477,7 +489,9 @@ export class JobsService {
         select: this.jobViewSelect,
       });
 
-      return this.toView(updated);
+      const response = this.toView(updated);
+      this.homepageCache.clearAll();
+      return response;
     }
 
     const updated = await this.withUniqueJobSlug(
@@ -522,7 +536,9 @@ export class JobsService {
       existing.id,
     );
 
-    return this.toView(updated);
+    const response = this.toView(updated);
+    this.homepageCache.clearAll();
+    return response;
   }
 
   async softDelete(
@@ -541,6 +557,7 @@ export class JobsService {
       await this.documentStorageService.remove('jobs', storedPath);
     }
 
+    this.homepageCache.clearAll();
     return { success: true };
   }
 
@@ -561,7 +578,9 @@ export class JobsService {
       select: this.jobViewSelect,
     });
 
-    return this.toView(updated);
+    const response = this.toView(updated);
+    this.homepageCache.clearAll();
+    return response;
   }
 
   async close(recruiterId: string, id: string): Promise<JobView> {
@@ -580,7 +599,44 @@ export class JobsService {
       select: this.jobViewSelect,
     });
 
-    return this.toView(updated);
+    const response = this.toView(updated);
+    this.homepageCache.clearAll();
+    return response;
+  }
+
+  async saveJob(userId: string, jobId: string): Promise<SaveJobResponse> {
+    await this.ensureUserOrThrow(userId);
+    await this.ensureJobIsSavableOrThrow(userId, jobId);
+
+    await this.prisma.savedJob.upsert({
+      where: {
+        userId_jobId: {
+          userId,
+          jobId,
+        },
+      },
+      create: {
+        userId,
+        jobId,
+      },
+      update: {},
+    });
+    this.homepageCache.clearByUser(userId);
+    return { jobId, isSaved: true };
+  }
+
+  async unsaveJob(userId: string, jobId: string): Promise<SaveJobResponse> {
+    await this.ensureUserOrThrow(userId);
+    await this.ensureJobIsSavableOrThrow(userId, jobId);
+
+    await this.prisma.savedJob.deleteMany({
+      where: {
+        userId,
+        jobId,
+      },
+    });
+    this.homepageCache.clearByUser(userId);
+    return { jobId, isSaved: false };
   }
 
   private async getRecruiterOwnedJobOrThrow(recruiterId: string, id: string) {
@@ -766,25 +822,21 @@ export class JobsService {
 
     if (query.salaryMinGte !== undefined) {
       andFilters.push({
-        OR: [
-          { salaryMax: { gte: query.salaryMinGte } },
-          { salaryMax: null },
-        ],
+        OR: [{ salaryMax: { gte: query.salaryMinGte } }, { salaryMax: null }],
       });
     }
     if (query.salaryMaxLte !== undefined) {
       andFilters.push({
-        OR: [
-          { salaryMin: { lte: query.salaryMaxLte } },
-          { salaryMin: null },
-        ],
+        OR: [{ salaryMin: { lte: query.salaryMaxLte } }, { salaryMin: null }],
       });
     }
 
     if (query.postedWithinDays !== undefined) {
       andFilters.push({
         publishedAt: {
-          gte: new Date(Date.now() - query.postedWithinDays * 24 * 60 * 60 * 1000),
+          gte: new Date(
+            Date.now() - query.postedWithinDays * 24 * 60 * 60 * 1000,
+          ),
         },
       });
     }
@@ -918,6 +970,63 @@ export class JobsService {
     }
   }
 
+  private async ensureUserOrThrow(userId: string): Promise<void> {
+    const user = await this.prisma.user.findFirst({
+      where: {
+        id: userId,
+        deletedAt: null,
+      },
+      select: { id: true },
+    });
+    if (!user) {
+      throw new UnauthorizedException('User account not found');
+    }
+  }
+
+  private async ensureJobIsSavableOrThrow(
+    userId: string,
+    jobId: string,
+  ): Promise<void> {
+    const [user, job] = await Promise.all([
+      this.prisma.user.findFirst({
+        where: {
+          id: userId,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          role: true,
+        },
+      }),
+      this.prisma.job.findFirst({
+        where: {
+          id: jobId,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          recruiterId: true,
+          status: true,
+        },
+      }),
+    ]);
+
+    if (!user) {
+      throw new UnauthorizedException('User account not found');
+    }
+    if (!job) {
+      throw new NotFoundException('Job not found');
+    }
+
+    const isOwnRecruiterDraft =
+      user.role === UserRole.RECRUITER &&
+      job.recruiterId === user.id &&
+      job.status !== JobStatus.PUBLISHED;
+    if (job.status !== JobStatus.PUBLISHED && !isOwnRecruiterDraft) {
+      throw new NotFoundException('Job not found');
+    }
+  }
+
   private validateSalaryRange(min?: number, max?: number) {
     if (min !== undefined && max !== undefined && min > max) {
       throw new BadRequestException(
@@ -999,7 +1108,10 @@ export class JobsService {
         : this.buildRequirementsSchema({
             title: item.title,
             description: item.description,
-            skills: this.readPersistedOrNormalizedSkills(item.skills, item.location),
+            skills: this.readPersistedOrNormalizedSkills(
+              item.skills,
+              item.location,
+            ),
             location: item.location,
           });
 
@@ -1091,9 +1203,7 @@ export class JobsService {
       | null
       | undefined;
     const normalization = this.readNormalizationMeta(locationValue);
-    const normalizedProfile = this.asRecord(
-      normalization['normalizedProfile'],
-    );
+    const normalizedProfile = this.asRecord(normalization['normalizedProfile']);
     return this.jobRequirementsSchemaService.createV2({
       title: input.title,
       summary:

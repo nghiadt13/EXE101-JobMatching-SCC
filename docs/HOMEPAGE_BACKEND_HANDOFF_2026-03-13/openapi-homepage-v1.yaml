@@ -1,0 +1,428 @@
+openapi: 3.0.3
+info:
+  title: Homepage Backend Contract
+  version: 1.0.0
+  description: API contract for dynamic homepage data (frontend white-blue homepage).
+servers:
+  - url: http://localhost:3001/api
+tags:
+  - name: Homepage
+  - name: Saved Jobs
+  - name: Notifications
+paths:
+  /home:
+    get:
+      tags: [Homepage]
+      summary: Get homepage payload
+      description: Return full payload for homepage sections in one call.
+      parameters:
+        - in: query
+          name: location
+          schema:
+            type: string
+          required: false
+          description: Optional location slug to tailor featured jobs.
+      responses:
+        '200':
+          description: Homepage payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HomepageResponse'
+        '500':
+          $ref: '#/components/responses/ErrorEnvelope'
+
+  /jobs/{jobId}/save:
+    post:
+      tags: [Saved Jobs]
+      summary: Save job for current user
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/jobId'
+      responses:
+        '200':
+          description: Saved state updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SaveJobResponse'
+        '401':
+          $ref: '#/components/responses/ErrorEnvelope'
+        '404':
+          $ref: '#/components/responses/ErrorEnvelope'
+
+    delete:
+      tags: [Saved Jobs]
+      summary: Remove saved job for current user
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/jobId'
+      responses:
+        '200':
+          description: Saved state updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SaveJobResponse'
+        '401':
+          $ref: '#/components/responses/ErrorEnvelope'
+        '404':
+          $ref: '#/components/responses/ErrorEnvelope'
+
+  /notifications/unread-count:
+    get:
+      tags: [Notifications]
+      summary: Get unread notification count
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Unread count
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [unreadCount]
+                properties:
+                  unreadCount:
+                    type: integer
+                    minimum: 0
+                    example: 3
+        '401':
+          $ref: '#/components/responses/ErrorEnvelope'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    jobId:
+      in: path
+      name: jobId
+      required: true
+      schema:
+        type: string
+      description: Job UUID
+
+  responses:
+    ErrorEnvelope:
+      description: Standard error envelope
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [statusCode, code, message, requestId, timestamp, path]
+            properties:
+              statusCode:
+                type: integer
+                example: 422
+              code:
+                type: string
+                example: VALIDATION_FAILED
+              message:
+                type: string
+                example: Payload is invalid.
+              requestId:
+                type: string
+                format: uuid
+              timestamp:
+                type: string
+                format: date-time
+              path:
+                type: string
+                example: /api/home
+              details:
+                type: object
+                additionalProperties: true
+
+  schemas:
+    HomepageResponse:
+      type: object
+      required:
+        - hero
+        - marketStats
+        - jobGrowthSeries
+        - demandByIndustry
+        - trustedCompanies
+        - categories
+        - locationFilters
+        - featuredJobs
+        - footer
+      properties:
+        currentUser:
+          oneOf:
+            - $ref: '#/components/schemas/HomeCurrentUser'
+            - type: 'null'
+        hero:
+          $ref: '#/components/schemas/HeroSection'
+        marketStats:
+          $ref: '#/components/schemas/MarketStats'
+        jobGrowthSeries:
+          type: array
+          items:
+            $ref: '#/components/schemas/TrendPoint'
+        demandByIndustry:
+          type: array
+          items:
+            $ref: '#/components/schemas/IndustryDemandPoint'
+        trustedCompanies:
+          type: array
+          items:
+            $ref: '#/components/schemas/TrustedCompany'
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/CategoryCard'
+        locationFilters:
+          type: array
+          items:
+            $ref: '#/components/schemas/LocationFilter'
+        featuredJobs:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeaturedJob'
+        footer:
+          $ref: '#/components/schemas/FooterSection'
+        generatedAt:
+          type: string
+          format: date-time
+          example: '2026-03-13T17:15:00.000Z'
+
+    HomeCurrentUser:
+      type: object
+      required: [id, name, planName, unreadNotificationCount]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        avatarUrl:
+          type: string
+          nullable: true
+        planName:
+          type: string
+          example: Free Plan
+        unreadNotificationCount:
+          type: integer
+          minimum: 0
+          example: 3
+
+    HeroSection:
+      type: object
+      required: [headline, subheadline, backgroundImageUrl, popularKeywords]
+      properties:
+        headline:
+          type: string
+          example: Find Your Dream Job
+        subheadline:
+          type: string
+        backgroundImageUrl:
+          type: string
+        popularKeywords:
+          type: array
+          items:
+            type: string
+
+    MarketStats:
+      type: object
+      required: [asOfDate, newJobs24h, activeJobs, hiringCompanies]
+      properties:
+        asOfDate:
+          type: string
+          format: date
+          example: '2026-03-13'
+        newJobs24h:
+          type: integer
+          minimum: 0
+          example: 5059
+        activeJobs:
+          type: integer
+          minimum: 0
+          example: 63198
+        hiringCompanies:
+          type: integer
+          minimum: 0
+          example: 18402
+
+    TrendPoint:
+      type: object
+      required: [date, value]
+      properties:
+        date:
+          type: string
+          format: date
+          example: '2026-03-07'
+        value:
+          type: integer
+          minimum: 0
+          example: 74
+
+    IndustryDemandPoint:
+      type: object
+      required: [industryKey, label, value, order]
+      properties:
+        industryKey:
+          type: string
+          example: sales
+        label:
+          type: string
+          example: Sales
+        value:
+          type: integer
+          minimum: 0
+          example: 90
+        order:
+          type: integer
+          minimum: 1
+          example: 1
+
+    TrustedCompany:
+      type: object
+      required: [companyId, name]
+      properties:
+        companyId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        logoUrl:
+          type: string
+          nullable: true
+        brandIconKey:
+          type: string
+          nullable: true
+
+    CategoryCard:
+      type: object
+      required: [id, slug, name, iconKey, openJobsCount]
+      properties:
+        id:
+          type: string
+          format: uuid
+        slug:
+          type: string
+          example: tech-software
+        name:
+          type: string
+          example: Tech & Software
+        iconKey:
+          type: string
+          example: code
+        openJobsCount:
+          type: integer
+          minimum: 0
+          example: 1240
+
+    LocationFilter:
+      type: object
+      required: [slug, label, jobCount]
+      properties:
+        slug:
+          type: string
+          example: ha-noi
+        label:
+          type: string
+          example: Hanoi
+        jobCount:
+          type: integer
+          minimum: 0
+          example: 851
+
+    FeaturedJob:
+      type: object
+      required:
+        - id
+        - slug
+        - title
+        - companyName
+        - shortDescription
+        - salaryText
+        - locationLabel
+        - isSaved
+      properties:
+        id:
+          type: string
+          format: uuid
+        slug:
+          type: string
+          example: ios-developer-fulltime
+        title:
+          type: string
+          example: iOS Developer Fulltime
+        companyName:
+          type: string
+          example: Apple Inc. Vietnam
+        companyLogoUrl:
+          type: string
+          nullable: true
+        companyIconKey:
+          type: string
+          nullable: true
+        shortDescription:
+          type: string
+        salaryText:
+          type: string
+          example: 15 - 35 million VND
+        locationLabel:
+          type: string
+          example: Hanoi
+        isSaved:
+          type: boolean
+          example: false
+
+    FooterSection:
+      type: object
+      required: [quickLinks, supportLinks, socialLinks, copyrightText]
+      properties:
+        quickLinks:
+          type: array
+          items:
+            $ref: '#/components/schemas/FooterLink'
+        supportLinks:
+          type: array
+          items:
+            $ref: '#/components/schemas/FooterLink'
+        socialLinks:
+          type: array
+          items:
+            $ref: '#/components/schemas/SocialLink'
+        copyrightText:
+          type: string
+          example: "© 2023 HireStream Recruitment Inc. All rights reserved."
+
+    FooterLink:
+      type: object
+      required: [label, href]
+      properties:
+        label:
+          type: string
+        href:
+          type: string
+          example: /jobs
+
+    SocialLink:
+      type: object
+      required: [platform, href]
+      properties:
+        platform:
+          type: string
+          example: linkedin
+        href:
+          type: string
+          example: https://linkedin.com/company/example
+
+    SaveJobResponse:
+      type: object
+      required: [jobId, isSaved]
+      properties:
+        jobId:
+          type: string
+          format: uuid
+        isSaved:
+          type: boolean

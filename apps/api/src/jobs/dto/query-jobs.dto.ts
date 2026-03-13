@@ -21,7 +21,8 @@ export const JOB_REMOTE_VALUES = ['any', 'true', 'false'] as const;
 export type JobsRemoteFilter = (typeof JOB_REMOTE_VALUES)[number];
 
 export const JOB_POSTED_WITHIN_DAYS_VALUES = [1, 3, 7, 14, 30] as const;
-export type JobsPostedWithinDays = (typeof JOB_POSTED_WITHIN_DAYS_VALUES)[number];
+export type JobsPostedWithinDays =
+  (typeof JOB_POSTED_WITHIN_DAYS_VALUES)[number];
 
 function parseCsvArray(value: unknown): string[] | undefined {
   if (value === undefined || value === null) {
@@ -53,9 +54,7 @@ function parseCsvArray(value: unknown): string[] | undefined {
 
   const unique = Array.from(
     new Set(
-      list
-        .map((entry) => entry.trim())
-        .filter((entry) => entry.length > 0),
+      list.map((entry) => entry.trim()).filter((entry) => entry.length > 0),
     ),
   );
 

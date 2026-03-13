@@ -47,7 +47,6 @@ export class DocumentStorageService {
     return this.toSafeAbsolutePath(this.getUploadRoot(scope), relativePath);
   }
 
-
   private getUploadRoot(scope: DocumentScope): string {
     if (scope === 'cvs') {
       return resolve(
