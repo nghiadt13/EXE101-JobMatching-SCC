@@ -10,11 +10,16 @@ type CandidateApplicationsTableProps = {
 };
 
 const statusVariant: Record<string, 'default' | 'success' | 'warning' | 'info' | 'danger'> = {
+  PENDING_MATCHING: 'warning',
   APPLIED: 'default',
   REVIEWING: 'info',
   INTERVIEW: 'success',
   OFFER: 'success',
   REJECTED: 'danger',
+};
+
+const statusLabel: Record<string, string> = {
+  PENDING_MATCHING: 'Analyzing…',
 };
 
 export function CandidateApplicationsTable({ items }: CandidateApplicationsTableProps) {
@@ -57,22 +62,45 @@ export function CandidateApplicationsTable({ items }: CandidateApplicationsTable
                 <p className="text-xs text-zinc-500">{item.cv.fileName}</p>
               </td>
               <td className="px-4 py-3">
-                <Badge variant={statusVariant[item.status] ?? 'default'}>{item.status}</Badge>
+                <Badge variant={statusVariant[item.status] ?? 'default'}>
+                  {statusLabel[item.status] ?? item.status}
+                </Badge>
               </td>
               <td className="px-4 py-3 text-zinc-700">
-                <p>{Math.round(item.matchScore)}%</p>
-                {item.matchingSnapshot ? (
-                  <p className="mt-1 text-xs text-zinc-500">
-                    {item.matchingSnapshot.strengths.slice(0, 2).join(', ') || 'Profile review needed'}
-                  </p>
-                ) : null}
-                {item.matchingSnapshot?.warnings.length ? (
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {item.matchingSnapshot.warnings.slice(0, 2).map((warning) => (
-                      <Badge key={`${item.id}-${warning}`} variant="warning">{warning}</Badge>
-                    ))}
+                {item.status === 'PENDING_MATCHING' ? (
+                  <div className="flex items-center gap-2">
+                    <svg
+                      className="h-4 w-4 animate-spin text-amber-500"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                      />
+                    </svg>
+                    <span className="text-xs text-amber-600">Calculating match…</span>
                   </div>
-                ) : null}
+                ) : (
+                  <>
+                    <p>{Math.round(item.matchScore)}%</p>
+                    {item.matchingSnapshot ? (
+                      <p className="mt-1 text-xs text-zinc-500">
+                        {item.matchingSnapshot.strengths.slice(0, 2).join(', ') || 'Profile review needed'}
+                      </p>
+                    ) : null}
+                    {item.matchingSnapshot?.warnings.length ? (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {item.matchingSnapshot.warnings.slice(0, 2).map((warning) => (
+                          <Badge key={`${item.id}-${warning}`} variant="warning">{warning}</Badge>
+                        ))}
+                      </div>
+                    ) : null}
+                  </>
+                )}
               </td>
               <td className="px-4 py-3 text-zinc-500">
                 {new Date(item.appliedAt).toLocaleDateString()}

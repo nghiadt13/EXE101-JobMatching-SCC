@@ -3,7 +3,7 @@ export const JOB_LOCATION_NORMALIZATION_KEY = '__normalization';
 
 export type ParseStatus = 'parsed_ok' | 'needs_review' | 'pending_apply';
 
-export type NormalizationProvider = 'gemini' | 'openai';
+export type NormalizationProvider = 'gemini' | 'kimi';
 
 export interface NormalizedExperience {
   role: string;

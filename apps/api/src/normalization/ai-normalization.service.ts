@@ -4,7 +4,7 @@ import { GeminiClientService } from './gemini-client.service';
 import { LlmClient } from './llm-client.interface';
 import { classifyLlmError } from './llm-error-classifier';
 import { AiNormalizationError } from './normalization.errors';
-import { OpenAiClientService } from './openai-client.service';
+import { KimiClientService } from './kimi-client.service';
 import {
   NORMALIZED_SCHEMA_VERSION,
   NormalizationResult,
@@ -27,7 +27,7 @@ export class AiNormalizationService {
   constructor(
     private readonly logger: AppLogger,
     private readonly geminiClient: GeminiClientService,
-    private readonly openAiClient: OpenAiClientService,
+    private readonly kimiClient: KimiClientService,
   ) {}
 
   async normalizeCv(rawText: string): Promise<NormalizationResult> {
@@ -164,8 +164,8 @@ export class AiNormalizationService {
     if (provider === 'gemini') {
       return this.geminiClient;
     }
-    if (provider === 'openai') {
-      return this.openAiClient;
+    if (provider === 'kimi') {
+      return this.kimiClient;
     }
     throw new AiNormalizationError(
       'service_unavailable',

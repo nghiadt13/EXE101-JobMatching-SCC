@@ -50,7 +50,7 @@ function SubmitButton() {
       {pending ? (
         <>
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Analyzing your CV...
+          Submitting…
         </>
       ) : (
         'Apply now'

@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MatchingService } from '../matching/matching.service';
+import { AppLogger } from '../common/logging/app-logger.service';
 import type { JwtPayload } from '../auth/auth.types';
 import { CreateApplicationDto } from './dto/create-application.dto';
 import { QueryApplicationsDto } from './dto/query-applications.dto';
@@ -17,6 +18,10 @@ import {
 } from './applications.types';
 
 const RECRUITER_TRANSITIONS = new Map<ApplicationStatus, ApplicationStatus[]>([
+  [
+    ApplicationStatus.PENDING_MATCHING,
+    [ApplicationStatus.REJECTED],
+  ],
   [
     ApplicationStatus.APPLIED,
     [ApplicationStatus.REVIEWING, ApplicationStatus.REJECTED],
@@ -53,6 +58,7 @@ export class ApplicationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly matchingService: MatchingService,
+    private readonly logger: AppLogger,
   ) {}
 
   async create(
@@ -72,30 +78,76 @@ export class ApplicationsService {
       throw new NotFoundException('Resource not found');
     }
 
-    const matching = await this.matchingService.calculateIntegrationPayload(
-      cv.id,
-      job.id,
-      actor,
-    );
-
+    let created: ApplicationRecord;
     try {
-      const created = await this.prisma.application.create({
+      created = await this.prisma.application.create({
         data: {
           jobId: job.id,
           candidateId: candidate.id,
           cvId: cv.id,
-          matchScore: matching.finalScorePercent,
-          matchingSnapshot:
-            matching.matchingSnapshot as unknown as Prisma.InputJsonValue,
+          status: ApplicationStatus.PENDING_MATCHING,
         },
         select: this.applicationSelect,
       });
-      return this.toView(created);
     } catch (error) {
       if (this.isUniqueViolation(error)) {
         throw new ConflictException('You already applied to this job');
       }
       throw error;
+    }
+
+    // Fire-and-forget: run matching in background
+    this.processMatchingInBackground(created.id, cv.id, job.id, actor).catch(
+      (error) => {
+        this.logger.error('background_matching_unhandled', {
+          applicationId: created.id,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      },
+    );
+
+    return this.toView(created);
+  }
+
+  private async processMatchingInBackground(
+    applicationId: string,
+    cvId: string,
+    jobId: string,
+    actor: JwtPayload,
+  ): Promise<void> {
+    try {
+      const matching = await this.matchingService.calculateIntegrationPayload(
+        cvId,
+        jobId,
+        actor,
+      );
+      await this.prisma.application.update({
+        where: { id: applicationId },
+        data: {
+          matchScore: matching.finalScorePercent,
+          matchingSnapshot:
+            matching.matchingSnapshot as unknown as Prisma.InputJsonValue,
+          status: ApplicationStatus.APPLIED,
+        },
+      });
+      this.logger.info('background_matching_completed', {
+        applicationId,
+        matchScore: matching.finalScorePercent,
+      });
+    } catch (error) {
+      this.logger.error('background_matching_failed', {
+        applicationId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      // Still transition to APPLIED so the application isn't stuck in PENDING
+      await this.prisma.application
+        .update({
+          where: { id: applicationId },
+          data: { status: ApplicationStatus.APPLIED },
+        })
+        .catch(() => {
+          /* best-effort */
+        });
     }
   }
 

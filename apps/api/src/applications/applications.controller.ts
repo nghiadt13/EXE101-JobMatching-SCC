@@ -2,6 +2,8 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Patch,
   Post,
@@ -30,6 +32,7 @@ export class ApplicationsController {
 
   @Post()
   @Roles(UserRole.CANDIDATE)
+  @HttpCode(HttpStatus.ACCEPTED)
   create(
     @CurrentUser() user: JwtPayload,
     @Body() dto: CreateApplicationDto,

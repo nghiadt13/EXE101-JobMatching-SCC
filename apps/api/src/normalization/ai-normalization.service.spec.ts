@@ -2,7 +2,7 @@ import { AiNormalizationService } from './ai-normalization.service';
 import { AiNormalizationError } from './normalization.errors';
 import { AppLogger } from '../common/logging/app-logger.service';
 import { GeminiClientService } from './gemini-client.service';
-import { OpenAiClientService } from './openai-client.service';
+import { KimiClientService } from './kimi-client.service';
 
 describe('AiNormalizationService', () => {
   let service: AiNormalizationService;
@@ -11,8 +11,8 @@ describe('AiNormalizationService', () => {
     generateText: jest.Mock;
     getModelName: jest.Mock;
   };
-  let openAiClient: {
-    provider: 'openai';
+  let kimiClient: {
+    provider: 'kimi';
     generateText: jest.Mock;
     getModelName: jest.Mock;
   };
@@ -28,10 +28,10 @@ describe('AiNormalizationService', () => {
       generateText: jest.fn(),
       getModelName: jest.fn().mockReturnValue('gemini-3.1-flash-lite-preview'),
     };
-    openAiClient = {
-      provider: 'openai',
+    kimiClient = {
+      provider: 'kimi',
       generateText: jest.fn(),
-      getModelName: jest.fn().mockReturnValue('gpt-4.1-mini'),
+      getModelName: jest.fn().mockReturnValue('kimi-k2.5'),
     };
     logger = {
       info: jest.fn(),
@@ -41,7 +41,7 @@ describe('AiNormalizationService', () => {
     service = new AiNormalizationService(
       logger as unknown as AppLogger,
       geminiClient as unknown as GeminiClientService,
-      openAiClient as unknown as OpenAiClientService,
+      kimiClient as unknown as KimiClientService,
     );
     process.env.GEMINI_API_KEY = 'test-key';
     delete process.env.LLM_PROVIDER;
@@ -94,9 +94,9 @@ describe('AiNormalizationService', () => {
     ).rejects.toBeInstanceOf(AiNormalizationError);
   });
 
-  it('uses the OpenAI client when configured', async () => {
-    process.env.LLM_PROVIDER = 'openai';
-    openAiClient.generateText.mockResolvedValue(
+  it('uses the Kimi client when configured', async () => {
+    process.env.LLM_PROVIDER = 'kimi';
+    kimiClient.generateText.mockResolvedValue(
       JSON.stringify({
         schemaVersion: 'candidate_job_profile_v1',
         language: 'en',
@@ -121,7 +121,7 @@ describe('AiNormalizationService', () => {
       'Docker Kubernetes platform engineer',
     );
 
-    expect(result.telemetry.provider).toBe('openai');
+    expect(result.telemetry.provider).toBe('kimi');
     expect(result.profile.skills).toEqual(['Docker', 'Kubernetes']);
     expect(geminiClient.generateText).not.toHaveBeenCalled();
   });
@@ -151,8 +151,8 @@ describe('AiNormalizationService', () => {
   });
 
   it('classifies 429 failures with upstream metadata', async () => {
-    process.env.LLM_PROVIDER = 'openai';
-    openAiClient.generateText.mockRejectedValue(
+    process.env.LLM_PROVIDER = 'kimi';
+    kimiClient.generateText.mockRejectedValue(
       Object.assign(new Error('Rate limit exceeded'), {
         status: 429,
         code: 'rate_limit_exceeded',

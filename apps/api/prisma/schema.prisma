@@ -20,6 +20,7 @@ enum JobStatus {
 }
 
 enum ApplicationStatus {
+  PENDING_MATCHING
   APPLIED
   REVIEWING
   INTERVIEW
@@ -231,7 +232,7 @@ model Application {
   candidate   Candidate         @relation(fields: [candidateId], references: [id], onDelete: Cascade)
   cvId        String
   cv          CV                @relation(fields: [cvId], references: [id], onDelete: Restrict)
-  matchScore  Float
+  matchScore  Float             @default(0)
   matchingSnapshot Json?
   status      ApplicationStatus @default(APPLIED)
   notes       String?           @db.Text

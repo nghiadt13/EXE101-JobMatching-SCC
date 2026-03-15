@@ -25,16 +25,107 @@ Hệ thống tuyển dụng MVP với AI matching giữa CV và Job Description.
 
 - Node.js 20+
 - npm 10+
-- PostgreSQL 14+
+- Docker Desktop
 - PowerShell (commands below assume PowerShell)
 
-## Environment Setup
+## Quick Start (Clone -> Run Full Stack)
+
+### 1. Install dependencies
+
+```powershell
+npm install
+```
+
+### 2. Start PostgreSQL with Docker (standard local DB)
+
+This project expects PostgreSQL at `localhost:5433` and database name `job_matching`.
+
+```powershell
+docker run -d `
+  --name jobmatching-postgres-5433 `
+  -e POSTGRES_USER=postgres `
+  -e POSTGRES_PASSWORD=postgres `
+  -e POSTGRES_DB=job_matching `
+  -p 5433:5432 `
+  -v jobmatching_pgdata:/var/lib/postgresql/data `
+  postgres:16
+```
+
+If container already exists (as in your Docker Desktop screenshot), just start it:
+
+```powershell
+docker start jobmatching-postgres-5433
+```
+
+### 3. Configure environment variables
+
+Create file `apps/api/.env` with:
+
+```dotenv
+NODE_ENV=development
+PORT=3001
+WEB_URL=http://localhost:3000
+DATABASE_URL="postgresql://postgres:postgres@localhost:5433/job_matching"
+
+JWT_SECRET=change-me
+JWT_EXPIRES_IN=1h
+
+LLM_PROVIDER=gemini
+GEMINI_API_KEY=your-gemini-api-key
+GEMINI_MODEL=gemini-3.1-flash-lite-preview
+OPENAI_API_KEY=your-openai-api-key
+OPENAI_MODEL=gpt-4.1-mini
+```
+
+Create file `apps/web/.env` with:
+
+```dotenv
+NEXT_PUBLIC_API_URL=http://localhost:3001/api
+NEXT_PUBLIC_WEB_URL=http://localhost:3000
+AUTH_SECRET=change-me
+```
+
+### 4. Run Prisma migration + seed (required)
+
+```powershell
+Set-Location apps/api
+npx prisma migrate dev
+npm run seed
+Set-Location ../..
+```
+
+### 5. Run backend + frontend
+
+Terminal 1 (API):
+
+```powershell
+npm run dev:api
+```
+
+Terminal 2 (Web):
+
+```powershell
+npm run dev:web
+```
+
+Open:
+
+- Web: `http://localhost:3000`
+- API: `http://localhost:3001/api`
+
+### 6. Verify quickly
+
+- Web loads at `http://localhost:3000`
+- API responds at `http://localhost:3001/api`
+- Login with demo account in section `Demo Accounts`
+
+## Environment Setup (Details)
 
 ### 1. API (`apps/api`)
 
 Required variables:
 
-- `DATABASE_URL`
+- `DATABASE_URL` (use `postgresql://postgres:postgres@localhost:5433/job_matching`)
 - `JWT_SECRET`
 - `WEB_URL` (default `http://localhost:3000`)
 - `PORT` (default `3001` recommended for local)
@@ -43,20 +134,6 @@ Required variables:
 - `GEMINI_MODEL` (default `gemini-3.1-flash-lite-preview`)
 - `OPENAI_API_KEY` (required when `LLM_PROVIDER=openai`)
 - `OPENAI_MODEL` (default `gpt-4.1-mini`)
-
-Example (PowerShell):
-
-```powershell
-$env:DATABASE_URL='postgresql://postgres:postgres@localhost:5432/postgres'
-$env:JWT_SECRET='local-jwt-secret'
-$env:WEB_URL='http://localhost:3000'
-$env:PORT='3001'
-$env:LLM_PROVIDER='gemini'
-$env:GEMINI_API_KEY='your-gemini-api-key'
-$env:GEMINI_MODEL='gemini-3.1-flash-lite-preview'
-$env:OPENAI_API_KEY='your-openai-api-key'
-$env:OPENAI_MODEL='gpt-4.1-mini'
-```
 
 AI parse workflow (current):
 
@@ -81,12 +158,6 @@ Example (PowerShell):
 ```powershell
 $env:NEXT_PUBLIC_API_URL='http://localhost:3001/api'
 $env:AUTH_SECRET='local-auth-secret'
-```
-
-## Install
-
-```powershell
-npm install
 ```
 
 ## Database Init + Seed
@@ -145,6 +216,10 @@ $env:AUTH_SECRET='local-test-secret-for-build-only'; npm run build -w web
 - Error `JWT_SECRET is required`: thiếu env ở API terminal.
 - Error `Missing AUTH_SECRET`: thiếu env ở Web terminal hoặc khi build web.
 - Error kết nối DB: kiểm tra `DATABASE_URL`, DB service, và migration state.
+- Nếu dùng Docker DB mà API không kết nối được:
+  - kiểm tra container đang chạy: `docker ps`
+  - kiểm tra đúng mapping `5433:5432`
+  - kiểm tra `DATABASE_URL` đúng `localhost:5433/job_matching`
 - CORS lỗi khi login: kiểm tra `WEB_URL` ở API đúng với URL web.
 - Dashboard/API data bất thường: rerun seed rồi restart API/Web.
 - Upload/save failure needs root cause: capture the `Request ID` shown in the web banner, then grep API logs for that id.

@@ -12,6 +12,7 @@ import { getJobDetail } from '@/lib/jobs-client';
 import type { JobItem } from '@/lib/jobs-client';
 import { PUBLIC_JOBS_LISTING_ROUTE } from '@/lib/routes';
 import { safeJsonLdSerialize } from '@/lib/seo';
+import { RequirementsSection, RequirementsFallbackSection } from '@/components/jobs/requirements-section';
 import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
 
@@ -117,7 +118,7 @@ export default async function JobDetailPage({ params, searchParams }: PageProps)
     const cvId = String(formData.get('cvId') ?? '').trim();
     const jobId = String(formData.get('jobId') ?? '').trim();
     if (!cvId || !jobId) redirect(`/jobs/${slug}?error=missing`);
-    let redirectTarget = `/jobs/${slug}?applied=1`;
+    let redirectTarget = '/dashboard/candidate/applications?applied=1';
     try {
       await createApplication(currentSession.accessToken, { cvId, jobId });
     } catch (error) {
@@ -177,7 +178,13 @@ export default async function JobDetailPage({ params, searchParams }: PageProps)
 
   return (
     <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex flex-col font-sans">
-      <SiteHeader />
+      <SiteHeader
+        isAuthenticated={Boolean(session?.accessToken)}
+        user={session?.user ? {
+          name: session.user.name,
+          email: session.user.email,
+        } : null}
+      />
 
       <main className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1">
         {jobPostingJsonLd && (
@@ -252,24 +259,11 @@ export default async function JobDetailPage({ params, searchParams }: PageProps)
                   </p>
                 </section>
 
-                <section id="requirements">
-                  <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary">verified_user</span> Requirements
-                  </h3>
-                  {!!job.skills?.length ? (
-                    <ul className="list-disc list-inside space-y-3 text-slate-600 dark:text-slate-400">
-                      {job.skills.map((skill: string) => (
-                        <li key={skill}>Proficiency in {skill}.</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <ul className="list-disc list-inside space-y-3 text-slate-600 dark:text-slate-400">
-                      <li>Relevant professional experience in the role.</li>
-                      <li>Strong communication and collaboration skills.</li>
-                      <li>Proficiency in Git and agile development methodologies.</li>
-                    </ul>
-                  )}
-                </section>
+                {job.skills?.length > 0 ? (
+                  <RequirementsSection skills={job.skills} />
+                ) : (
+                  <RequirementsFallbackSection />
+                )}
 
                 <section id="benefits">
                   <h3 className="text-lg font-bold mb-4 flex items-center gap-2">

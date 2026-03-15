@@ -12,7 +12,7 @@ import { DocumentStorageService } from '../documents/services/document-storage.s
 import { DocumentTextExtractorService } from '../documents/services/document-text-extractor.service';
 import { AiNormalizationService } from '../normalization/ai-normalization.service';
 import { GeminiClientService } from '../normalization/gemini-client.service';
-import { OpenAiClientService } from '../normalization/openai-client.service';
+import { KimiClientService } from '../normalization/kimi-client.service';
 
 @Module({
   controllers: [MatchingController],
@@ -29,7 +29,7 @@ import { OpenAiClientService } from '../normalization/openai-client.service';
     DocumentTextExtractorService,
     AiNormalizationService,
     GeminiClientService,
-    OpenAiClientService,
+    KimiClientService,
   ],
   exports: [
     MatchingService,
