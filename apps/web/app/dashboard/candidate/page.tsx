@@ -67,6 +67,9 @@ export default async function CandidateDashboardPage() {
         <Button asChild variant="outline">
           <Link href="/dashboard/candidate/applications">My applications</Link>
         </Button>
+        <Button asChild>
+          <Link href="/dashboard/candidate/recommendations">🔍 Smart Job Match</Link>
+        </Button>
       </div>
     </DashboardShell>
   );

@@ -63,6 +63,7 @@ model Candidate {
 
   cvs          CV[]
   applications Application[]
+  recommendationScans RecommendationScan[]
 
   @@index([userId])
 }
@@ -122,6 +123,7 @@ model Job {
 
   applications Application[]
   savedByUsers SavedJob[]
+  recommendationResults RecommendationResult[]
 
   @@index([recruiterId])
   @@index([companyId])
@@ -245,6 +247,52 @@ model Application {
   @@index([cvId])
   @@index([matchScore])
   @@index([status])
+}
+
+enum RecommendationScanStatus {
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model RecommendationScan {
+  id            String                    @id @default(uuid())
+  candidateId   String
+  candidate     Candidate                 @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  cvId          String
+  status        RecommendationScanStatus  @default(PROCESSING)
+  totalJobs     Int                       @default(0)
+  preFiltered   Int                       @default(0)
+  aiEvaluated   Int                       @default(0)
+  processingMs  Int?
+  errorMessage  String?
+  createdAt     DateTime                  @default(now())
+  completedAt   DateTime?
+
+  results       RecommendationResult[]
+
+  @@index([candidateId, createdAt(sort: Desc)])
+  @@index([status])
+}
+
+model RecommendationResult {
+  id               String              @id @default(uuid())
+  scanId           String
+  scan             RecommendationScan  @relation(fields: [scanId], references: [id], onDelete: Cascade)
+  jobId            String
+  job              Job                 @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  rank             Int
+  matchScore       Float
+  matchTier        String
+  matchingVersion  String
+  matchingSnapshot Json?
+  strengths        Json                @default("[]")
+  gaps             Json                @default("[]")
+  confidenceScore  Float               @default(0)
+  createdAt        DateTime            @default(now())
+
+  @@index([scanId, rank])
+  @@index([jobId])
 }
 
 model Skill {
