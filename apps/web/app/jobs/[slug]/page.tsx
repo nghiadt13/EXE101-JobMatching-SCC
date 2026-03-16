@@ -3,8 +3,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
-import { CandidateApplyForm } from '@/components/applications/candidate-apply-form';
 import { Alert } from '@/components/ui/alert';
+import { ApplyJobButton } from '@/components/jobs/apply-job-button';
 import { createApplication } from '@/lib/applications-client';
 import { ApiError } from '@/lib/api-client';
 import { getMyCvs } from '@/lib/cv-client';
@@ -234,9 +234,15 @@ export default async function JobDetailPage({ params, searchParams }: PageProps)
                   </div>
                 </div>
                 <div className="flex w-full md:w-auto gap-3 shrink-0">
-                  <button className="flex-1 md:flex-none px-6 py-3 bg-primary text-white font-bold rounded-xl hover:bg-primary-700 transition-colors shadow-lg shadow-primary/20">
-                    Apply Now
-                  </button>
+                  <ApplyJobButton
+                    jobId={job.id}
+                    cvs={cvs?.items ?? null}
+                    canApply={canApply}
+                    isAuthenticated={Boolean(session?.user)}
+                    loginUrl={`/login?callbackUrl=${encodeURIComponent(jobPath)}`}
+                    uploadCvUrl={cvPrereqUrl}
+                    applyAction={applyAction}
+                  />
                   <button className="flex items-center justify-center size-12 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                     <span className="material-symbols-outlined text-slate-600 dark:text-slate-300">bookmark</span>
                   </button>
@@ -301,44 +307,21 @@ export default async function JobDetailPage({ params, searchParams }: PageProps)
                   </div>
                 </section>
 
-                <div className="border-t border-slate-200 dark:border-slate-800 pt-8">
-                  <h3 className="text-lg font-bold mb-4">Submit Your Application</h3>
-                  
-                  {query.applied === '1' && (
-                    <Alert variant="success" className="mb-4" role="status" aria-live="polite">
-                      Application submitted successfully.
+                {/* Success / Error alerts for apply action */}
+                {query.applied === '1' && (
+                  <div className="border-t border-slate-200 dark:border-slate-800 pt-6">
+                    <Alert variant="success" role="status" aria-live="polite">
+                      Application submitted successfully!
                     </Alert>
-                  )}
-                  
-                  {errorMessage && (
-                    <Alert className="mb-4" role="alert" aria-live="assertive">
+                  </div>
+                )}
+                {errorMessage && (
+                  <div className="border-t border-slate-200 dark:border-slate-800 pt-6">
+                    <Alert role="alert" aria-live="assertive">
                       {errorMessage}
                     </Alert>
-                  )}
-
-                  {canApply && cvs && cvs.items.length > 0 ? (
-                    <CandidateApplyForm jobId={job.id} cvs={cvs.items} action={applyAction} />
-                  ) : null}
-                  
-                  {canApply && cvs && cvs.items.length === 0 ? (
-                    <p className="text-sm text-zinc-600">
-                      Please{' '}
-                      <Link href={cvPrereqUrl} className="font-medium underline text-primary">upload a CV</Link>
-                      {' '}first before applying.
-                    </p>
-                  ) : null}
-                  
-                  {!session?.user && (
-                    <p className="text-sm text-zinc-600">
-                      <Link href={`/login?callbackUrl=${encodeURIComponent(jobPath)}`} className="font-medium underline text-primary">Sign in</Link>{' '}
-                      as candidate to apply.
-                    </p>
-                  )}
-                  
-                  {session?.user && session.user.role !== 'CANDIDATE' && (
-                    <p className="text-sm text-zinc-600">Only candidate accounts can apply for jobs.</p>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -7,7 +7,11 @@ export class KimiClientService implements LlmClient {
   readonly provider = 'kimi' as const;
 
   getModelName(): string {
-    return process.env['KIMI_MODEL'] ?? 'kimi-k2.5';
+    return process.env['KIMI_MODEL'] ?? 'moonshot-v1-8k';
+  }
+
+  private getBaseUrl(): string {
+    return process.env['KIMI_BASE_URL'] ?? 'https://api.moonshot.cn/v1';
   }
 
   async generateText(prompt: string, timeoutMs = 60000): Promise<string> {
@@ -18,7 +22,7 @@ export class KimiClientService implements LlmClient {
 
     const client = new OpenAI({
       apiKey,
-      baseURL: 'https://api.moonshot.cn/v1',
+      baseURL: this.getBaseUrl(),
       timeout: timeoutMs,
     });
     const response = await client.chat.completions.create({
