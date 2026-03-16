@@ -67,7 +67,7 @@ export function ScanResultsSection({
     return (
       <section className="mb-8">
         <div className="rounded-lg border p-6 text-center animate-pulse">
-          <p className="text-muted-foreground">Đang tải kết quả...</p>
+          <p className="text-muted-foreground">Loading results...</p>
         </div>
       </section>
     );
@@ -77,33 +77,33 @@ export function ScanResultsSection({
     return (
       <section className="mb-8">
         <h2 className="text-lg font-semibold mb-3">
-          ⏳ Đang phân tích...
+          Analyzing...
         </h2>
         <div className="rounded-lg border p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="h-4 w-4 rounded-full bg-blue-500 animate-pulse" />
-            <p className="font-medium">Hệ thống đang xử lý CV của bạn</p>
+            <p className="font-medium">The system is processing your CV</p>
           </div>
           <div className="space-y-2 text-sm text-muted-foreground">
             <p>
-              Đang so sánh với{' '}
+              Comparing with{' '}
               {scan.totalJobs > 0
-                ? `${scan.totalJobs} công việc`
-                : 'tất cả công việc'}
+                ? `${scan.totalJobs} jobs`
+                : 'all jobs'}
               ...
             </p>
             {scan.preFiltered > 0 ? (
-              <p>✅ Đã lọc ra {scan.preFiltered} công việc tiềm năng</p>
+              <p>Filtered {scan.preFiltered} potential jobs</p>
             ) : null}
             {scan.aiEvaluated > 0 ? (
               <p>
-                🤖 Đã phân tích AI: {scan.aiEvaluated}/{scan.preFiltered || '?'}
+                AI evaluated: {scan.aiEvaluated}/{scan.preFiltered || '?'}
               </p>
             ) : null}
           </div>
           <p className="text-xs text-muted-foreground mt-4">
-            Quá trình này có thể mất 30-60 giây. Bạn có thể rời khỏi trang
-            này — kết quả sẽ được thông báo khi hoàn tất.
+            This process may take 30-60 seconds. You can leave this page
+            — you will be notified when results are ready.
           </p>
         </div>
       </section>
@@ -113,10 +113,10 @@ export function ScanResultsSection({
   if (scan.status === 'FAILED') {
     return (
       <section className="mb-8">
-        <h2 className="text-lg font-semibold mb-3">❌ Phân tích thất bại</h2>
+        <h2 className="text-lg font-semibold mb-3">Analysis Failed</h2>
         <div className="rounded-lg border border-destructive p-4">
           <p className="text-destructive">
-            {scan.errorMessage || 'Đã xảy ra lỗi. Vui lòng thử lại.'}
+            {scan.errorMessage || 'An error occurred. Please try again.'}
           </p>
         </div>
       </section>
@@ -128,10 +128,10 @@ export function ScanResultsSection({
     <section className="mb-8">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-lg font-semibold">
-          🎯 Kết quả phân tích
+          Analysis Results
         </h2>
         <div className="text-sm text-muted-foreground">
-          {scan.aiEvaluated} công việc đánh giá từ {scan.totalJobs} tổng số ·{' '}
+          {scan.aiEvaluated} jobs evaluated from {scan.totalJobs} total ·{' '}
           {scan.processingMs
             ? `${(scan.processingMs / 1000).toFixed(1)}s`
             : ''}
@@ -140,7 +140,7 @@ export function ScanResultsSection({
 
       {scan.results.length === 0 ? (
         <div className="rounded-lg border border-dashed p-6 text-center text-muted-foreground">
-          <p>Không tìm thấy công việc phù hợp. Hãy cập nhật CV và thử lại.</p>
+          <p>No matching jobs found. Try updating your CV and scan again.</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -208,12 +208,12 @@ function RecommendationCard({
           </div>
           {result.confidenceScore > 0 ? (
             <div className="text-xs text-muted-foreground mt-1">
-              Độ tin cậy:{' '}
-              {result.confidenceScore >= 0.7
-                ? '🟢 Cao'
-                : result.confidenceScore >= 0.4
-                  ? '🟡 TB'
-                  : '🟠 Thấp'}
+              Confidence:{' '}
+              {result.matchScore >= 60 && result.confidenceScore >= 0.7
+                ? 'High'
+                : result.matchScore >= 40 && result.confidenceScore >= 0.4
+                  ? 'Medium'
+                  : 'Low'}
             </div>
           ) : null}
         </div>
@@ -224,7 +224,7 @@ function RecommendationCard({
         {result.strengths.length > 0 ? (
           <div className="flex-1">
             <p className="text-xs font-medium text-emerald-700 mb-1">
-              ✅ Điểm mạnh
+              Strengths
             </p>
             <ul className="text-xs text-muted-foreground space-y-0.5">
               {result.strengths.map((s, i) => (
@@ -236,7 +236,7 @@ function RecommendationCard({
         {result.gaps.length > 0 ? (
           <div className="flex-1">
             <p className="text-xs font-medium text-orange-700 mb-1">
-              ⚠️ Cần cải thiện
+              Areas to Improve
             </p>
             <ul className="text-xs text-muted-foreground space-y-0.5">
               {result.gaps.map((g, i) => (
@@ -253,7 +253,7 @@ function RecommendationCard({
           href={`/jobs/${result.job.slug}`}
           className="text-xs font-medium text-primary hover:underline"
         >
-          Xem chi tiết →
+          View Details →
         </Link>
       </div>
     </div>

@@ -32,6 +32,7 @@ export function DashboardShell({
   children,
 }: DashboardShellProps) {
   const navItems = role ? getNavForRole(role) : [];
+  const isRecruiter = role === 'RECRUITER';
   const resolvedUserName =
     userName?.trim() ||
     (email?.includes('@') ? email.split('@')[0] : email?.trim()) ||
@@ -41,17 +42,25 @@ export function DashboardShell({
     <div className="min-h-screen bg-gray-50 text-slate-900">
       <SiteHeader
         isAuthenticated
+        role={role}
         user={{
           name: resolvedUserName,
           email,
           avatarUrl: userAvatarUrl,
-          planName: 'Member',
+          planName: isRecruiter ? 'Recruiter' : 'Member',
         }}
       />
       <div className="flex">
         {navItems.length > 0 ? (
           <aside className="hidden w-[240px] shrink-0 border-r border-primary-100 bg-white lg:block">
             <div className="sticky top-20 flex h-[calc(100vh-5rem)] flex-col px-3 py-5">
+              {isRecruiter ? (
+                <div className="mb-4 flex items-center gap-2 px-3">
+                  <span className="recruiter-sidebar-badge">
+                    <i className="fa-solid fa-building-columns text-[8px]" /> HR Portal
+                  </span>
+                </div>
+              ) : null}
               <nav className="flex-1 space-y-0.5" aria-label="Dashboard navigation">
                 {navItems.map((item) => {
                   const Icon = getNavIcon(item.iconName);

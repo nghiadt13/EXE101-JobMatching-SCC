@@ -34,7 +34,7 @@ export function RecommendationStartForm({
       setError(
         err instanceof Error
           ? err.message
-          : 'Không thể bắt đầu phân tích. Vui lòng thử lại.',
+          : 'Unable to start analysis. Please try again.',
       );
     } finally {
       setIsLoading(false);
@@ -49,7 +49,7 @@ export function RecommendationStartForm({
             htmlFor="cv-select"
             className="block text-sm font-medium mb-1.5"
           >
-            Chọn CV để phân tích
+            Select a CV to analyze
           </label>
           <select
             id="cv-select"
@@ -74,10 +74,10 @@ export function RecommendationStartForm({
           {isLoading ? (
             <>
               <span className="animate-spin mr-2">⏳</span>
-              Đang gửi...
+              Submitting...
             </>
           ) : (
-            '🚀 Bắt đầu phân tích'
+            'Start Analysis'
           )}
         </Button>
       </div>
@@ -85,8 +85,8 @@ export function RecommendationStartForm({
         <p className="text-sm text-destructive mt-2">{error}</p>
       ) : null}
       <p className="text-xs text-muted-foreground mt-3">
-        Hệ thống sẽ so sánh CV của bạn với tất cả công việc đang tuyển và đưa
-        ra top 10 vị trí phù hợp nhất. Quá trình này có thể mất 30-60 giây.
+        The system will compare your CV against all active job listings and
+        recommend the top 10 best-matching positions. This may take 30-60 seconds.
       </p>
     </div>
   );

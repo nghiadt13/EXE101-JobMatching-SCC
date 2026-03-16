@@ -436,8 +436,8 @@ export class RecommendationService {
     await this.prisma.notification.create({
       data: {
         userId: candidate.userId,
-        title: '🎯 Kết quả tìm việc phù hợp đã sẵn sàng!',
-        body: `Đã phân tích ${totalJobs} công việc và tìm thấy ${resultCount} vị trí phù hợp nhất. Xem kết quả ngay!`,
+        title: 'Smart Job Match results are ready!',
+        body: `Analyzed ${totalJobs} jobs and found ${resultCount} best-matching positions. View results now!`,
       },
     });
   }
@@ -454,8 +454,8 @@ export class RecommendationService {
     await this.prisma.notification.create({
       data: {
         userId: candidate.userId,
-        title: '⚠️ Phân tích CV không thành công',
-        body: 'Hệ thống gặp lỗi khi phân tích CV của bạn. Vui lòng thử lại sau.',
+        title: 'CV analysis failed',
+        body: 'The system encountered an error while analyzing your CV. Please try again later.',
       },
     });
   }

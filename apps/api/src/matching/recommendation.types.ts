@@ -8,10 +8,10 @@ export function resolveMatchTier(score: number): MatchTier {
 }
 
 export const MATCH_TIER_LABELS: Record<MatchTier, string> = {
-  excellent: 'Rất phù hợp',
-  good: 'Phù hợp',
-  potential: 'Có tiềm năng',
-  low: 'Ít phù hợp',
+  excellent: 'Excellent Match',
+  good: 'Good Match',
+  potential: 'Potential',
+  low: 'Low Match',
 };
 
 export interface RecommendationResultView {

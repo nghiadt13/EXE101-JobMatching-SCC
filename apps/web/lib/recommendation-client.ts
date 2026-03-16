@@ -9,25 +9,25 @@ export const MATCH_TIER_CONFIG: Record<
   { label: string; emoji: string; color: string; bg: string }
 > = {
   excellent: {
-    label: 'Rất phù hợp',
+    label: 'Excellent Match',
     emoji: '🟢',
     color: 'text-emerald-700',
     bg: 'bg-emerald-50 border-emerald-200',
   },
   good: {
-    label: 'Phù hợp',
+    label: 'Good Match',
     emoji: '🟡',
     color: 'text-amber-700',
     bg: 'bg-amber-50 border-amber-200',
   },
   potential: {
-    label: 'Có tiềm năng',
+    label: 'Potential',
     emoji: '🟠',
     color: 'text-orange-700',
     bg: 'bg-orange-50 border-orange-200',
   },
   low: {
-    label: 'Ít phù hợp',
+    label: 'Low Match',
     emoji: '🔴',
     color: 'text-red-700',
     bg: 'bg-red-50 border-red-200',

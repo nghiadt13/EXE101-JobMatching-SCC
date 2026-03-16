@@ -19,13 +19,16 @@ type SiteHeaderProps = {
   user?: SiteHeaderUser | null;
   unreadCount?: number;
   isAuthenticated?: boolean;
+  role?: string;
 };
 
 export function SiteHeader({
   user,
   unreadCount = 1,
   isAuthenticated = false,
+  role,
 }: SiteHeaderProps) {
+  const isRecruiter = role === 'RECRUITER';
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const userDisplayName = user?.name?.trim() || (isAuthenticated ? 'User' : 'Guest');
@@ -56,30 +59,55 @@ export function SiteHeader({
         </Link>
 
         <div className="hidden items-center space-x-8 lg:flex">
-          <Link
-            className="transition-standard flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-primary-600"
-            href="/jobs"
-          >
-            Find Jobs <i className="fa-solid fa-chevron-down text-[10px]" />
-          </Link>
-          <a
-            className="transition-standard flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-primary-600"
-            href="#"
-          >
-            Companies <i className="fa-solid fa-chevron-down text-[10px]" />
-          </a>
-          <Link
-            className="transition-standard flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-primary-600"
-            href="/dashboard/candidate/cvs"
-          >
-            CreateCV <i className="fa-solid fa-chevron-down text-[10px]" />
-          </Link>
-          <a
-            className="transition-standard flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-primary-600"
-            href="#"
-          >
-            Tools <i className="fa-solid fa-chevron-down text-[10px]" />
-          </a>
+          {isRecruiter ? (
+            <>
+              <Link
+                className="transition-standard flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-primary-600"
+                href="/dashboard/recruiter/jobs"
+              >
+                <i className="fa-solid fa-briefcase text-xs" /> My Jobs
+              </Link>
+              <Link
+                className="transition-standard flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-primary-600"
+                href="/dashboard/recruiter/applications"
+              >
+                <i className="fa-solid fa-clipboard-list text-xs" /> Applications
+              </Link>
+              <Link
+                className="transition-standard flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-primary-600"
+                href="/dashboard/recruiter/jobs"
+              >
+                <i className="fa-solid fa-plus-circle text-xs" /> Post Job
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link
+                className="transition-standard flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-primary-600"
+                href="/jobs"
+              >
+                Find Jobs <i className="fa-solid fa-chevron-down text-[10px]" />
+              </Link>
+              <a
+                className="transition-standard flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-primary-600"
+                href="#"
+              >
+                Companies <i className="fa-solid fa-chevron-down text-[10px]" />
+              </a>
+              <Link
+                className="transition-standard flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-primary-600"
+                href="/dashboard/candidate/cvs"
+              >
+                CreateCV <i className="fa-solid fa-chevron-down text-[10px]" />
+              </Link>
+              <a
+                className="transition-standard flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-primary-600"
+                href="#"
+              >
+                Tools <i className="fa-solid fa-chevron-down text-[10px]" />
+              </a>
+            </>
+          )}
         </div>
 
         <div className="flex items-center space-x-2 md:space-x-4">
@@ -145,24 +173,55 @@ export function SiteHeader({
                   <p className="text-sm font-semibold text-slate-900">{userDisplayName}</p>
                   <p className="truncate text-xs text-gray-500">{userEmail}</p>
                 </div>
-                <Link
-                  className="transition-standard flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-primary-50 hover:text-primary-600"
-                  href="/dashboard/profile"
-                >
-                  <i className="fa-solid fa-user-gear w-4 text-center" /> Settings
-                </Link>
-                <Link
-                  className="transition-standard flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-primary-50 hover:text-primary-600"
-                  href="/dashboard/candidate/applications"
-                >
-                  <i className="fa-solid fa-briefcase w-4 text-center" /> My Applications
-                </Link>
-                <Link
-                  className="transition-standard flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-primary-50 hover:text-primary-600"
-                  href="/dashboard/candidate/cvs"
-                >
-                  <i className="fa-solid fa-file-invoice w-4 text-center" /> My CVs
-                </Link>
+                {isRecruiter ? (
+                  <>
+                    <Link
+                      className="transition-standard flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-primary-50 hover:text-primary-600"
+                      href="/dashboard/recruiter"
+                    >
+                      <i className="fa-solid fa-gauge-high w-4 text-center" /> Dashboard
+                    </Link>
+                    <Link
+                      className="transition-standard flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-primary-50 hover:text-primary-600"
+                      href="/dashboard/recruiter/jobs"
+                    >
+                      <i className="fa-solid fa-briefcase w-4 text-center" /> My Jobs
+                    </Link>
+                    <Link
+                      className="transition-standard flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-primary-50 hover:text-primary-600"
+                      href="/dashboard/recruiter/applications"
+                    >
+                      <i className="fa-solid fa-clipboard-check w-4 text-center" /> Review Applications
+                    </Link>
+                    <Link
+                      className="transition-standard flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-primary-50 hover:text-primary-600"
+                      href="/dashboard/profile"
+                    >
+                      <i className="fa-solid fa-user-gear w-4 text-center" /> Settings
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      className="transition-standard flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-primary-50 hover:text-primary-600"
+                      href="/dashboard/profile"
+                    >
+                      <i className="fa-solid fa-user-gear w-4 text-center" /> Settings
+                    </Link>
+                    <Link
+                      className="transition-standard flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-primary-50 hover:text-primary-600"
+                      href="/dashboard/candidate/applications"
+                    >
+                      <i className="fa-solid fa-briefcase w-4 text-center" /> My Applications
+                    </Link>
+                    <Link
+                      className="transition-standard flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-primary-50 hover:text-primary-600"
+                      href="/dashboard/candidate/cvs"
+                    >
+                      <i className="fa-solid fa-file-invoice w-4 text-center" /> My CVs
+                    </Link>
+                  </>
+                )}
                 <div className="mx-2 my-1 h-px bg-gray-50" />
                 {isAuthenticated ? (
                   <button

@@ -45,8 +45,8 @@ export default async function RecommendationsPage({
 
   return (
     <DashboardShell
-      title="🔍 Smart Job Match"
-      description="Phân tích CV của bạn với tất cả công việc trên hệ thống để tìm vị trí phù hợp nhất."
+      title="Smart Job Match"
+      description="Analyze your CV against all jobs on the platform to find the best matching positions."
       email={session.user.email}
       userName={session.user.name}
       userAvatarUrl={session.user.image}
@@ -59,10 +59,10 @@ export default async function RecommendationsPage({
 
       {/* Start New Scan */}
       <section className="mb-8">
-        <h2 className="text-lg font-semibold mb-3">Bắt đầu phân tích mới</h2>
+        <h2 className="text-lg font-semibold mb-3">Start New Analysis</h2>
         {cvs.length === 0 ? (
           <div className="rounded-lg border border-dashed p-6 text-center text-muted-foreground">
-            <p className="mb-2">Bạn chưa có CV nào. Hãy upload CV trước.</p>
+            <p className="mb-2">You don&apos;t have any CVs yet. Please upload a CV first.</p>
             <Button asChild>
               <Link href="/dashboard/candidate/cvs">Upload CV</Link>
             </Button>
@@ -86,7 +86,7 @@ export default async function RecommendationsPage({
       {/* Scan History */}
       {scans && scans.items.length > 0 ? (
         <section>
-          <h2 className="text-lg font-semibold mb-3">Lịch sử phân tích</h2>
+          <h2 className="text-lg font-semibold mb-3">Analysis History</h2>
           <div className="space-y-3">
             {scans.items.map((scan) => (
               <ScanHistoryCard key={scan.id} scan={scan} />
@@ -98,7 +98,7 @@ export default async function RecommendationsPage({
       {/* Back link */}
       <div className="mt-6">
         <Button asChild variant="outline" size="sm">
-          <Link href="/dashboard/candidate">← Quay lại Dashboard</Link>
+          <Link href="/dashboard/candidate">← Back to Dashboard</Link>
         </Button>
       </div>
     </DashboardShell>
@@ -111,9 +111,9 @@ function ScanHistoryCard({
   scan: RecommendationScanListItem;
 }) {
   const statusConfig = {
-    PROCESSING: { label: 'Đang xử lý...', variant: 'secondary' as const },
-    COMPLETED: { label: 'Hoàn tất', variant: 'default' as const },
-    FAILED: { label: 'Thất bại', variant: 'destructive' as const },
+    PROCESSING: { label: 'Processing...', variant: 'secondary' as const },
+    COMPLETED: { label: 'Completed', variant: 'default' as const },
+    FAILED: { label: 'Failed', variant: 'destructive' as const },
   };
   const config = statusConfig[scan.status];
 
@@ -133,7 +133,7 @@ function ScanHistoryCard({
             ) : null}
           </div>
           <p className="text-sm text-muted-foreground">
-            {scan.resultCount} kết quả từ {scan.totalJobs} công việc
+            {scan.resultCount} results from {scan.totalJobs} jobs
             {scan.processingMs
               ? ` · ${(scan.processingMs / 1000).toFixed(1)}s`
               : ''}
