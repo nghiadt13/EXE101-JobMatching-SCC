@@ -239,31 +239,38 @@ export class JdDrivenEvaluationService {
     projectBonus: number,
     finalScore: number,
   ): MatchingSnapshotV2 {
-    const strengths = requirementEvaluations
+    // Enrich evaluations with labels from the schema
+    const enrichedRequirements = requirementEvaluations.map((e) => {
+      const req = schema.requirements.find((r) => r.id === e.requirementId);
+      return {
+        ...e,
+        label: req?.label ?? e.requirementId,
+        importance: req?.importance ?? ('medium' as const),
+        category: req?.category ?? ('general' as const),
+      };
+    });
+
+    const enrichedConstraints = constraintEvaluations.map((ce) => {
+      const con = schema.constraints.find((c) => c.id === ce.constraintId);
+      return {
+        ...ce,
+        label: con?.label ?? ce.constraintId,
+      };
+    });
+
+    const strengths = enrichedRequirements
       .filter((e) => e.status === 'met')
       .slice(0, 4)
-      .map(
-        (e) =>
-          schema.requirements.find((r) => r.id === e.requirementId)?.label ??
-          e.requirementId,
-      );
+      .map((e) => e.label);
 
-    const gaps = requirementEvaluations
+    const gaps = enrichedRequirements
       .filter((e) => e.status === 'missing')
       .slice(0, 4)
-      .map(
-        (e) =>
-          schema.requirements.find((r) => r.id === e.requirementId)?.label ??
-          e.requirementId,
-      );
+      .map((e) => e.label);
 
-    const constraintsFailed = constraintEvaluations
+    const constraintsFailed = enrichedConstraints
       .filter((ce) => !ce.met)
-      .map(
-        (ce) =>
-          schema.constraints.find((c) => c.id === ce.constraintId)?.label ??
-          ce.constraintId,
-      );
+      .map((ce) => ce.label);
 
     return {
       version: MATCHING_SNAPSHOT_V2,
@@ -274,8 +281,8 @@ export class JdDrivenEvaluationService {
         projectBonus,
         final: finalScore,
       },
-      requirements: requirementEvaluations,
-      constraints: constraintEvaluations,
+      requirements: enrichedRequirements,
+      constraints: enrichedConstraints,
       candidateSummary,
       strengths,
       gaps,
@@ -286,4 +293,5 @@ export class JdDrivenEvaluationService {
       ),
     };
   }
+
 }

@@ -167,6 +167,9 @@ export type EvaluationConfidence = 'high' | 'medium' | 'low';
 
 export interface RequirementEvaluation {
   requirementId: string;
+  label: string;
+  importance: ImportanceLevel;
+  category: RequirementCategory;
   status: RequirementStatus;
   evidence: string[];
   confidence: EvaluationConfidence;
@@ -174,6 +177,7 @@ export interface RequirementEvaluation {
 
 export interface ConstraintEvaluation {
   constraintId: string;
+  label: string;
   met: boolean;
   evidence: string;
 }

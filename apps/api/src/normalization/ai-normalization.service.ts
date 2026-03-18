@@ -269,6 +269,9 @@ export class AiNormalizationService {
       .filter((item) => requirementIds.has(item['requirementId'] as string))
       .map((item) => ({
         requirementId: String(item['requirementId'] ?? ''),
+        label: '',
+        importance: 'medium' as const,
+        category: 'general' as const,
         status: validStatuses.has(String(item['status']))
           ? (String(item['status']) as
               | 'met'
@@ -291,6 +294,9 @@ export class AiNormalizationService {
       if (!requirementEvaluations.find((e) => e.requirementId === req.id)) {
         requirementEvaluations.push({
           requirementId: req.id,
+          label: '',
+          importance: 'medium' as const,
+          category: 'general' as const,
           status: 'missing',
           evidence: [],
           confidence: 'low',
@@ -306,6 +312,7 @@ export class AiNormalizationService {
       .filter((item) => constraintIds.has(item['constraintId'] as string))
       .map((item) => ({
         constraintId: String(item['constraintId'] ?? ''),
+        label: '',
         met: Boolean(item['met']),
         evidence: typeof item['evidence'] === 'string' ? item['evidence'] : '',
       }));
@@ -316,6 +323,7 @@ export class AiNormalizationService {
       ) {
         constraintEvaluations.push({
           constraintId: constraint.id,
+          label: '',
           met: false,
           evidence: '',
         });

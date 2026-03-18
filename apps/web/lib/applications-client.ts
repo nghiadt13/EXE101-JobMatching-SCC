@@ -46,12 +46,16 @@ export type MatchingSnapshotV2 = {
   };
   requirements: Array<{
     requirementId: string;
+    label?: string;
+    importance?: 'critical' | 'high' | 'medium' | 'low' | 'very_low';
+    category?: string;
     status: 'met' | 'partial' | 'missing' | 'not_applicable';
     evidence: string[];
     confidence: 'high' | 'medium' | 'low';
   }>;
   constraints: Array<{
     constraintId: string;
+    label?: string;
     met: boolean;
     evidence: string;
   }>;
