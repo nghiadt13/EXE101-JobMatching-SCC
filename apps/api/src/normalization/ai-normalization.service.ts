@@ -196,6 +196,14 @@ export class AiNormalizationService {
         relevantExperienceMonths: 0,
         skills: [],
         location: null,
+        projectRelevance: {
+          totalProjects: 0,
+          relevantProjects: 0,
+          relevanceScore: 0,
+          highlights: [
+            'Project X used React and TypeScript which match the JD requirements',
+          ],
+        },
       },
       warnings: [],
     };
@@ -222,6 +230,15 @@ export class AiNormalizationService {
       '  - evidence: brief explanation',
       '',
       'Extract a brief candidateSummary relevant only to this JD.',
+      '',
+      'For projectRelevance in candidateSummary:',
+      '  - totalProjects: count all projects/portfolios/side-projects mentioned in the CV',
+      '  - relevantProjects: count those using technologies or domains relevant to this JD',
+      '  - relevanceScore: 0-100 score based on how relevant the projects are to this JD',
+      '    (0 = no projects at all, 30 = projects exist but unrelated,',
+      '     60 = some relevant tech used, 100 = highly relevant projects with matching tech stack)',
+      '  - highlights: 1-3 brief descriptions of the most relevant projects',
+      '  - If CV has NO projects section, set totalProjects=0, relevantProjects=0, relevanceScore=0, highlights=[]',
       '',
       '## Output Format',
       'Return STRICT JSON ONLY. No markdown, no preamble. Match this exact structure:',
@@ -307,6 +324,7 @@ export class AiNormalizationService {
 
     const summary = this.asRecord(src['candidateSummary']);
     const summaryLocation = this.asRecord(summary['location']);
+    const rawProjectRelevance = this.asRecord(summary['projectRelevance']);
 
     return {
       version: JD_CONTEXTUAL_EVAL_V1,
@@ -342,6 +360,30 @@ export class AiNormalizationService {
                     : '',
               }
             : null,
+        projectRelevance: {
+          totalProjects:
+            typeof rawProjectRelevance['totalProjects'] === 'number'
+              ? Math.max(0, Math.round(rawProjectRelevance['totalProjects']))
+              : 0,
+          relevantProjects:
+            typeof rawProjectRelevance['relevantProjects'] === 'number'
+              ? Math.max(0, Math.round(rawProjectRelevance['relevantProjects']))
+              : 0,
+          relevanceScore:
+            typeof rawProjectRelevance['relevanceScore'] === 'number'
+              ? Math.max(
+                  0,
+                  Math.min(
+                    100,
+                    Math.round(rawProjectRelevance['relevanceScore']),
+                  ),
+                )
+              : 0,
+          highlights: this.normalizeStringArray(
+            rawProjectRelevance['highlights'],
+            3,
+          ),
+        },
       },
       warnings: Array.isArray(src['warnings'])
         ? (src['warnings'] as unknown[]).filter((w) => typeof w === 'string')

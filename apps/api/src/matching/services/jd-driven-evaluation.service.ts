@@ -13,6 +13,7 @@ import {
   RequirementsSchemaV2,
   RequirementEvaluation,
   ConstraintEvaluation,
+  CandidateSummary,
 } from '../types/schema-matching.types';
 
 @Injectable()
@@ -57,12 +58,18 @@ export class JdDrivenEvaluationService {
       throw error;
     }
 
-    const { skillScore, constraintScore, finalScore } =
-      this.scoreDeterministically(
-        evaluation.requirementEvaluations,
-        evaluation.constraintEvaluations,
-        requirementsSchema,
-      );
+    const {
+      skillScore,
+      constraintScore,
+      experienceBonus,
+      projectBonus,
+      finalScore,
+    } = this.scoreDeterministically(
+      evaluation.requirementEvaluations,
+      evaluation.constraintEvaluations,
+      evaluation.candidateSummary,
+      requirementsSchema,
+    );
 
     const snapshot = this.buildSnapshot(
       evaluation.requirementEvaluations,
@@ -72,6 +79,8 @@ export class JdDrivenEvaluationService {
       requirementsSchema,
       skillScore,
       constraintScore,
+      experienceBonus,
+      projectBonus,
       finalScore,
     );
 
@@ -79,6 +88,8 @@ export class JdDrivenEvaluationService {
       finalScore,
       skillScore,
       constraintScore,
+      experienceBonus,
+      projectBonus,
       requirementsCount: requirementsSchema.requirements.length,
       constraintsCount: requirementsSchema.constraints.length,
     });
@@ -89,8 +100,15 @@ export class JdDrivenEvaluationService {
   private scoreDeterministically(
     requirementEvaluations: RequirementEvaluation[],
     constraintEvaluations: ConstraintEvaluation[],
+    candidateSummary: CandidateSummary,
     schema: RequirementsSchemaV2,
-  ): { skillScore: number; constraintScore: number; finalScore: number } {
+  ): {
+    skillScore: number;
+    constraintScore: number;
+    experienceBonus: number;
+    projectBonus: number;
+    finalScore: number;
+  } {
     // skill_score: weighted average (skip not_applicable)
     let totalWeight = 0;
     let weightedSum = 0;
@@ -121,14 +139,81 @@ export class JdDrivenEvaluationService {
           100
         : 100;
 
-    // final: 0.85 * skill + 0.15 * constraint (matching policy)
-    const finalScore = Math.round(0.85 * skillScore + 0.15 * constraintScore);
+    // experience bonus: compare relevant experience to JD requirements
+    const experienceBonus = this.calculateExperienceBonus(
+      candidateSummary,
+      schema,
+    );
+
+    // project bonus: use AI-assessed project relevance score
+    const projectBonus = this.calculateProjectBonus(candidateSummary);
+
+    // final: 0.70 * skill + 0.10 * constraint + 0.10 * experience + 0.10 * project
+    const finalScore = Math.round(
+      0.7 * skillScore +
+        0.1 * constraintScore +
+        0.1 * experienceBonus +
+        0.1 * projectBonus,
+    );
 
     return {
       skillScore: Math.round(skillScore),
       constraintScore: Math.round(constraintScore),
+      experienceBonus: Math.round(experienceBonus),
+      projectBonus: Math.round(projectBonus),
       finalScore,
     };
+  }
+
+  /**
+   * Calculate experience bonus (0-100) by comparing candidate's relevant
+   * experience months against the maximum minimumMonths requirement in the JD.
+   *
+   * - No requirement in JD → 50 (neutral)
+   * - ratio >= 1.0 → 100 (meets or exceeds)
+   * - ratio 0.75-0.99 → 70-99 (close)
+   * - ratio 0.5-0.74 → 40-69 (somewhat lacking)
+   * - ratio < 0.5 → 0-39 (significantly lacking)
+   */
+  private calculateExperienceBonus(
+    candidateSummary: CandidateSummary,
+    schema: RequirementsSchemaV2,
+  ): number {
+    // Find the maximum minimumMonths requirement from JD
+    const monthsRequirements = schema.requirements
+      .filter((r) => r.minimumMonths != null && r.minimumMonths > 0)
+      .map((r) => r.minimumMonths as number);
+
+    const requiredMonths =
+      monthsRequirements.length > 0 ? Math.max(...monthsRequirements) : 0;
+
+    // If JD doesn't specify experience requirement → neutral score (50)
+    if (requiredMonths === 0) return 50;
+
+    const relevant = candidateSummary.relevantExperienceMonths;
+    const ratio = relevant / requiredMonths;
+
+    if (ratio >= 1.0) return 100;
+    if (ratio >= 0.75) return 70 + Math.round(((ratio - 0.75) / 0.25) * 30);
+    if (ratio >= 0.5) return 40 + Math.round(((ratio - 0.5) / 0.25) * 30);
+    return Math.round((ratio / 0.5) * 40);
+  }
+
+  /**
+   * Calculate project bonus (0-100) using AI-assessed project relevance score.
+   *
+   * - No projects in CV → 30 (default — don't penalize too heavily,
+   *   especially seniors who may not list projects)
+   * - AI relevanceScore is directly used, with a floor of 30
+   */
+  private calculateProjectBonus(candidateSummary: CandidateSummary): number {
+    const { projectRelevance } = candidateSummary;
+
+    // No projects at all → default 30
+    if (projectRelevance.totalProjects === 0) return 30;
+
+    // AI returns relevanceScore 0-100, apply a floor of 30
+    return Math.max(30, projectRelevance.relevanceScore);
   }
 
   private statusScore(status: RequirementEvaluation['status']): number {
@@ -150,6 +235,8 @@ export class JdDrivenEvaluationService {
     schema: RequirementsSchemaV2,
     skillScore: number,
     constraintScore: number,
+    experienceBonus: number,
+    projectBonus: number,
     finalScore: number,
   ): MatchingSnapshotV2 {
     const strengths = requirementEvaluations
@@ -180,7 +267,13 @@ export class JdDrivenEvaluationService {
 
     return {
       version: MATCHING_SNAPSHOT_V2,
-      scoreBreakdown: { skillScore, constraintScore, final: finalScore },
+      scoreBreakdown: {
+        skillScore,
+        constraintScore,
+        experienceBonus,
+        projectBonus,
+        final: finalScore,
+      },
       requirements: requirementEvaluations,
       constraints: constraintEvaluations,
       candidateSummary,

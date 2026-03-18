@@ -178,6 +178,15 @@ export interface ConstraintEvaluation {
   evidence: string;
 }
 
+export interface ProjectRelevance {
+  totalProjects: number;
+  relevantProjects: number;
+  /** 0-100 AI-assessed relevance score */
+  relevanceScore: number;
+  /** 1-3 brief descriptions of most relevant projects */
+  highlights: string[];
+}
+
 export interface CandidateSummary {
   headline: string;
   totalExperienceMonths: number;
@@ -185,6 +194,8 @@ export interface CandidateSummary {
   /** Only skills relevant to this JD */
   skills: string[];
   location: { city: string; country: string } | null;
+  /** AI-analyzed project relevance to this JD */
+  projectRelevance: ProjectRelevance;
 }
 
 export interface JdContextualEvaluation {
@@ -202,6 +213,8 @@ export interface MatchingSnapshotV2 {
   scoreBreakdown: {
     skillScore: number;
     constraintScore: number;
+    experienceBonus: number;
+    projectBonus: number;
     final: number;
   };
   requirements: RequirementEvaluation[];

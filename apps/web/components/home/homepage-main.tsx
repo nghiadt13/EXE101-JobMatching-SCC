@@ -213,19 +213,7 @@ function toHomepageJob(job: JobItem): HomepageFeaturedJob {
   };
 }
 
-function mergeUniqueJobs(
-  current: HomepageFeaturedJob[],
-  incoming: HomepageFeaturedJob[],
-): HomepageFeaturedJob[] {
-  const map = new Map<string, HomepageFeaturedJob>();
-  for (const job of current) {
-    map.set(job.id, job);
-  }
-  for (const job of incoming) {
-    map.set(job.id, job);
-  }
-  return Array.from(map.values());
-}
+
 
 function matchesLocationFilter(
   locationLabel: string,
@@ -322,6 +310,7 @@ export function HomepageMain({
     initialData?.featuredJobs ?? [],
   );
   const [jobsPage, setJobsPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
   const [hasMoreJobs, setHasMoreJobs] = useState<boolean>(true);
   const [isLoadingMoreJobs, setIsLoadingMoreJobs] = useState<boolean>(false);
   const [isSearchingJobs, setIsSearchingJobs] = useState<boolean>(false);
@@ -396,7 +385,7 @@ export function HomepageMain({
     setSelectedLocation(slug);
   };
 
-  const fetchJobs = async (page: number, append: boolean) => {
+  const fetchJobs = async (page: number) => {
     const response = await getJobs({
       page,
       limit: 6,
@@ -404,8 +393,9 @@ export function HomepageMain({
       status: 'PUBLISHED',
     });
     const mapped = response.items.map(toHomepageJob);
-    setFeaturedJobs((prev) => (append ? mergeUniqueJobs(prev, mapped) : mapped));
+    setFeaturedJobs(mapped);
     setJobsPage(response.pagination.page);
+    setTotalPages(response.pagination.totalPages);
     setHasMoreJobs(response.pagination.page < response.pagination.totalPages);
   };
 
@@ -417,7 +407,7 @@ export function HomepageMain({
       setSelectedLocation(parsedLocation);
     }
     try {
-      await fetchJobs(1, false);
+      await fetchJobs(1);
     } catch (error) {
       console.error('Failed to search jobs from homepage', error);
       setActionError('Could not search jobs right now.');
@@ -426,15 +416,33 @@ export function HomepageMain({
     }
   };
 
-  const handleLoadMoreJobs = async () => {
+
+
+  const handlePrevPage = async () => {
+    if (isLoadingMoreJobs || jobsPage <= 1) return;
+    setActionError(null);
+    setIsLoadingMoreJobs(true);
+    try {
+      await fetchJobs(jobsPage - 1);
+      document.getElementById('best-jobs-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (error) {
+      console.error('Failed to load previous page', error);
+      setActionError('Could not load jobs right now.');
+    } finally {
+      setIsLoadingMoreJobs(false);
+    }
+  };
+
+  const handleNextPage = async () => {
     if (isLoadingMoreJobs || !hasMoreJobs) return;
     setActionError(null);
     setIsLoadingMoreJobs(true);
     try {
-      await fetchJobs(jobsPage + 1, true);
+      await fetchJobs(jobsPage + 1);
+      document.getElementById('best-jobs-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } catch (error) {
-      console.error('Failed to load more jobs', error);
-      setActionError('Could not load more jobs right now.');
+      console.error('Failed to load next page', error);
+      setActionError('Could not load jobs right now.');
     } finally {
       setIsLoadingMoreJobs(false);
     }
@@ -714,7 +722,7 @@ export function HomepageMain({
             </div>
           </div>
         </section>
-        <section className="bg-white py-20">
+        <section id="best-jobs-section" className="bg-white py-20">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-center">
               <div>
@@ -833,17 +841,34 @@ export function HomepageMain({
                 </div>
               ))}
             </div>
-            <div className="mt-12 text-center">
+            {/* Pagination */}
+            <div className="mt-12 flex items-center justify-center gap-4">
               <button
-                className="rounded-xl border-2 border-primary-600 px-8 py-3 font-bold text-primary-600 shadow-md transition-all hover:bg-primary-600 hover:text-white active:scale-95"
+                className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-primary-200 text-primary-500 transition-all hover:border-primary-500 hover:bg-primary-50 disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-300 disabled:hover:bg-transparent"
+                type="button"
+                disabled={jobsPage <= 1 || isLoadingMoreJobs}
+                onClick={() => { void handlePrevPage(); }}
+                aria-label="Previous page"
+              >
+                <i className="fa-solid fa-chevron-left text-sm" />
+              </button>
+              <span className="text-sm font-medium text-slate-600">
+                {isLoadingMoreJobs ? (
+                  <span className="inline-flex items-center gap-2">
+                    <i className="fa-solid fa-spinner fa-spin text-primary-500" />
+                  </span>
+                ) : (
+                  <>{jobsPage} / {totalPages} trang</>
+                )}
+              </span>
+              <button
+                className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-primary-200 text-primary-500 transition-all hover:border-primary-500 hover:bg-primary-50 disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-300 disabled:hover:bg-transparent"
                 type="button"
                 disabled={!hasMoreJobs || isLoadingMoreJobs}
-                onClick={() => {
-                  void handleLoadMoreJobs();
-                }}
+                onClick={() => { void handleNextPage(); }}
+                aria-label="Next page"
               >
-                {isLoadingMoreJobs ? 'Loading...' : 'Explore more jobs'}{' '}
-                <i className="fa-solid fa-arrow-down ml-2 text-sm" />
+                <i className="fa-solid fa-chevron-right text-sm" />
               </button>
             </div>
           </div>

@@ -40,6 +40,8 @@ export type MatchingSnapshotV2 = {
   scoreBreakdown: {
     skillScore: number;
     constraintScore: number;
+    experienceBonus: number;
+    projectBonus: number;
     final: number;
   };
   requirements: Array<{
@@ -59,6 +61,12 @@ export type MatchingSnapshotV2 = {
     relevantExperienceMonths: number;
     skills: string[];
     location: { city: string; country: string } | null;
+    projectRelevance: {
+      totalProjects: number;
+      relevantProjects: number;
+      relevanceScore: number;
+      highlights: string[];
+    };
   };
   strengths: string[];
   gaps: string[];

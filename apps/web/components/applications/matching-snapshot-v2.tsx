@@ -16,7 +16,7 @@ export function MatchingSnapshotV2View({ snapshot }: MatchingSnapshotV2Props) {
           <h4 className="text-sm font-semibold text-zinc-900">V2 AI Analysis</h4>
           <p className="text-xs text-zinc-500">JD-contextual evaluation</p>
         </div>
-        <div className="flex gap-4 text-sm">
+        <div className="flex flex-wrap gap-4 text-sm">
           <div>
             <span className="block text-xs text-zinc-500">Skill Score</span>
             <span className="font-medium text-zinc-900">{Math.round(scoreBreakdown.skillScore)}/100</span>
@@ -25,6 +25,18 @@ export function MatchingSnapshotV2View({ snapshot }: MatchingSnapshotV2Props) {
             <span className="block text-xs text-zinc-500">Constraint Score</span>
             <span className="font-medium text-zinc-900">{Math.round(scoreBreakdown.constraintScore)}/100</span>
           </div>
+          {scoreBreakdown.experienceBonus != null && (
+            <div>
+              <span className="block text-xs text-zinc-500">Experience Bonus</span>
+              <span className="font-medium text-zinc-900">{Math.round(scoreBreakdown.experienceBonus)}/100</span>
+            </div>
+          )}
+          {scoreBreakdown.projectBonus != null && (
+            <div>
+              <span className="block text-xs text-zinc-500">Project Bonus</span>
+              <span className="font-medium text-zinc-900">{Math.round(scoreBreakdown.projectBonus)}/100</span>
+            </div>
+          )}
         </div>
       </div>
 
