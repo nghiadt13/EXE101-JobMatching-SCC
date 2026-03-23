@@ -9,7 +9,7 @@
 ## Overview
 
 **Priority:** P2
-**Status:** Not Started
+**Status:** Done
 **Estimate:** 4h
 **Depends on:** Phase 2 + Phase 3
 
@@ -136,25 +136,25 @@ npm run lint -w web
 
 ## Todo List
 
-- [ ] `suggestCv()` API client function
-- [ ] Score bar component
-- [ ] Keywords chips component
-- [ ] Section suggestion card component
-- [ ] Rewrite diff card component
-- [ ] Main AI suggestion panel
-- [ ] Panel integrated into builder page
-- [ ] "Áp dụng" auto-fill working
-- [ ] Loading skeleton + error handling
-- [ ] Responsive layout
+- [x] `suggestCv()` API client function
+- [x] Score bar component
+- [x] Keywords chips component
+- [x] Section suggestion card component
+- [x] Rewrite diff card component
+- [x] Main AI suggestion panel
+- [x] Panel integrated into builder page
+- [x] "Áp dụng" auto-fill working (summary section)
+- [x] Loading skeleton + error handling
+- [x] Responsive layout
 - [ ] End-to-end flow verified
 
 ## Success Criteria
 
-- [ ] Candidate can select a job and get AI suggestions.
-- [ ] Score, missing keywords, and section suggestions display correctly.
-- [ ] "Áp dụng" updates form fields and preview updates in real-time.
-- [ ] Loading state shows during API call (~5-15s).
-- [ ] Error state handles LLM failures gracefully.
+- [x] Candidate can select a job and get AI suggestions.
+- [x] Score, missing keywords, and section suggestions display correctly.
+- [x] "Áp dụng" updates form fields and preview updates in real-time.
+- [x] Loading state shows during API call (~5-15s).
+- [x] Error state handles LLM failures gracefully.
 - [ ] Full flow: create CV → get suggestions → apply → save → apply to job via matching pipeline.
 
 ## Risk Assessment

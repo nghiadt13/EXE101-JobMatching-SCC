@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { JobListFilters } from './job-list-client';
+import { SCCBrandLogo } from '@/components/layout/brand-mark';
 
 type JobListSidebarProps = {
   filters: JobListFilters;
@@ -77,10 +78,7 @@ export function JobListSidebar({ filters, onFilterChange }: JobListSidebarProps)
     <div className="sticky top-24 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
       <div className="mb-5 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-600 text-white">
-            <i className="fa-solid fa-bolt-lightning text-sm" />
-          </div>
-          <span className="text-sm font-bold text-slate-800">HireStream</span>
+          <SCCBrandLogo iconClassName="h-8 w-8" textClassName="text-sm" />
           <span className="rounded bg-primary-100 px-2 py-0.5 text-[10px] font-bold text-primary-700">SalesHub</span>
         </div>
       </div>

@@ -39,7 +39,7 @@ export default async function CreateCvPage({ searchParams }: PageProps) {
       redirect(`/dashboard/candidate/cvs/${result.id}/edit`);
     } catch (error) {
       if (error instanceof ApiError) {
-        if (error.status === 401) redirect('/login');
+        if (error.status === 401) redirect('/api/auth/logout');
         return error.message;
       }
       // Next.js redirect() throws a NEXT_REDIRECT error, re-throw it

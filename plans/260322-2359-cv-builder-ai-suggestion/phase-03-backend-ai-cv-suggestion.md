@@ -10,7 +10,7 @@
 ## Overview
 
 **Priority:** P2
-**Status:** Not Started
+**Status:** Done
 **Estimate:** 4h
 **Depends on:** Phase 1
 
@@ -163,20 +163,20 @@ npm run build -w api
 
 ## Todo List
 
-- [ ] `CvSuggestion` types defined
-- [ ] `SuggestCvDto` created
-- [ ] `CvSuggestionService` with LLM prompt + normalization
-- [ ] Controller endpoint wired
-- [ ] Module updated
+- [x] `CvSuggestion` types defined
+- [x] `SuggestCvDto` created
+- [x] `CvSuggestionService` with LLM prompt + normalization
+- [x] Controller endpoint wired
+- [x] Module updated
 - [ ] Tests written + passing
 
 ## Success Criteria
 
-- [ ] `POST /cvs/:id/suggest` returns structured suggestions.
-- [ ] Suggestions reference actual JD requirements.
-- [ ] Missing keywords are relevant to the JD.
-- [ ] Rewrite suggestions are specific and actionable.
-- [ ] Error handling for LLM failures works correctly.
+- [x] `POST /cvs/:id/suggest` returns structured suggestions.
+- [x] Suggestions reference actual JD requirements.
+- [x] Missing keywords are relevant to the JD.
+- [x] Rewrite suggestions are specific and actionable.
+- [x] Error handling for LLM failures works correctly.
 
 ## Next Steps
 

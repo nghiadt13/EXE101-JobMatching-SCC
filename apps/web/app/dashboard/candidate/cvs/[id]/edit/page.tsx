@@ -21,7 +21,8 @@ export default async function EditCvPage({ params }: PageProps) {
   let cv;
   try {
     cv = await getCvById(session.accessToken, id);
-  } catch {
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) redirect('/login');
     redirect('/dashboard/candidate/cvs');
   }
 
@@ -57,7 +58,7 @@ export default async function EditCvPage({ params }: PageProps) {
       return null;
     } catch (error) {
       if (error instanceof ApiError) {
-        if (error.status === 401) redirect('/login');
+        if (error.status === 401) redirect('/api/auth/logout');
         return error.message;
       }
       return 'Đã xảy ra lỗi. Vui lòng thử lại.';

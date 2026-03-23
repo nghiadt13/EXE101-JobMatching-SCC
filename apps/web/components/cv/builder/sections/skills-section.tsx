@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { SectionCard } from './section-card';
 
 type Props = {
   data: string[];
@@ -29,43 +30,54 @@ export function SkillsSection({ data, onChange }: Props) {
     }
   };
 
+  const inputClasses = "flex-1 rounded-xl border border-zinc-200/80 bg-zinc-50/50 px-4 py-3 text-[14px] text-zinc-900 shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-all placeholder:text-zinc-400 hover:bg-zinc-50 focus:border-primary-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-primary-500/10";
+  const labelClasses = "mb-1.5 block text-[13px] font-semibold tracking-wide text-zinc-700";
+
   return (
-    <fieldset className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-      <legend className="px-2 text-sm font-semibold text-zinc-700">Kỹ năng</legend>
-      <div className="flex flex-wrap gap-2 mb-3">
-        {data.map((skill) => (
-          <span
-            key={skill}
-            className="inline-flex items-center gap-1 rounded-full bg-primary-50 px-3 py-1 text-xs font-medium text-primary-700 border border-primary-200"
-          >
-            {skill}
-            <button
-              type="button"
-              onClick={() => removeSkill(skill)}
-              className="ml-0.5 text-primary-400 hover:text-red-500 transition-colors"
+    <SectionCard title="Kỹ năng" icon="⚡" defaultExpanded={data.length > 0}>
+      <div className="space-y-4">
+        <label className={labelClasses}>Phân loại hoặc liệt kê các kỹ năng chuyên môn</label>
+        
+        <div className="flex flex-wrap gap-2.5 min-h-[44px] rounded-2xl border border-dashed border-zinc-200/80 bg-zinc-50/30 p-3">
+          {data.length === 0 && (
+            <span className="text-[13px] text-zinc-400 my-auto ml-1 italic">Chưa có kỹ năng nào. Nhập phía dưới để thêm.</span>
+          )}
+          {data.map((skill) => (
+            <span
+              key={skill}
+              className="inline-flex items-center gap-1.5 rounded-full bg-primary-50 px-3.5 py-1.5 text-[13px] font-semibold text-primary-700 border border-primary-200/60 shadow-sm transition-all hover:bg-primary-100 hover:border-primary-300"
             >
-              ✕
-            </button>
-          </span>
-        ))}
+              {skill}
+              <button
+                type="button"
+                onClick={() => removeSkill(skill)}
+                className="ml-1 flex h-4 w-4 items-center justify-center rounded-full text-primary-400 transition-colors hover:bg-primary-200 hover:text-red-500"
+              >
+                ✕
+              </button>
+            </span>
+          ))}
+        </div>
+
+        <div className="flex gap-3">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Nhập kỹ năng rồi nhấn Enter..."
+            className={inputClasses}
+          />
+          <button
+            type="button"
+            onClick={addSkill}
+            className="flex shrink-0 items-center gap-2 rounded-xl bg-primary-600 px-5 py-3 text-[14px] font-semibold text-white shadow-sm shadow-primary-600/20 transition-all hover:bg-primary-700 hover:shadow-md active:scale-95"
+          >
+            <span>+</span> Thêm
+          </button>
+        </div>
       </div>
-      <div className="flex gap-2">
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Nhập kỹ năng rồi nhấn Enter"
-          className="flex-1 rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
-        />
-        <button
-          type="button"
-          onClick={addSkill}
-          className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 transition-colors"
-        >
-          Thêm
-        </button>
-      </div>
-    </fieldset>
+    </SectionCard>
   );
 }
+

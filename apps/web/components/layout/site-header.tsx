@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { signOut } from 'next-auth/react';
+import { SCCBrandLogo } from './brand-mark';
 
 const FALLBACK_AVATAR =
   'https://lh3.googleusercontent.com/aida-public/AB6AXuDJWS7D-glrmKnFu1VhcuuzOu_7JGrK2arpYsJhWT1gTvdQviF_WOQofU7PVeH7WcAnTep-bGy3eDxC-u5JWJ6btQ_PpU8N7RLp6ze8iuUAyxMNaPvh7vsNqNncmWtgpXqIkFfN-CwD9wvu3QBjNDz0P-aYmdSzPgd5pPKYsFLSoGF3ETtkfmQJmnIBQiJXzHR3C5WIeRcyyfW5do8LWB-YCjSE7LC6BWr8-hHiTUWfuLW5jH4sd6yFney9N9Bx4mjD9jH2lhNszDE';
@@ -52,10 +53,7 @@ export function SiteHeader({
     <header className="sticky top-0 z-50 border-b border-gray-100 bg-white shadow-sm">
       <nav className="flex h-20 w-full items-center justify-between px-4 sm:px-8 lg:px-12">
         <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-600 text-white">
-            <i className="fa-solid fa-bolt-lightning text-xl" />
-          </div>
-          <span className="text-2xl font-bold tracking-tight text-slate-800">HireStream</span>
+          <SCCBrandLogo />
         </Link>
 
         <div className="hidden items-center space-x-8 lg:flex">

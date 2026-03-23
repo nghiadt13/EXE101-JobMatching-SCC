@@ -1,6 +1,7 @@
 'use client';
 
 import type { CvProject } from '@/types/cv-builder';
+import { SectionCard } from './section-card';
 
 type Props = {
   data: CvProject[];
@@ -18,33 +19,80 @@ export function ProjectsSection({ data, onChange }: Props) {
     onChange(updated);
   };
 
+  const inputClasses = "w-full rounded-xl border border-zinc-200/80 bg-zinc-50/50 px-4 py-3 text-[14px] text-zinc-900 shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-all placeholder:text-zinc-400 hover:bg-zinc-50 focus:border-primary-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-primary-500/10";
+  const labelClasses = "mb-1.5 block text-[13px] font-semibold tracking-wide text-zinc-700";
+
   return (
-    <fieldset className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-      <legend className="px-2 text-sm font-semibold text-zinc-700">Dự án</legend>
-      <div className="space-y-4">
+    <SectionCard title="Dự án nổi bật" icon="🚀" defaultExpanded={data.length > 0}>
+      <div className="space-y-6">
         {data.map((entry, index) => (
-          <div key={index} className="relative rounded-lg border border-zinc-100 bg-zinc-50 p-3">
-            <button type="button" onClick={() => remove(index)} className="absolute right-2 top-2 rounded-md p-1 text-zinc-400 hover:bg-red-50 hover:text-red-500 transition-colors" title="Xóa">✕</button>
-            <div className="grid gap-3 pr-6">
+          <div key={index} className="relative rounded-2xl border border-zinc-200/80 bg-zinc-50/40 p-5 shadow-sm transition-all hover:bg-zinc-50/80">
+            <button
+              type="button"
+              onClick={() => remove(index)}
+              className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white text-zinc-400 shadow-sm transition-all hover:bg-red-50 hover:text-red-500 hover:shadow"
+              title="Xóa"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <div className="grid gap-5 lg:pr-10">
               <div>
-                <label className="mb-1 block text-xs font-medium text-zinc-600">Tên dự án <span className="text-red-500">*</span></label>
-                <input type="text" value={entry.name} onChange={(e) => update(index, 'name', e.target.value)} placeholder="JobMatching MVP" className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20" />
+                <label className={labelClasses}>
+                  Tên dự án <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={entry.name}
+                  onChange={(e) => update(index, 'name', e.target.value)}
+                  placeholder="Ví dụ: Hệ thống tìm kiếm việc làm bằng AI"
+                  className={inputClasses}
+                />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-zinc-600">Mô tả</label>
-                <textarea value={entry.description ?? ''} onChange={(e) => update(index, 'description', e.target.value)} placeholder="Mô tả ngắn về dự án..." rows={2} className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20" />
+                <label className={labelClasses}>Mô tả chi tiết</label>
+                <textarea
+                  value={entry.description ?? ''}
+                  onChange={(e) => update(index, 'description', e.target.value)}
+                  placeholder="Mô tả vai trò, nhiệm vụ và kết quả đạt được..."
+                  rows={3}
+                  className={`${inputClasses} resize-y min-h-[80px] leading-relaxed`}
+                />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-zinc-600">Công nghệ (phân cách bằng dấu phẩy)</label>
-                <input type="text" value={(entry.tech ?? []).join(', ')} onChange={(e) => update(index, 'tech', e.target.value.split(',').map((s) => s.trim()).filter(Boolean))} placeholder="Next.js, NestJS, Prisma" className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20" />
+                <label className={labelClasses}>Công nghệ sử dụng</label>
+                <input
+                  type="text"
+                  value={(entry.tech ?? []).join(', ')}
+                  onChange={(e) =>
+                    update(
+                      index,
+                      'tech',
+                      e.target.value
+                        .split(',')
+                        .map((s) => s.trim())
+                        .filter(Boolean),
+                    )
+                  }
+                  placeholder="TypeScript, React, AWS"
+                  className={inputClasses}
+                />
               </div>
             </div>
           </div>
         ))}
-        <button type="button" onClick={add} className="flex w-full items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-zinc-300 py-2.5 text-sm font-medium text-zinc-500 transition-colors hover:border-primary-400 hover:text-primary-600">
-          <span className="text-lg">+</span> Thêm dự án
+        <button
+          type="button"
+          onClick={add}
+          className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-primary-200/60 bg-primary-50/50 py-3.5 text-[14px] font-semibold text-primary-600 transition-all hover:border-primary-300 hover:bg-primary-50"
+        >
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+          Thêm dự án
         </button>
       </div>
-    </fieldset>
+    </SectionCard>
   );
 }

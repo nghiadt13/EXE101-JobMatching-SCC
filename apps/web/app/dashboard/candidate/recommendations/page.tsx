@@ -37,6 +37,7 @@ export default async function RecommendationsPage({
     cvs = cvsResponse.items;
     scans = scansResponse;
   } catch (error) {
+    if (error instanceof ApiError && error.status === 401) redirect('/api/auth/logout');
     errorMessage =
       error instanceof ApiError
         ? error.message

@@ -24,6 +24,7 @@ export default async function CandidateDashboardPage() {
   try {
     stats = (await getDashboardStats(session.accessToken)) as CandidateDashboardStats;
   } catch (error) {
+    if (error instanceof ApiError && error.status === 401) redirect('/api/auth/logout');
     errorMessage = error instanceof ApiError ? error.message : 'Failed to load dashboard stats';
   }
 

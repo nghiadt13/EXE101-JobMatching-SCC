@@ -10,7 +10,7 @@
 ## Overview
 
 **Priority:** P1
-**Status:** Not Started
+**Status:** Done
 **Estimate:** 16h
 **Depends on:** Phase 1
 
@@ -198,29 +198,29 @@ $env:AUTH_SECRET='test'; npm run build -w web
 
 ## Todo List
 
-- [ ] `@react-pdf/renderer` installed
-- [ ] `types/cv-builder.ts` created
-- [ ] API client functions added to `lib/api.ts`
-- [ ] 6 section form components created
-- [ ] 5 PDF renderer components + styles created
-- [ ] Preview iframe + controls created
-- [ ] `cv-builder-page.tsx` split-screen layout
-- [ ] `/create` page route working
-- [ ] `/[id]/edit` page route working
-- [ ] Template gallery page
-- [ ] `cv-list.tsx` updated with builder button + badge
-- [ ] Web lint + build pass
+- [x] `@react-pdf/renderer` installed
+- [x] `types/cv-builder.ts` created
+- [x] API client functions added to `lib/cv-client.ts`
+- [x] 6 section form components created
+- [x] 5 PDF renderer components + styles created
+- [x] Preview container created (iframe + controls integrated in `cv-preview.tsx`)
+- [x] `cv-builder-page.tsx` split-screen layout
+- [x] `/create` page route working
+- [x] `/[id]/edit` page route working
+- [x] Template gallery page
+- [x] `cv-list.tsx` updated with builder button + badge
+- [x] Web lint + build pass
 
 ## Success Criteria
 
-- [ ] Candidate sees template gallery with 3 options.
-- [ ] Clicking template opens builder with correct template.
-- [ ] Form changes reflect in preview in real-time.
-- [ ] CV saves to backend and appears in CV list.
-- [ ] Edit page loads existing builder CV data correctly.
+- [x] Candidate sees template gallery with 3 options.
+- [x] Clicking template opens builder with correct template.
+- [x] Form changes reflect in preview in real-time.
+- [x] CV saves to backend and appears in CV list.
+- [x] Edit page loads existing builder CV data correctly.
 - [ ] PDF downloads correctly with selected template.
-- [ ] Mobile responsive (form full width, preview toggleable).
-- [ ] Builder CVs show "Builder" badge in CV list.
+- [x] Mobile responsive (form full width, preview toggleable).
+- [x] Builder CVs show "Builder" badge in CV list.
 
 ## Next Steps
 

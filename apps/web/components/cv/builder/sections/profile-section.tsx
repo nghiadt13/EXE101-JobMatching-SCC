@@ -1,6 +1,7 @@
 'use client';
 
 import type { CvProfile } from '@/types/cv-builder';
+import { SectionCard } from './section-card';
 
 type Props = {
   data: CvProfile;
@@ -12,54 +13,56 @@ export function ProfileSection({ data, onChange }: Props) {
     onChange({ ...data, [field]: value });
   };
 
+  const inputClasses = "w-full rounded-xl border border-zinc-200/80 bg-zinc-50/50 px-4 py-3 text-[14px] text-zinc-900 shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-all placeholder:text-zinc-400 hover:bg-zinc-50 focus:border-primary-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-primary-500/10";
+  const labelClasses = "mb-1.5 block text-[13px] font-semibold tracking-wide text-zinc-700";
+
   return (
-    <fieldset className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-      <legend className="px-2 text-sm font-semibold text-zinc-700">Thông tin cá nhân</legend>
-      <div className="grid gap-3 sm:grid-cols-2">
+    <SectionCard title="Thông tin cá nhân" icon="👤" defaultExpanded={true}>
+      <div className="grid gap-5 sm:grid-cols-2">
         <div className="sm:col-span-2">
-          <label className="mb-1 block text-xs font-medium text-zinc-600">
+          <label className={labelClasses}>
             Họ và tên <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
             value={data.name}
             onChange={(e) => update('name', e.target.value)}
-            placeholder="Nguyễn Văn A"
-            className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+            placeholder="Ví dụ: Nguyễn Văn A"
+            className={inputClasses}
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-medium text-zinc-600">Email</label>
+          <label className={labelClasses}>Email</label>
           <input
             type="email"
             value={data.email ?? ''}
             onChange={(e) => update('email', e.target.value)}
             placeholder="email@example.com"
-            className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+            className={inputClasses}
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-medium text-zinc-600">Số điện thoại</label>
+          <label className={labelClasses}>Số điện thoại</label>
           <input
             type="tel"
             value={data.phone ?? ''}
             onChange={(e) => update('phone', e.target.value)}
             placeholder="0909 123 456"
-            className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+            className={inputClasses}
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-medium text-zinc-600">Website / LinkedIn</label>
+          <label className={labelClasses}>Website / LinkedIn</label>
           <input
             type="url"
             value={data.website ?? ''}
             onChange={(e) => update('website', e.target.value)}
             placeholder="linkedin.com/in/name"
-            className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+            className={inputClasses}
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-medium text-zinc-600">Thành phố</label>
+          <label className={labelClasses}>Thành phố</label>
           <input
             type="text"
             value={data.location?.city ?? ''}
@@ -70,20 +73,21 @@ export function ProfileSection({ data, onChange }: Props) {
               })
             }
             placeholder="Hồ Chí Minh"
-            className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+            className={inputClasses}
           />
         </div>
         <div className="sm:col-span-2">
-          <label className="mb-1 block text-xs font-medium text-zinc-600">Mục tiêu nghề nghiệp</label>
+          <label className={labelClasses}>Mục tiêu nghề nghiệp</label>
           <textarea
             value={data.summary ?? ''}
             onChange={(e) => update('summary', e.target.value)}
             placeholder="Mô tả ngắn gọn mục tiêu nghề nghiệp của bạn..."
-            rows={3}
-            className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+            rows={4}
+            className={`${inputClasses} resize-y min-h-[100px] leading-relaxed`}
           />
         </div>
       </div>
-    </fieldset>
+    </SectionCard>
   );
 }
+

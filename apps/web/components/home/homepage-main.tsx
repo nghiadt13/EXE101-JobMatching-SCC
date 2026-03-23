@@ -14,6 +14,7 @@ import {
 } from '@/lib/homepage-client';
 import { getJobs } from '@/lib/jobs-client';
 import type { JobItem } from '@/lib/jobs-client';
+import { SCCBrandLogo } from '@/components/layout/brand-mark';
 import { SiteHeader } from '@/components/layout/site-header';
 
 const FALLBACK_HOMEPAGE: HomepageResponse = {
@@ -46,7 +47,7 @@ const FALLBACK_HOMEPAGE: HomepageResponse = {
     quickLinks: [{ label: 'Browse Jobs', href: '/jobs' }],
     supportLinks: [{ label: 'Privacy Policy', href: '#' }],
     socialLinks: [{ platform: 'linkedin', href: '#' }],
-    copyrightText: '© 2023 HireStream Recruitment Inc. All rights reserved.',
+    copyrightText: '© 2023 SCC Smart Career Connector. All rights reserved.',
   },
   generatedAt: new Date().toISOString(),
 };
@@ -170,7 +171,7 @@ const WHY_CHOOSE_FEATURES = [
   {
     icon: 'fa-solid fa-shield-check',
     title: 'Verified Employers',
-    description: 'Every company on HireStream is verified to ensure safe, legitimate job opportunities for all candidates.',
+    description: 'Every company on SCC is verified to ensure safe, legitimate job opportunities for all candidates.',
     color: 'bg-green-50 text-green-600',
     hoverColor: 'group-hover:bg-green-600',
   },
@@ -759,7 +760,7 @@ export function HomepageMain({
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="mb-12 text-center">
               <h2 className="text-3xl font-bold text-slate-900">Top Employers</h2>
-              <p className="mt-2 text-gray-500">Leading companies actively hiring on HireStream</p>
+              <p className="mt-2 text-gray-500">Leading companies actively hiring on SCC</p>
             </div>
             <div className="grid grid-cols-2 gap-5 md:grid-cols-4">
               {TOP_EMPLOYERS.map((employer) => (
@@ -857,7 +858,7 @@ export function HomepageMain({
                 </h2>
                 <p className="mt-1 flex items-center gap-2 text-gray-500">
                   <span className="h-2 w-2 rounded-full bg-green-500" />{' '}
-                  Recommendations by HireStream AI
+                  Recommendations by SCC AI
                 </p>
               </div>
               <Link
@@ -1000,13 +1001,13 @@ export function HomepageMain({
           </div>
         </section>
 
-        {/* ===== WHY CHOOSE HIRESTREAM SECTION ===== */}
+        {/* ===== WHY CHOOSE SCC SECTION ===== */}
         <section className="why-choose-section relative overflow-hidden py-20">
           <div className="absolute inset-0 bg-linear-to-br from-slate-50 via-primary-50/30 to-slate-50" />
           <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="mb-14 text-center">
-              <span className="mb-3 inline-block rounded-full bg-primary-100 px-4 py-1 text-xs font-bold tracking-wider text-primary-700 uppercase">Why HireStream</span>
-              <h2 className="text-3xl font-bold text-slate-900 md:text-4xl">Why Choose HireStream?</h2>
+              <span className="mb-3 inline-block rounded-full bg-primary-100 px-4 py-1 text-xs font-bold tracking-wider text-primary-700 uppercase">Why SCC</span>
+              <h2 className="text-3xl font-bold text-slate-900 md:text-4xl">Why Choose SCC?</h2>
               <p className="mx-auto mt-3 max-w-2xl text-gray-500">
                 We combine cutting-edge AI technology with human expertise to deliver the best job matching experience in Vietnam.
               </p>
@@ -1035,7 +1036,7 @@ export function HomepageMain({
           <div className="absolute bottom-0 left-0 h-64 w-64 -translate-x-1/2 translate-y-1/2 rounded-full bg-primary-700 opacity-20 blur-3xl" />
           <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="mb-16 text-center">
-              <h2 className="text-3xl font-bold md:text-4xl">How HireStream Works</h2>
+              <h2 className="text-3xl font-bold md:text-4xl">How SCC Works</h2>
               <p className="mt-4 text-primary-300">
                 Three simple steps to your next career milestone.
               </p>
@@ -1141,7 +1142,7 @@ export function HomepageMain({
               Tạo CV chuyên nghiệp ngay hôm nay
             </h2>
             <p className="mx-auto mb-8 max-w-2xl text-lg text-white/80">
-              Sử dụng công cụ tạo CV thông minh của HireStream để tạo CV ấn tượng và tăng cơ hội được tuyển dụng lên 3 lần.
+              Sử dụng công cụ tạo CV thông minh của SCC để tạo CV ấn tượng và tăng cơ hội được tuyển dụng lên 3 lần.
             </p>
             <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Link
@@ -1166,10 +1167,7 @@ export function HomepageMain({
           <div className="mb-16 grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-4">
             <div className="col-span-1 lg:col-span-1">
               <div className="mb-6 flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary-600 text-white">
-                  <i className="fa-solid fa-bolt-lightning" />
-                </div>
-                <span className="text-xl font-bold text-slate-800">HireStream</span>
+                <SCCBrandLogo iconClassName="h-8 w-8 rounded-md" textClassName="text-xl" />
               </div>
               <p className="mb-6 text-gray-500">
                 Join our newsletter to receive the latest job openings directly in your inbox.
@@ -1234,7 +1232,7 @@ export function HomepageMain({
             </div>
           </div>
           <div className="flex flex-col items-center justify-between gap-4 border-t border-gray-100 pt-8 text-sm text-gray-400 md:flex-row">
-            <p>© 2023 HireStream Recruitment Inc. All rights reserved.</p>
+            <p>© 2023 SCC Smart Career Connector. All rights reserved.</p>
             <div className="flex space-x-6">
               <a className="hover:text-slate-600" href="#">
                 Sitemap

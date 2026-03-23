@@ -1,3 +1,5 @@
+import { SCCBrandLogo } from './brand-mark';
+
 export function SiteFooter() {
   return (
     <footer className="border-t border-gray-100 bg-white pt-20 pb-10">
@@ -5,10 +7,7 @@ export function SiteFooter() {
         <div className="mb-16 grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-4">
           <div className="col-span-1 lg:col-span-1">
             <div className="mb-6 flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary-600 text-white">
-                <i className="fa-solid fa-bolt-lightning" />
-              </div>
-              <span className="text-xl font-bold text-slate-800">HireStream</span>
+              <SCCBrandLogo iconClassName="h-8 w-8 rounded-md" textClassName="text-xl" />
             </div>
             <p className="mb-6 text-gray-500">
               Join our newsletter to receive the latest job openings directly in your inbox.
@@ -112,7 +111,7 @@ export function SiteFooter() {
         </div>
 
         <div className="flex flex-col items-center justify-between gap-4 border-t border-gray-100 pt-8 text-sm text-gray-400 md:flex-row">
-          <p>© 2023 HireStream Recruitment Inc. All rights reserved.</p>
+          <p>© 2023 SCC Smart Career Connector. All rights reserved.</p>
           <div className="flex space-x-6">
             <a className="hover:text-slate-600" href="#">
               Sitemap

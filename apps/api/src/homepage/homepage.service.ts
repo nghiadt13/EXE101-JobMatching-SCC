@@ -45,7 +45,7 @@ const FOOTER_FALLBACK: HomepageFooter = {
     { platform: 'instagram', href: '#' },
     { platform: 'facebook', href: '#' },
   ],
-  copyrightText: '© 2023 HireStream Recruitment Inc. All rights reserved.',
+  copyrightText: '© 2023 SCC Smart Career Connector. All rights reserved.',
 };
 
 @Injectable()

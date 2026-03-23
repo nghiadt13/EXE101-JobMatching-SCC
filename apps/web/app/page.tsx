@@ -4,7 +4,7 @@ import { HomepageMain } from '@/components/home/homepage-main';
 import { getHomepage } from '@/lib/homepage-client';
 
 export const metadata: Metadata = {
-  title: 'HireStream - Your Career Starts Here',
+  title: 'SCC - Smart Career Connector',
   description:
     'Over 500,000 active job openings from top-tier companies and innovative startups worldwide.',
   alternates: { canonical: '/' },

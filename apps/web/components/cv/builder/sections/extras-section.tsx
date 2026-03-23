@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { SectionCard } from './section-card';
 
 type Props = {
   certifications: string[];
@@ -8,6 +9,9 @@ type Props = {
   onChangeCertifications: (certifications: string[]) => void;
   onChangeLanguages: (languages: string[]) => void;
 };
+
+const inputClasses = "flex-1 rounded-xl border border-zinc-200/80 bg-zinc-50/50 px-4 py-3 text-[14px] text-zinc-900 shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-all placeholder:text-zinc-400 hover:bg-zinc-50 focus:border-primary-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-primary-500/10";
+const labelClasses = "mb-1.5 block text-[13px] font-semibold tracking-wide text-zinc-700";
 
 function TagInput({
   label,
@@ -36,18 +40,21 @@ function TagInput({
   };
   return (
     <div>
-      <label className="mb-1 block text-xs font-medium text-zinc-600">{label}</label>
-      <div className="flex flex-wrap gap-1.5 mb-2">
+      <label className={labelClasses}>{label}</label>
+      <div className="flex flex-wrap gap-2.5 min-h-[44px] rounded-2xl border border-dashed border-zinc-200/80 bg-zinc-50/30 p-3 mb-3">
+        {items.length === 0 && (
+          <span className="text-[13px] text-zinc-400 my-auto ml-1 italic">Chưa có thông tin. Nhập phía dưới để thêm.</span>
+        )}
         {items.map((item) => (
-          <span key={item} className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-700">
+          <span key={item} className="inline-flex items-center gap-1.5 rounded-full bg-white px-3.5 py-1.5 text-[13px] font-semibold text-zinc-700 border border-zinc-200 shadow-sm transition-all hover:bg-zinc-50">
             {item}
-            <button type="button" onClick={() => onChange(items.filter((i) => i !== item))} className="text-zinc-400 hover:text-red-500">✕</button>
+            <button type="button" onClick={() => onChange(items.filter((i) => i !== item))} className="ml-1 flex h-4 w-4 items-center justify-center rounded-full text-zinc-400 transition-colors hover:bg-zinc-200 hover:text-red-500">✕</button>
           </span>
         ))}
       </div>
-      <div className="flex gap-2">
-        <input type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKeyDown} placeholder={placeholder} className="flex-1 rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20" />
-        <button type="button" onClick={add} className="rounded-lg border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 transition-colors">Thêm</button>
+      <div className="flex gap-3">
+        <input type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKeyDown} placeholder={placeholder} className={inputClasses} />
+        <button type="button" onClick={add} className="flex shrink-0 items-center justify-center rounded-xl border border-zinc-200 bg-white px-5 py-3 text-[14px] font-semibold text-zinc-700 shadow-sm transition-all hover:bg-zinc-50 focus:outline-none focus:ring-4 focus:ring-zinc-500/10 active:scale-95">Thêm</button>
       </div>
     </div>
   );
@@ -55,12 +62,13 @@ function TagInput({
 
 export function ExtrasSection({ certifications, languages, onChangeCertifications, onChangeLanguages }: Props) {
   return (
-    <fieldset className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-      <legend className="px-2 text-sm font-semibold text-zinc-700">Khác</legend>
-      <div className="space-y-4">
-        <TagInput label="Chứng chỉ" items={certifications} onChange={onChangeCertifications} placeholder="AWS SAA, IELTS 7.0" />
-        <TagInput label="Ngôn ngữ" items={languages} onChange={onChangeLanguages} placeholder="Vietnamese, English" />
+    <SectionCard title="Chứng chỉ & Ngoại ngữ" icon="🏅" defaultExpanded={certifications.length > 0 || languages.length > 0}>
+      <div className="space-y-6">
+        <TagInput label="Chứng chỉ" items={certifications} onChange={onChangeCertifications} placeholder="Ví dụ: AWS Solutions Architect, IELTS 7.5..." />
+        <div className="h-px w-full bg-zinc-100" />
+        <TagInput label="Ngoại ngữ" items={languages} onChange={onChangeLanguages} placeholder="Ví dụ: Tiếng Anh (Lưu loát), Tiếng Nhật (N3)..." />
       </div>
-    </fieldset>
+    </SectionCard>
   );
 }
+

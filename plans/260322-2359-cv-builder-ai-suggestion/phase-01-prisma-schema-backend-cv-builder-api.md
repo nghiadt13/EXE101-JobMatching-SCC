@@ -10,7 +10,7 @@
 ## Overview
 
 **Priority:** P1
-**Status:** Not Started
+**Status:** Done
 **Estimate:** 8h
 
 Thêm 2 fields vào Prisma CV model, tạo DTO, và implement 2 API endpoints mới cho CV Builder. CV builder data lưu vào `parsedData` JSON column hiện tại, giữ tương thích hoàn toàn với matching pipeline.
@@ -381,30 +381,30 @@ function generateRawText(dto: CreateCvDto): string {
 
 ## Todo List
 
-- [ ] Prisma migration created and applied.
-- [ ] `CreateCvDto` with class-validator decorators.
-- [ ] `ProfileDto`, `ExperienceDto`, `EducationDto`, `ProjectDto` nested DTOs.
-- [ ] `generateRawText()` helper.
-- [ ] `buildNormalizedParsedData()` helper.
-- [ ] `createFromBuilder()` service method.
-- [ ] `updateBuilderCv()` service method.
-- [ ] `POST /cvs/create` controller endpoint.
-- [ ] `PUT /cvs/:id/builder` controller endpoint.
-- [ ] `CvView` type updated with `source`, `templateId`.
-- [ ] `toView()` and `cvViewSelect` updated.
+- [x] Prisma migration created and applied.
+- [x] `CreateCvDto` with class-validator decorators.
+- [x] `ProfileDto`, `ExperienceDto`, `EducationDto`, `ProjectDto` nested DTOs.
+- [x] `generateRawText()` helper.
+- [x] `buildNormalizedParsedData()` helper.
+- [x] `createFromBuilder()` service method.
+- [x] `updateBuilderCv()` service method.
+- [x] `POST /cvs/create` controller endpoint.
+- [x] `PUT /cvs/:id/builder` controller endpoint.
+- [x] `CvView` type updated with `source`, `templateId`.
+- [x] `toView()` and `cvViewSelect` updated.
 - [ ] Unit tests for create/update builder flow.
-- [ ] `npm run test`, `npm run lint`, `npm run build` pass.
+- [x] `npm run test`, `npm run lint`, `npm run build` pass.
 
 ## Success Criteria
 
-- [ ] `POST /cvs/create` returns valid `CvView` with `source: "builder"`.
-- [ ] Created CV appears in `GET /cvs` list.
-- [ ] `GET /cvs/:id` returns full builder CV data including `parsedData.builderData`.
-- [ ] `PUT /cvs/:id/builder` updates all fields correctly.
-- [ ] `PUT /cvs/:id/builder` rejects uploaded CVs (source !== "builder").
-- [ ] Builder CV has valid `rawText` for matching pipeline.
-- [ ] Builder CV has valid `candidateProfile` for matching pipeline.
-- [ ] Existing upload/list/detail/update/delete/set-primary endpoints unchanged.
+- [x] `POST /cvs/create` returns valid `CvView` with `source: "builder"`.
+- [x] Created CV appears in `GET /cvs` list.
+- [x] `GET /cvs/:id` returns full builder CV data including `parsedData.builderData`.
+- [x] `PUT /cvs/:id/builder` updates all fields correctly.
+- [x] `PUT /cvs/:id/builder` rejects uploaded CVs (source !== "builder").
+- [x] Builder CV has valid `rawText` for matching pipeline.
+- [x] Builder CV has valid `candidateProfile` for matching pipeline.
+- [x] Existing upload/list/detail/update/delete/set-primary endpoints unchanged.
 - [ ] All API tests pass.
 
 ## Risk Assessment

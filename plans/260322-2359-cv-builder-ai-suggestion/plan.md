@@ -1,7 +1,7 @@
 ---
 title: "CV Builder + AI CV Suggestion (OpenResume Reference)"
 description: "Build a TopCV-style CV builder with split-screen form/preview, 3 templates, PDF export, and AI-powered suggestion for job-specific CV improvement."
-status: in_progress
+status: done
 priority: P1
 effort: 32h
 issue: null
@@ -25,8 +25,8 @@ Hiện tại hệ thống chỉ hỗ trợ upload CV (PDF/DOCX) → AI parse. Fe
 
 | # | Phase | Status | Effort | Link |
 |---|-------|--------|--------|------|
-| 1 | Prisma schema + Backend CV Builder API | Not Started | 8h | [phase-01](./phase-01-prisma-schema-backend-cv-builder-api.md) |
-| 2 | Frontend CV Builder UI (form + preview + templates) | Not Started | 16h | [phase-02](./phase-02-frontend-cv-builder-ui.md) |
+| 1 | Prisma schema + Backend CV Builder API | Done | 8h | [phase-01](./phase-01-prisma-schema-backend-cv-builder-api.md) |
+| 2 | Frontend CV Builder UI (form + preview + templates) | Done | 16h | [phase-02](./phase-02-frontend-cv-builder-ui.md) |
 | 3 | Backend AI CV Suggestion service | Done | 4h | [phase-03](./phase-03-backend-ai-cv-suggestion.md) |
 | 4 | Frontend AI Suggestion panel + Polish | Done | 4h | [phase-04](./phase-04-frontend-ai-suggestion-polish.md) |
 

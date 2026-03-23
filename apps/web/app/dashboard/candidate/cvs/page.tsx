@@ -45,7 +45,7 @@ export default async function CandidateCvsPage({ searchParams }: PageProps) {
       revalidatePath('/dashboard/candidate/cvs');
     } catch (error) {
       if (error instanceof ApiError) {
-        if (error.status === 401) redirect('/login');
+        if (error.status === 401) redirect('/api/auth/logout');
         redirect(buildErrorRedirectPath('/dashboard/candidate/cvs', error, 'upload-failed'));
       }
       redirect('/dashboard/candidate/cvs?error=upload-failed');
@@ -62,7 +62,7 @@ export default async function CandidateCvsPage({ searchParams }: PageProps) {
       await setPrimaryCv(currentSession.accessToken, cvId);
     } catch (error) {
       if (error instanceof ApiError) {
-        if (error.status === 401) redirect('/login');
+        if (error.status === 401) redirect('/api/auth/logout');
         redirect(buildErrorRedirectPath('/dashboard/candidate/cvs', error, 'set-primary-failed'));
       }
       redirect('/dashboard/candidate/cvs?error=set-primary-failed');
@@ -80,7 +80,7 @@ export default async function CandidateCvsPage({ searchParams }: PageProps) {
       await deleteCv(currentSession.accessToken, cvId);
     } catch (error) {
       if (error instanceof ApiError) {
-        if (error.status === 401) redirect('/login');
+        if (error.status === 401) redirect('/api/auth/logout');
         redirect(buildErrorRedirectPath('/dashboard/candidate/cvs', error, 'delete-failed'));
       }
       redirect('/dashboard/candidate/cvs?error=delete-failed');
@@ -103,7 +103,7 @@ export default async function CandidateCvsPage({ searchParams }: PageProps) {
       await updateCv(currentSession.accessToken, cvId, { skills, parsedData: { summary, languages } });
     } catch (error) {
       if (error instanceof ApiError) {
-        if (error.status === 401) redirect('/login');
+        if (error.status === 401) redirect('/api/auth/logout');
         redirect(buildErrorRedirectPath('/dashboard/candidate/cvs', error, 'update-failed'));
       }
       redirect('/dashboard/candidate/cvs?error=update-failed');
@@ -111,7 +111,16 @@ export default async function CandidateCvsPage({ searchParams }: PageProps) {
     revalidatePath('/dashboard/candidate/cvs');
   }
 
-  const cvs = await getMyCvs(session.accessToken);
+  let cvs: Awaited<ReturnType<typeof getMyCvs>>;
+  try {
+    cvs = await getMyCvs(session.accessToken);
+  } catch (error) {
+    if (error instanceof ApiError) {
+      if (error.status === 401) redirect('/api/auth/logout');
+      redirect(buildErrorRedirectPath('/dashboard/candidate/cvs', error, 'load-failed'));
+    }
+    redirect('/dashboard/candidate/cvs?error=load-failed');
+  }
   const routeError = resolveRouteError(query, {
     'missing-file': 'Please choose a file before uploading.',
     'CV_FILE_TOO_LARGE': 'CV file is too large. Maximum size is 5MB.',
@@ -122,6 +131,7 @@ export default async function CandidateCvsPage({ searchParams }: PageProps) {
     'delete-failed': 'Deleting this CV failed. Please try again.',
     'update-failed': 'Saving CV changes failed. Please try again.',
     'upload-failed': 'Upload failed. Please try again.',
+    'load-failed': 'Could not load your CVs. Please try again.',
   });
 
   return (

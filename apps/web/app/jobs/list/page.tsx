@@ -3,7 +3,7 @@ import { JobListClient } from '@/components/jobs/job-list-client';
 import { auth } from '@/auth';
 
 export const metadata = {
-  title: 'Việc làm - HireStream',
+  title: 'Việc làm - SCC',
   description:
     'Tìm kiếm và ứng tuyển việc làm phù hợp nhất với bạn. Hàng nghìn vị trí từ các công ty hàng đầu Việt Nam.',
 };
