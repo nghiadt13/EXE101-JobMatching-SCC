@@ -79,7 +79,7 @@ export default async function EditCvPage({ params }: PageProps) {
         { label: 'Chỉnh sửa CV' },
       ]}
     >
-      <CvBuilderPage initialData={initialData} cvId={id} onSave={saveAction} />
+      <CvBuilderPage initialData={initialData} cvId={id} accessToken={session.accessToken} onSave={saveAction} />
     </DashboardShell>
   );
 }

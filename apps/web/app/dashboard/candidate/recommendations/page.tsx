@@ -111,9 +111,9 @@ function ScanHistoryCard({
   scan: RecommendationScanListItem;
 }) {
   const statusConfig = {
-    PROCESSING: { label: 'Processing...', variant: 'secondary' as const },
+    PROCESSING: { label: 'Processing...', variant: 'info' as const },
     COMPLETED: { label: 'Completed', variant: 'default' as const },
-    FAILED: { label: 'Failed', variant: 'destructive' as const },
+    FAILED: { label: 'Failed', variant: 'danger' as const },
   };
   const config = statusConfig[scan.status];
 

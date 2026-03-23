@@ -10,6 +10,7 @@ import {
 } from '@/lib/applications-client';
 
 const RECRUITER_TRANSITIONS: Record<ApplicationStatus, ApplicationStatus[]> = {
+  PENDING_MATCHING: ['APPLIED', 'REJECTED'],
   APPLIED: ['REVIEWING', 'REJECTED'],
   REVIEWING: ['INTERVIEW', 'REJECTED'],
   INTERVIEW: ['OFFER', 'REJECTED'],

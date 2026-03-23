@@ -1,0 +1,61 @@
+
+> web@0.1.0 build
+> next build
+
+ΓÜá Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of D:\Education\EXE101\JobMatchingMVP\package-lock.json as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * D:\Education\EXE101\JobMatchingMVP\apps\web\package-lock.json
+
+Γû▓ Next.js 16.1.6 (Turbopack)
+- Environments: .env
+- Experiments (use with caution):
+  ┬╖ serverActions
+
+ΓÜá The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+Γ£ô Compiled successfully in 8.2s
+  Running TypeScript ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/23) ...
+  Generating static pages using 7 workers (5/23) 
+  Generating static pages using 7 workers (11/23) 
+  Generating static pages using 7 workers (17/23) 
+Γ£ô Generating static pages using 7 workers (23/23) in 647.8ms
+  Finalizing page optimization ...
+
+Route (app)
+Γöî ╞Æ /
+Γö£ Γùï /_not-found
+Γö£ ╞Æ /api/auth/[...nextauth]
+Γö£ ╞Æ /dashboard
+Γö£ ╞Æ /dashboard/admin
+Γö£ ╞Æ /dashboard/admin/users
+Γö£ ╞Æ /dashboard/candidate
+Γö£ ╞Æ /dashboard/candidate/applications
+Γö£ ╞Æ /dashboard/candidate/cvs
+Γö£ ╞Æ /dashboard/candidate/cvs/[id]/edit
+Γö£ ╞Æ /dashboard/candidate/cvs/create
+Γö£ ╞Æ /dashboard/candidate/cvs/templates
+Γö£ ╞Æ /dashboard/candidate/recommendations
+Γö£ ╞Æ /dashboard/profile
+Γö£ ╞Æ /dashboard/recruiter
+Γö£ ╞Æ /dashboard/recruiter/applications
+Γö£ ╞Æ /dashboard/recruiter/jobs
+Γö£ ╞Æ /dashboard/recruiter/jobs/[id]
+Γö£ ╞Æ /jobs
+Γö£ ╞Æ /jobs/[slug]
+Γö£ ╞Æ /jobs/list
+Γö£ ╞Æ /login
+Γö£ ╞Æ /register
+Γö£ Γùï /robots.txt
+Γöö ╞Æ /sitemap.xml
+
+
+╞Æ Proxy (Middleware)
+
+Γùï  (Static)   prerendered as static content
+╞Æ  (Dynamic)  server-rendered on demand
+

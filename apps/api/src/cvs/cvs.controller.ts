@@ -22,15 +22,21 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { CV_MAX_FILE_SIZE_BYTES } from './cvs.constants';
 import { CreateCvDto } from './dto/create-cv.dto';
 import { QueryCvsDto } from './dto/query-cvs.dto';
+import { SuggestCvDto } from './dto/suggest-cv.dto';
 import { UpdateCvDto } from './dto/update-cv.dto';
 import { CvsService } from './cvs.service';
+import { CvSuggestionService } from './services/cv-suggestion.service';
 import { CvView, CvsListResponse } from './cvs.types';
+import { CvSuggestion } from './cv-suggestion.types';
 
 @Controller('cvs')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.CANDIDATE)
 export class CvsController {
-  constructor(private readonly cvsService: CvsService) {}
+  constructor(
+    private readonly cvsService: CvsService,
+    private readonly cvSuggestionService: CvSuggestionService,
+  ) {}
 
   @Post('upload')
   @UseInterceptors(
@@ -96,6 +102,15 @@ export class CvsController {
     @Param('id') id: string,
   ): Promise<{ success: true }> {
     return this.cvsService.softDelete(user.sub, id);
+  }
+
+  @Post(':id/suggest')
+  suggest(
+    @CurrentUser() user: { sub: string },
+    @Param('id') id: string,
+    @Body() dto: SuggestCvDto,
+  ): Promise<CvSuggestion> {
+    return this.cvSuggestionService.suggest(user.sub, id, dto.jobId);
   }
 
   @Post(':id/set-primary')

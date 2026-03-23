@@ -177,3 +177,34 @@ export function setPrimaryCv(token: string, cvId: string) {
     method: 'POST',
   });
 }
+
+// ─── AI CV Suggestion ─────────────────────────────────────────
+
+export type SectionSuggestion = {
+  section: string;
+  suggestions: string[];
+  priority: 'high' | 'medium' | 'low';
+};
+
+export type RewriteSuggestion = {
+  section: string;
+  original: string;
+  suggested: string;
+  reason: string;
+};
+
+export type CvSuggestion = {
+  overallScore: number;
+  missingKeywords: string[];
+  strengthHighlights: string[];
+  sections: SectionSuggestion[];
+  rewriteSuggestions: RewriteSuggestion[];
+};
+
+export function suggestCv(token: string, cvId: string, jobId: string) {
+  return apiRequest<CvSuggestion>(token, `/cvs/${cvId}/suggest`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ jobId }),
+  });
+}
