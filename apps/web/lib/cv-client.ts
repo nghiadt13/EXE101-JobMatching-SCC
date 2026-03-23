@@ -1,4 +1,5 @@
 import { createApiError } from './api-client';
+import type { CvBuilderData } from '@/types/cv-builder';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api';
 
@@ -63,9 +64,12 @@ export type CvItem = {
   parsedData: {
     skills: string[];
     summary?: string;
+    builderData?: CvBuilderData;
     [key: string]: unknown;
   };
   skills: string[];
+  source: string;
+  templateId: string;
   isPrimary: boolean;
   createdAt: string;
   updatedAt: string;
@@ -117,12 +121,34 @@ export function getMyCvs(token: string) {
   });
 }
 
+export function getCvById(token: string, cvId: string) {
+  return apiRequest<CvItem>(token, `/cvs/${cvId}`, {
+    method: 'GET',
+  });
+}
+
 export function uploadCv(token: string, file: File) {
   const formData = new FormData();
   formData.append('file', file);
   return apiRequest<CvItem>(token, '/cvs/upload', {
     method: 'POST',
     body: formData,
+  });
+}
+
+export function createBuilderCv(token: string, data: CvBuilderData) {
+  return apiRequest<CvItem>(token, '/cvs/create', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+}
+
+export function updateBuilderCv(token: string, cvId: string, data: CvBuilderData) {
+  return apiRequest<CvItem>(token, `/cvs/${cvId}/builder`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
   });
 }
 

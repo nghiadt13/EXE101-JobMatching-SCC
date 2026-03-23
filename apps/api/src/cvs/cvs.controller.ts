@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
   UploadedFile,
   UseGuards,
@@ -19,6 +20,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { CV_MAX_FILE_SIZE_BYTES } from './cvs.constants';
+import { CreateCvDto } from './dto/create-cv.dto';
 import { QueryCvsDto } from './dto/query-cvs.dto';
 import { UpdateCvDto } from './dto/update-cv.dto';
 import { CvsService } from './cvs.service';
@@ -46,6 +48,14 @@ export class CvsController {
     return this.cvsService.upload(user.sub, file);
   }
 
+  @Post('create')
+  create(
+    @CurrentUser() user: { sub: string },
+    @Body() dto: CreateCvDto,
+  ): Promise<CvView> {
+    return this.cvsService.createFromBuilder(user.sub, dto);
+  }
+
   @Get()
   list(
     @CurrentUser() user: { sub: string },
@@ -69,6 +79,15 @@ export class CvsController {
     @Body() dto: UpdateCvDto,
   ): Promise<CvView> {
     return this.cvsService.update(user.sub, id, dto);
+  }
+
+  @Put(':id/builder')
+  updateBuilder(
+    @CurrentUser() user: { sub: string },
+    @Param('id') id: string,
+    @Body() dto: CreateCvDto,
+  ): Promise<CvView> {
+    return this.cvsService.updateBuilderCv(user.sub, id, dto);
   }
 
   @Delete(':id')

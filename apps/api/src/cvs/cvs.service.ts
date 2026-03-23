@@ -11,6 +11,7 @@ import {
   CV_MAX_FILE_SIZE_BYTES,
   CV_MAX_TEXT_CHARS,
 } from './cvs.constants';
+import { CreateCvDto } from './dto/create-cv.dto';
 import { QueryCvsDto } from './dto/query-cvs.dto';
 import { UpdateCvDto } from './dto/update-cv.dto';
 import { CvView, CvsListResponse } from './cvs.types';
@@ -21,6 +22,7 @@ import { buildErrorPayload } from '../common/errors/api-error-envelope';
 import { ERROR_CODES } from '../common/errors/error-codes';
 import { AppLogger } from '../common/logging/app-logger.service';
 import {
+  NORMALIZED_SCHEMA_VERSION,
   NormalizedProfile,
   ParseStatus,
 } from '../normalization/normalization.types';
@@ -133,6 +135,223 @@ export class CvsService {
       await this.cvStorageService.remove(storedPath);
       throw error;
     }
+  }
+
+  // ─── Builder Methods ───────────────────────────────────────────
+
+  async createFromBuilder(userId: string, dto: CreateCvDto): Promise<CvView> {
+    const candidate = await this.getCandidateOrThrow(userId);
+    const activeCount = await this.prisma.cV.count({
+      where: { candidateId: candidate.id, deletedAt: null },
+    });
+    if (activeCount >= CV_MAX_ACTIVE_PER_CANDIDATE) {
+      throw new BadRequestException(
+        buildErrorPayload(
+          ERROR_CODES.cvLimitReached,
+          'CV limit reached for candidate',
+        ),
+      );
+    }
+
+    const parsedData = this.buildNormalizedParsedData(dto);
+    const rawText = this.generateRawText(dto);
+    const normalizedSkills = this.skillStorageAdapter.toStoredSkills(
+      dto.skills,
+      'cv_builder',
+    );
+    const candidateProfile = this.buildCandidateProfile(
+      parsedData,
+      normalizedSkills.skills,
+    );
+
+    const created = await this.prisma.cV.create({
+      data: {
+        candidateId: candidate.id,
+        source: 'builder',
+        templateId: dto.templateId ?? 'simple',
+        fileName: `${dto.profile.name} - CV`,
+        filePath: '',
+        fileSize: 0,
+        mimeType: 'application/json',
+        parsedData: parsedData as unknown as Prisma.InputJsonValue,
+        skills: normalizedSkills.skills as Prisma.InputJsonValue,
+        skillAtoms:
+          normalizedSkills.skillAtoms as unknown as Prisma.InputJsonValue,
+        rawText,
+        candidateProfile: candidateProfile as unknown as Prisma.InputJsonValue,
+        candidateProfileVersion:
+          candidateProfile &&
+          typeof candidateProfile === 'object' &&
+          'version' in candidateProfile
+            ? (candidateProfile as { version: string }).version
+            : null,
+        isPrimary: activeCount === 0,
+      },
+      select: this.cvViewSelect,
+    });
+
+    this.logger.info('cv_builder_created', {
+      actorId: userId,
+      candidateId: candidate.id,
+      cvId: created.id,
+      templateId: dto.templateId ?? 'simple',
+    });
+
+    return this.toView(created);
+  }
+
+  async updateBuilderCv(
+    userId: string,
+    cvId: string,
+    dto: CreateCvDto,
+  ): Promise<CvView> {
+    const candidate = await this.getCandidateOrThrow(userId);
+    const current = await this.ensureCvOwnership(candidate.id, cvId);
+
+    // Only builder CVs can be updated via this endpoint
+    if (current.source !== 'builder') {
+      throw new BadRequestException(
+        buildErrorPayload(
+          ERROR_CODES.cvLimitReached, // reuse existing error code
+          'Only builder CVs can be updated via this endpoint',
+        ),
+      );
+    }
+
+    const parsedData = this.buildNormalizedParsedData(dto);
+    const rawText = this.generateRawText(dto);
+    const normalizedSkills = this.skillStorageAdapter.toStoredSkills(
+      dto.skills,
+      'cv_builder',
+    );
+    const candidateProfile = this.buildCandidateProfile(
+      parsedData,
+      normalizedSkills.skills,
+    );
+
+    const updated = await this.prisma.cV.update({
+      where: { id: cvId },
+      data: {
+        templateId: dto.templateId ?? 'simple',
+        fileName: `${dto.profile.name} - CV`,
+        parsedData: parsedData as unknown as Prisma.InputJsonValue,
+        skills: normalizedSkills.skills as Prisma.InputJsonValue,
+        skillAtoms:
+          normalizedSkills.skillAtoms as unknown as Prisma.InputJsonValue,
+        rawText,
+        candidateProfile: candidateProfile as unknown as Prisma.InputJsonValue,
+        candidateProfileVersion:
+          candidateProfile &&
+          typeof candidateProfile === 'object' &&
+          'version' in candidateProfile
+            ? (candidateProfile as { version: string }).version
+            : null,
+      },
+      select: this.cvViewSelect,
+    });
+
+    this.logger.info('cv_builder_updated', {
+      actorId: userId,
+      candidateId: candidate.id,
+      cvId,
+      templateId: dto.templateId ?? 'simple',
+    });
+
+    return this.toView(updated);
+  }
+
+  private generateRawText(dto: CreateCvDto): string {
+    const lines: string[] = [];
+    lines.push(dto.profile.name);
+    if (dto.profile.summary) lines.push(dto.profile.summary);
+
+    for (const exp of dto.experience) {
+      lines.push(`${exp.role} at ${exp.company}`);
+      lines.push(`${exp.startDate} - ${exp.endDate ?? 'Present'}`);
+      if (exp.description) lines.push(exp.description);
+      if (exp.tech?.length) lines.push(`Technologies: ${exp.tech.join(', ')}`);
+    }
+
+    for (const edu of dto.education) {
+      lines.push(`${edu.degree} ${edu.field ?? ''} - ${edu.school}`.trim());
+      if (edu.gpa) lines.push(`GPA: ${edu.gpa}`);
+    }
+
+    if (dto.skills.length) lines.push(`Skills: ${dto.skills.join(', ')}`);
+
+    for (const p of dto.projects ?? []) {
+      lines.push(`Project: ${p.name}`);
+      if (p.description) lines.push(p.description);
+      if (p.tech?.length) lines.push(`Tech: ${p.tech.join(', ')}`);
+    }
+
+    if (dto.certifications?.length)
+      lines.push(`Certifications: ${dto.certifications.join(', ')}`);
+    if (dto.languages?.length)
+      lines.push(`Languages: ${dto.languages.join(', ')}`);
+
+    return lines.join('\n');
+  }
+
+  private buildNormalizedParsedData(dto: CreateCvDto): Record<string, unknown> {
+    const title =
+      dto.experience.length > 0
+        ? dto.experience[0].role
+        : (dto.profile.summary?.slice(0, 100) ?? '');
+
+    const normalizedProfile: NormalizedProfile = {
+      schemaVersion: NORMALIZED_SCHEMA_VERSION,
+      language: 'vi',
+      title,
+      summary: dto.profile.summary ?? '',
+      skills: dto.skills,
+      experience: dto.experience.map((exp) => ({
+        role: exp.role,
+        company: exp.company,
+        startDate: exp.startDate,
+        endDate: exp.endDate ?? null,
+        tech: exp.tech ?? [],
+      })),
+      education: dto.education.map((edu) => ({
+        school: edu.school,
+        degree: edu.degree,
+        field: edu.field ?? '',
+        startDate: edu.startDate ?? null,
+        endDate: edu.endDate ?? null,
+        gpa: edu.gpa ?? null,
+      })),
+      certifications: dto.certifications ?? [],
+      projects: (dto.projects ?? []).map((p) => ({
+        name: p.name,
+        description: p.description ?? '',
+        tech: p.tech ?? [],
+      })),
+      languages: dto.languages ?? [],
+      location: {
+        city: dto.profile.location?.city ?? '',
+        country: dto.profile.location?.country ?? '',
+      },
+      rawQuality: {
+        score: 100,
+        needsManualReview: false,
+        reason: 'builder_generated',
+      },
+    };
+
+    return {
+      parseStatus: 'parsed_ok',
+      source: 'builder',
+      normalizedProfile,
+      builderData: {
+        templateId: dto.templateId ?? 'simple',
+        profile: dto.profile,
+        experience: dto.experience,
+        education: dto.education,
+        projects: dto.projects ?? [],
+        certifications: dto.certifications ?? [],
+        languages: dto.languages ?? [],
+      },
+    };
   }
 
   // buildNormalizedCvData is kept for reference but no longer called during upload.
@@ -384,6 +603,7 @@ export class CvsService {
     filePath: string;
     parsedData: Prisma.JsonValue;
     skills: Prisma.JsonValue;
+    source: string;
   }> {
     const cv = await this.prisma.cV.findFirst({
       where: {
@@ -397,6 +617,7 @@ export class CvsService {
         filePath: true,
         parsedData: true,
         skills: true,
+        source: true,
       },
     });
 
@@ -434,6 +655,8 @@ export class CvsService {
     skills: Prisma.JsonValue;
     candidateProfile: Prisma.JsonValue | null;
     candidateProfileVersion: string | null;
+    source: string;
+    templateId: string;
     isPrimary: boolean;
     createdAt: Date;
     updatedAt: Date;
@@ -488,6 +711,8 @@ export class CvsService {
         Object.keys(parseTelemetry).length > 0
           ? (parseTelemetry as unknown as CvView['parseTelemetry'])
           : null,
+      source: item.source,
+      templateId: item.templateId,
       isPrimary: item.isPrimary,
       createdAt: item.createdAt,
       updatedAt: item.updatedAt,
@@ -504,6 +729,8 @@ export class CvsService {
       skills: true,
       candidateProfile: true,
       candidateProfileVersion: true,
+      source: true,
+      templateId: true,
       isPrimary: true,
       createdAt: true,
       updatedAt: true,

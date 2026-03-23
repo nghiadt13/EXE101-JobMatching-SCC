@@ -293,5 +293,4 @@ export class JdDrivenEvaluationService {
       ),
     };
   }
-
 }

@@ -237,9 +237,7 @@ export class RecommendationService {
       for (let i = 0; i < topJobs.length; i += AI_BATCH_SIZE) {
         const batch = topJobs.slice(i, i + AI_BATCH_SIZE);
         const batchResults = await Promise.allSettled(
-          batch.map((job) =>
-            this.evaluateOneJob(cvId, job.id, actor),
-          ),
+          batch.map((job) => this.evaluateOneJob(cvId, job.id, actor)),
         );
 
         for (let idx = 0; idx < batchResults.length; idx++) {
@@ -278,8 +276,7 @@ export class RecommendationService {
             matchScore: result.matchScore,
             matchTier: resolveMatchTier(result.matchScore),
             matchingVersion: result.matchingVersion,
-            matchingSnapshot:
-              result.matchingSnapshot as unknown as Prisma.InputJsonValue,
+            matchingSnapshot: result.matchingSnapshot as Prisma.InputJsonValue,
             strengths: result.strengths as unknown as Prisma.InputJsonValue,
             gaps: result.gaps as unknown as Prisma.InputJsonValue,
             confidenceScore: result.confidenceScore,
@@ -410,9 +407,7 @@ export class RecommendationService {
     const applicable = reqs.filter((r) => r.status !== 'not_applicable');
     if (applicable.length === 0) return 0;
 
-    const highCount = applicable.filter(
-      (r) => r.confidence === 'high',
-    ).length;
+    const highCount = applicable.filter((r) => r.confidence === 'high').length;
     const mediumCount = applicable.filter(
       (r) => r.confidence === 'medium',
     ).length;
@@ -442,9 +437,7 @@ export class RecommendationService {
     });
   }
 
-  private async createFailureNotification(
-    candidateId: string,
-  ): Promise<void> {
+  private async createFailureNotification(candidateId: string): Promise<void> {
     const candidate = await this.prisma.candidate.findFirst({
       where: { id: candidateId },
       select: { userId: true },
@@ -473,37 +466,35 @@ export class RecommendationService {
     return candidate;
   }
 
-  private toScanView(
-    scan: {
+  private toScanView(scan: {
+    id: string;
+    status: RecommendationScanStatus;
+    totalJobs: number;
+    preFiltered: number;
+    aiEvaluated: number;
+    processingMs: number | null;
+    errorMessage: string | null;
+    createdAt: Date;
+    completedAt: Date | null;
+    results: Array<{
       id: string;
-      status: RecommendationScanStatus;
-      totalJobs: number;
-      preFiltered: number;
-      aiEvaluated: number;
-      processingMs: number | null;
-      errorMessage: string | null;
-      createdAt: Date;
-      completedAt: Date | null;
-      results: Array<{
+      rank: number;
+      matchScore: number;
+      matchTier: string;
+      confidenceScore: number;
+      strengths: Prisma.JsonValue;
+      gaps: Prisma.JsonValue;
+      job: {
         id: string;
-        rank: number;
-        matchScore: number;
-        matchTier: string;
-        confidenceScore: number;
-        strengths: Prisma.JsonValue;
-        gaps: Prisma.JsonValue;
-        job: {
-          id: string;
-          title: string;
-          slug: string;
-          employmentType: string;
-          salaryMin: number | null;
-          salaryMax: number | null;
-          company: { name: string; logoUrl: string | null } | null;
-        };
-      }>;
-    },
-  ): RecommendationScanView {
+        title: string;
+        slug: string;
+        employmentType: string;
+        salaryMin: number | null;
+        salaryMax: number | null;
+        company: { name: string; logoUrl: string | null } | null;
+      };
+    }>;
+  }): RecommendationScanView {
     return {
       id: scan.id,
       status: scan.status,

@@ -1,6 +1,7 @@
 export type SkillAtomSource =
   | 'cv_parsed'
   | 'cv_manual'
+  | 'cv_builder'
   | 'job_parsed'
   | 'job_manual'
   | 'legacy';

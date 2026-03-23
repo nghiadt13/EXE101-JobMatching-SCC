@@ -148,6 +148,75 @@ const STATIC_SOCIAL_LINKS = [
   { icon: 'fa-brands fa-facebook-f', href: '#' },
 ];
 
+const TOP_EMPLOYERS = [
+  { name: 'FPT Software', domain: 'fpt-software.com', tagline: 'Leading IT services', openPositions: 142 },
+  { name: 'VNG Corporation', domain: 'vng.com.vn', tagline: 'Technology & Gaming', openPositions: 87 },
+  { name: 'Viettel', domain: 'viettel.com.vn', tagline: 'Telecom & Digital', openPositions: 203 },
+  { name: 'Techcombank', domain: 'techcombank.com.vn', tagline: 'Banking & Finance', openPositions: 65 },
+  { name: 'VNPay', domain: 'vnpay.vn', tagline: 'Fintech & Payments', openPositions: 48 },
+  { name: 'MoMo', domain: 'momo.vn', tagline: 'E-Wallet & Finance', openPositions: 72 },
+  { name: 'Shopee Vietnam', domain: 'shopee.vn', tagline: 'E-commerce', openPositions: 156 },
+  { name: 'Grab Vietnam', domain: 'grab.com', tagline: 'Ride-hailing & Delivery', openPositions: 93 },
+];
+
+const WHY_CHOOSE_FEATURES = [
+  {
+    icon: 'fa-solid fa-brain',
+    title: 'AI-Powered Matching',
+    description: 'Our advanced AI analyzes your skills and preferences to find the perfect job match with 95% accuracy.',
+    color: 'bg-purple-50 text-purple-600',
+    hoverColor: 'group-hover:bg-purple-600',
+  },
+  {
+    icon: 'fa-solid fa-shield-check',
+    title: 'Verified Employers',
+    description: 'Every company on HireStream is verified to ensure safe, legitimate job opportunities for all candidates.',
+    color: 'bg-green-50 text-green-600',
+    hoverColor: 'group-hover:bg-green-600',
+  },
+  {
+    icon: 'fa-solid fa-bell',
+    title: 'Real-time Notifications',
+    description: 'Get instant alerts when new jobs match your profile or when employers view your application.',
+    color: 'bg-blue-50 text-primary-600',
+    hoverColor: 'group-hover:bg-primary-600',
+  },
+  {
+    icon: 'fa-solid fa-chart-pie',
+    title: 'Career Insights',
+    description: 'Access salary reports, industry trends, and personalized career advice to make informed decisions.',
+    color: 'bg-orange-50 text-orange-600',
+    hoverColor: 'group-hover:bg-orange-600',
+  },
+];
+
+const BLOG_ARTICLES = [
+  {
+    id: 'blog-1',
+    title: '10 Kỹ năng mềm giúp bạn nổi bật trong mắt nhà tuyển dụng 2026',
+    excerpt: 'Khám phá những kỹ năng mềm quan trọng nhất mà các nhà tuyển dụng hàng đầu đang tìm kiếm...',
+    category: 'Career Tips',
+    readTime: '5 phút đọc',
+    imageUrl: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=400&h=250&fit=crop',
+  },
+  {
+    id: 'blog-2',
+    title: 'Xu hướng lương IT Việt Nam 2026: Ngành nào trả cao nhất?',
+    excerpt: 'Phân tích chi tiết mức lương các vị trí IT phổ biến tại Việt Nam trong năm 2026...',
+    category: 'Salary Report',
+    readTime: '8 phút đọc',
+    imageUrl: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&h=250&fit=crop',
+  },
+  {
+    id: 'blog-3',
+    title: 'Cách viết CV ấn tượng: Bí quyết từ chuyên gia tuyển dụng',
+    excerpt: 'Hướng dẫn từng bước cách tạo CV chuyên nghiệp giúp bạn vượt qua vòng sàng lọc...',
+    category: 'CV Guide',
+    readTime: '6 phút đọc',
+    imageUrl: 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=400&h=250&fit=crop',
+  },
+];
+
 const HOMEPAGE_LOCATION_FILTERS = [
   { slug: 'mien-bac', label: 'Miền Bắc' },
   { slug: 'mien-nam', label: 'Miền Nam' },
@@ -658,15 +727,72 @@ export function HomepageMain({
         <section className="border-b border-gray-100 bg-white py-12">
           <div className="mx-auto max-w-7xl px-4">
             <p className="mb-8 text-center text-sm font-semibold tracking-widest text-gray-400 uppercase">
-              Trusted by 10,000+ top companies
+              Trusted by top companies in Vietnam
             </p>
-            <div className="flex flex-wrap items-center justify-center gap-10 opacity-40 grayscale md:gap-20">
-              <i className="fa-brands fa-google text-4xl" />
-              <i className="fa-brands fa-microsoft text-4xl" />
-              <i className="fa-brands fa-amazon text-4xl" />
-              <i className="fa-brands fa-apple text-4xl" />
-              <i className="fa-brands fa-airbnb text-4xl" />
-              <i className="fa-brands fa-slack text-4xl" />
+            <div className="flex flex-wrap items-center justify-center gap-8 md:gap-14">
+              {[
+                { name: 'Viettel', domain: 'viettel.com.vn' },
+                { name: 'FPT Software', domain: 'fpt-software.com' },
+                { name: 'VNG', domain: 'vng.com.vn' },
+                { name: 'VNPay', domain: 'vnpay.vn' },
+                { name: 'MoMo', domain: 'momo.vn' },
+                { name: 'Techcombank', domain: 'techcombank.com.vn' },
+              ].map((company) => (
+                <div key={company.domain} className="flex flex-col items-center gap-2 opacity-60 grayscale transition-all hover:opacity-100 hover:grayscale-0">
+                  <Image
+                    src={`https://www.google.com/s2/favicons?domain=${company.domain}&sz=128`}
+                    alt={company.name}
+                    width={40}
+                    height={40}
+                    className="h-10 w-10 object-contain"
+                    unoptimized
+                  />
+                  <span className="text-xs font-semibold text-gray-500">{company.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ===== TOP EMPLOYERS SECTION ===== */}
+        <section className="bg-gray-50 py-20">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="mb-12 text-center">
+              <h2 className="text-3xl font-bold text-slate-900">Top Employers</h2>
+              <p className="mt-2 text-gray-500">Leading companies actively hiring on HireStream</p>
+            </div>
+            <div className="grid grid-cols-2 gap-5 md:grid-cols-4">
+              {TOP_EMPLOYERS.map((employer) => (
+                <div
+                  key={employer.domain}
+                  className="employer-card group cursor-pointer rounded-2xl border border-gray-100 bg-white p-6 text-center transition-all hover:border-primary-400 hover:shadow-xl"
+                >
+                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-xl bg-gray-50 transition-all group-hover:bg-primary-50">
+                    <Image
+                      src={`https://www.google.com/s2/favicons?domain=${employer.domain}&sz=128`}
+                      alt={employer.name}
+                      width={40}
+                      height={40}
+                      className="h-10 w-10 object-contain"
+                      unoptimized
+                    />
+                  </div>
+                  <h3 className="text-sm font-bold text-slate-800">{employer.name}</h3>
+                  <p className="mt-1 text-xs text-gray-400">{employer.tagline}</p>
+                  <div className="mt-3 inline-flex items-center gap-1 rounded-full bg-primary-50 px-3 py-1 text-xs font-semibold text-primary-600">
+                    <i className="fa-solid fa-briefcase text-[10px]" />
+                    {employer.openPositions} vị trí
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-10 text-center">
+              <Link
+                className="inline-flex items-center gap-2 rounded-full border-2 border-primary-600 px-6 py-2.5 text-sm font-bold text-primary-600 transition-all hover:bg-primary-600 hover:text-white"
+                href="/jobs"
+              >
+                Xem tất cả nhà tuyển dụng <i className="fa-solid fa-arrow-right text-xs" />
+              </Link>
             </div>
           </div>
         </section>
@@ -773,27 +899,27 @@ export function HomepageMain({
               {visibleFeaturedJobs.map((job) => (
                 <div
                   key={job.id}
-                  className="job-grid-card group relative flex h-full flex-col rounded-2xl border border-gray-200 bg-white p-6"
+                  className="job-grid-card group relative flex h-full flex-col rounded-xl border border-gray-200 bg-white p-4"
                 >
-                  <div className="mb-4 flex items-start justify-between">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-gray-100 bg-slate-50 p-2">
+                  <div className="mb-3 flex items-start justify-between">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-gray-100 bg-slate-50 p-1.5">
                       {job.companyLogoUrl ? (
                         <Image
                           src={job.companyLogoUrl}
                           alt={job.companyName}
-                          width={48}
-                          height={48}
-                          className="h-10 w-10 object-contain"
+                          width={32}
+                          height={32}
+                          className="h-8 w-8 object-contain"
                           unoptimized
                         />
                       ) : (
                         <i
-                          className={`${normalizeIconClass(job.companyIconKey)} text-3xl text-slate-700`}
+                          className={`${normalizeIconClass(job.companyIconKey)} text-2xl text-slate-700`}
                         />
                       )}
                     </div>
                     <button
-                      className="transition-standard flex h-8 w-8 items-center justify-center rounded-full border border-gray-100 text-gray-400 hover:border-red-100 hover:text-red-500"
+                      className="transition-standard flex h-7 w-7 items-center justify-center rounded-full border border-gray-100 text-gray-400 hover:border-red-100 hover:text-red-500"
                       type="button"
                       disabled={savingJobIds.has(job.id)}
                       onClick={(event) => {
@@ -803,39 +929,39 @@ export function HomepageMain({
                       }}
                     >
                       <i
-                        className={`${job.isSaved ? 'fa-solid text-red-500' : 'fa-regular'} fa-heart`}
+                        className={`${job.isSaved ? 'fa-solid text-red-500' : 'fa-regular'} fa-heart text-sm`}
                         aria-hidden="true"
                       />
                     </button>
                   </div>
                   <div className="flex-grow">
                     <Link href={`/jobs/${job.slug}`}>
-                      <h3 className="transition-standard mb-1 cursor-pointer text-lg leading-tight font-bold text-slate-900 group-hover:text-primary-600">
+                      <h3 className="transition-standard mb-0.5 cursor-pointer text-[15px] leading-snug font-bold text-slate-900 group-hover:text-primary-600">
                         {job.title}
                       </h3>
                     </Link>
-                    <p className="mb-2 text-sm text-gray-500">
+                    <p className="mb-1.5 text-xs text-gray-500">
                       {job.companyName}
                     </p>
-                    <p className="line-clamp-2 mb-4 text-sm text-gray-600">
+                    <p className="line-clamp-2 mb-3 text-xs leading-relaxed text-gray-600">
                       {job.shortDescription}
                     </p>
-                    <div className="mb-4 flex items-center gap-2">
-                      <span className="rounded bg-primary-50 px-2 py-0.5 text-sm font-bold text-primary-600">
+                    <div className="mb-3 flex items-center gap-2">
+                      <span className="rounded bg-primary-50 px-2 py-0.5 text-xs font-bold text-primary-600">
                         {job.salaryText}
                       </span>
                     </div>
                   </div>
-                  <div className="mt-auto flex items-center justify-between border-t border-gray-50 pt-4">
-                    <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">
+                  <div className="mt-auto flex items-center justify-between border-t border-gray-50 pt-3">
+                    <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-[11px] font-medium text-gray-600">
                       {job.locationLabel}
                     </span>
                     <Link
-                      className="flex items-center gap-1 text-sm font-bold text-primary-600 transition-all hover:gap-2"
+                      className="flex items-center gap-1 text-xs font-bold text-primary-600 transition-all hover:gap-2"
                       href={`/jobs/${job.slug}`}
                     >
                       View details{' '}
-                      <i className="fa-solid fa-arrow-right text-xs" />
+                      <i className="fa-solid fa-arrow-right text-[10px]" />
                     </Link>
                   </div>
                 </div>
@@ -870,6 +996,36 @@ export function HomepageMain({
               >
                 <i className="fa-solid fa-chevron-right text-sm" />
               </button>
+            </div>
+          </div>
+        </section>
+
+        {/* ===== WHY CHOOSE HIRESTREAM SECTION ===== */}
+        <section className="why-choose-section relative overflow-hidden py-20">
+          <div className="absolute inset-0 bg-linear-to-br from-slate-50 via-primary-50/30 to-slate-50" />
+          <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="mb-14 text-center">
+              <span className="mb-3 inline-block rounded-full bg-primary-100 px-4 py-1 text-xs font-bold tracking-wider text-primary-700 uppercase">Why HireStream</span>
+              <h2 className="text-3xl font-bold text-slate-900 md:text-4xl">Why Choose HireStream?</h2>
+              <p className="mx-auto mt-3 max-w-2xl text-gray-500">
+                We combine cutting-edge AI technology with human expertise to deliver the best job matching experience in Vietnam.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {WHY_CHOOSE_FEATURES.map((feature) => (
+                <div
+                  key={feature.title}
+                  className="feature-card group cursor-pointer rounded-2xl border border-gray-100 bg-white p-8 transition-all hover:border-transparent hover:shadow-2xl"
+                >
+                  <div
+                    className={`transition-standard mb-6 flex h-14 w-14 items-center justify-center rounded-xl ${feature.color} ${feature.hoverColor} group-hover:text-white`}
+                  >
+                    <i className={`${feature.icon} text-2xl`} />
+                  </div>
+                  <h3 className="mb-3 text-lg font-bold text-slate-800">{feature.title}</h3>
+                  <p className="text-sm leading-relaxed text-gray-500">{feature.description}</p>
+                </div>
+              ))}
             </div>
           </div>
         </section>
@@ -912,6 +1068,94 @@ export function HomepageMain({
                   Apply to jobs with one click and track your applications in real-time.
                 </p>
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ===== CAREER BLOG SECTION ===== */}
+        <section className="bg-gray-50 py-20">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="mb-12 flex items-end justify-between">
+              <div>
+                <span className="mb-2 inline-block rounded-full bg-green-100 px-4 py-1 text-xs font-bold tracking-wider text-green-700 uppercase">Blog</span>
+                <h2 className="text-3xl font-bold text-slate-900">Cẩm nang nghề nghiệp</h2>
+                <p className="mt-2 text-gray-500">Kiến thức và mẹo hữu ích cho sự nghiệp của bạn</p>
+              </div>
+              <a
+                className="hidden font-semibold text-primary-600 hover:underline md:inline-flex md:items-center md:gap-1"
+                href="#"
+              >
+                Xem tất cả bài viết <i className="fa-solid fa-arrow-right text-xs" />
+              </a>
+            </div>
+            <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+              {BLOG_ARTICLES.map((article) => (
+                <article
+                  key={article.id}
+                  className="blog-card group cursor-pointer overflow-hidden rounded-2xl border border-gray-100 bg-white transition-all hover:shadow-xl"
+                >
+                  <div className="relative h-48 overflow-hidden">
+                    <Image
+                      src={article.imageUrl}
+                      alt={article.title}
+                      fill
+                      sizes="(max-width: 768px) 100vw, 33vw"
+                      className="object-cover transition-transform duration-500 group-hover:scale-110"
+                      unoptimized
+                    />
+                    <div className="absolute top-3 left-3">
+                      <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-primary-600 shadow-sm backdrop-blur-sm">
+                        {article.category}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="p-6">
+                    <h3 className="mb-2 text-lg font-bold leading-snug text-slate-800 transition-colors group-hover:text-primary-600">
+                      {article.title}
+                    </h3>
+                    <p className="mb-4 line-clamp-2 text-sm text-gray-500">{article.excerpt}</p>
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-1 text-xs text-gray-400">
+                        <i className="fa-regular fa-clock" /> {article.readTime}
+                      </span>
+                      <span className="flex items-center gap-1 text-sm font-bold text-primary-600 transition-all group-hover:gap-2">
+                        Đọc thêm <i className="fa-solid fa-arrow-right text-xs" />
+                      </span>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ===== CTA BANNER SECTION ===== */}
+        <section className="cta-banner-gradient relative overflow-hidden py-20">
+          <div className="absolute top-0 right-0 h-80 w-80 translate-x-1/3 -translate-y-1/3 rounded-full bg-white/10 blur-3xl" />
+          <div className="absolute bottom-0 left-0 h-60 w-60 -translate-x-1/3 translate-y-1/3 rounded-full bg-white/10 blur-3xl" />
+          <div className="relative z-10 mx-auto max-w-4xl px-4 text-center">
+            <div className="mb-6 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-sm">
+              <i className="fa-solid fa-file-lines text-3xl text-white" />
+            </div>
+            <h2 className="mb-4 text-3xl font-bold text-white md:text-4xl">
+              Tạo CV chuyên nghiệp ngay hôm nay
+            </h2>
+            <p className="mx-auto mb-8 max-w-2xl text-lg text-white/80">
+              Sử dụng công cụ tạo CV thông minh của HireStream để tạo CV ấn tượng và tăng cơ hội được tuyển dụng lên 3 lần.
+            </p>
+            <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
+              <Link
+                className="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-4 text-base font-bold text-primary-700 shadow-lg transition-all hover:scale-105 hover:shadow-xl"
+                href="/dashboard/candidate/cvs"
+              >
+                <i className="fa-solid fa-wand-magic-sparkles" /> Tạo CV miễn phí
+              </Link>
+              <Link
+                className="inline-flex items-center gap-2 rounded-xl border-2 border-white/40 px-8 py-4 text-base font-bold text-white transition-all hover:border-white hover:bg-white/10"
+                href="/jobs"
+              >
+                Khám phá việc làm <i className="fa-solid fa-arrow-right" />
+              </Link>
             </div>
           </div>
         </section>

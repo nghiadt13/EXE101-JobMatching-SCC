@@ -18,10 +18,7 @@ import {
 } from './applications.types';
 
 const RECRUITER_TRANSITIONS = new Map<ApplicationStatus, ApplicationStatus[]>([
-  [
-    ApplicationStatus.PENDING_MATCHING,
-    [ApplicationStatus.REJECTED],
-  ],
+  [ApplicationStatus.PENDING_MATCHING, [ApplicationStatus.REJECTED]],
   [
     ApplicationStatus.APPLIED,
     [ApplicationStatus.REVIEWING, ApplicationStatus.REJECTED],

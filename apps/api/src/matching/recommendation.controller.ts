@@ -20,9 +20,7 @@ import { RecommendationService } from './services/recommendation.service';
 @Controller('matching/recommend')
 @UseGuards(JwtAuthGuard)
 export class RecommendationController {
-  constructor(
-    private readonly recommendationService: RecommendationService,
-  ) {}
+  constructor(private readonly recommendationService: RecommendationService) {}
 
   @Post()
   @HttpCode(HttpStatus.ACCEPTED)
