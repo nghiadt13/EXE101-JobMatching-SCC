@@ -6,6 +6,6 @@ import { KimiClientService } from './kimi-client.service';
 @Global()
 @Module({
   providers: [GeminiClientService, KimiClientService, AiNormalizationService],
-  exports: [AiNormalizationService],
+  exports: [AiNormalizationService, GeminiClientService, KimiClientService],
 })
 export class NormalizationModule {}

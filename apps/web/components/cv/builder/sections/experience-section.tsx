@@ -1,5 +1,6 @@
 'use client';
 
+import { Briefcase } from 'lucide-react';
 import type { CvExperience } from '@/types/cv-builder';
 import { SectionCard } from './section-card';
 
@@ -30,7 +31,7 @@ export function ExperienceSection({ data, onChange }: Props) {
   const labelClasses = "mb-1.5 block text-[13px] font-semibold tracking-wide text-zinc-700";
 
   return (
-    <SectionCard title="Kinh nghiệm làm việc" icon="💼" defaultExpanded={data.length > 0}>
+    <SectionCard title="Kinh nghiệm làm việc" icon={<Briefcase className="h-5 w-5 text-primary-600" />} defaultExpanded={data.length > 0}>
       <div className="space-y-6">
         {data.map((entry, index) => (
           <div key={index} className="relative rounded-2xl border border-zinc-200/80 bg-zinc-50/40 p-5 shadow-sm transition-all hover:bg-zinc-50/80">

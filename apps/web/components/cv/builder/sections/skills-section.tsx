@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Zap } from 'lucide-react';
 import { SectionCard } from './section-card';
 
 type Props = {
@@ -34,7 +35,7 @@ export function SkillsSection({ data, onChange }: Props) {
   const labelClasses = "mb-1.5 block text-[13px] font-semibold tracking-wide text-zinc-700";
 
   return (
-    <SectionCard title="Kỹ năng" icon="⚡" defaultExpanded={data.length > 0}>
+    <SectionCard title="Kỹ năng" icon={<Zap className="h-5 w-5 text-primary-600" />} defaultExpanded={data.length > 0}>
       <div className="space-y-4">
         <label className={labelClasses}>Phân loại hoặc liệt kê các kỹ năng chuyên môn</label>
         

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useDeferredValue } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import type { CvBuilderData, TemplateId } from '@/types/cv-builder';
@@ -32,6 +32,7 @@ type RightPanel = 'preview' | 'ai';
 
 export function CvBuilderPage({ initialData, cvId, accessToken, onSave }: Props) {
   const [cvData, setCvData] = useState<CvBuilderData>(initialData);
+  const deferredCvData = useDeferredValue(cvData);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
@@ -183,7 +184,7 @@ export function CvBuilderPage({ initialData, cvId, accessToken, onSave }: Props)
         >
           {rightPanel === 'preview' ? (
             <div className="bg-zinc-50 p-4 h-full">
-              <CvPreview data={cvData} />
+              <CvPreview data={deferredCvData} />
             </div>
           ) : cvId && accessToken ? (
             <AiSuggestionPanel

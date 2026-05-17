@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Award } from 'lucide-react';
 import { SectionCard } from './section-card';
 
 type Props = {
@@ -62,7 +63,7 @@ function TagInput({
 
 export function ExtrasSection({ certifications, languages, onChangeCertifications, onChangeLanguages }: Props) {
   return (
-    <SectionCard title="Chứng chỉ & Ngoại ngữ" icon="🏅" defaultExpanded={certifications.length > 0 || languages.length > 0}>
+    <SectionCard title="Chứng chỉ & Ngoại ngữ" icon={<Award className="h-5 w-5 text-primary-600" />} defaultExpanded={certifications.length > 0 || languages.length > 0}>
       <div className="space-y-6">
         <TagInput label="Chứng chỉ" items={certifications} onChange={onChangeCertifications} placeholder="Ví dụ: AWS Solutions Architect, IELTS 7.5..." />
         <div className="h-px w-full bg-zinc-100" />

@@ -1,4 +1,4 @@
-import { Text, View } from '@react-pdf/renderer';
+import { Text, View, Image } from '@react-pdf/renderer';
 import type { CvProfile } from '@/types/cv-builder';
 
 type Props = {
@@ -15,14 +15,21 @@ export function PdfProfile({ data, styles }: Props) {
   if (data.location?.city) contactParts.push(data.location.city);
 
   return (
-    <View style={styles.header}>
-      <Text style={styles.headerName}>{data.name || 'Họ và tên'}</Text>
-      {contactParts.length > 0 && (
-        <Text style={styles.headerContact}>{contactParts.join('  •  ')}</Text>
+    <View style={{ ...styles.header, flexDirection: 'row', alignItems: 'center' }}>
+      {data.photo && (
+        <View style={{ width: 70, height: 70, marginRight: 20, borderRadius: 35, overflow: 'hidden' }}>
+          <Image src={data.photo} alt="Profile Photo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        </View>
       )}
-      {data.summary && (
-        <Text style={{ ...styles.entryDescription, marginTop: 8 }}>{data.summary}</Text>
-      )}
+      <View style={{ flex: 1 }}>
+        <Text style={styles.headerName}>{data.name || 'Họ và tên'}</Text>
+        {contactParts.length > 0 && (
+          <Text style={styles.headerContact}>{contactParts.join('  •  ')}</Text>
+        )}
+        {data.summary && (
+          <Text style={{ ...styles.entryDescription, marginTop: 8 }}>{data.summary}</Text>
+        )}
+      </View>
     </View>
   );
 }

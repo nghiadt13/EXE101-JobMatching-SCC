@@ -1,4 +1,12 @@
-import { StyleSheet } from '@react-pdf/renderer';
+import { StyleSheet, Font } from '@react-pdf/renderer';
+
+Font.register({
+  family: 'Roboto',
+  fonts: [
+    { src: '/fonts/Roboto-Regular.ttf' },
+    { src: '/fonts/Roboto-Bold.ttf', fontWeight: 'bold' },
+  ],
+});
 
 const COLORS = {
   simple: { primary: '#374151', accent: '#6b7280', bg: '#ffffff' },
@@ -7,7 +15,7 @@ const COLORS = {
 };
 
 export const simpleStyles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 10, color: '#1f2937' },
+  page: { padding: 40, fontFamily: 'Roboto', fontSize: 10, color: '#1f2937' },
   header: { marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#e5e7eb', paddingBottom: 12 },
   headerName: { fontSize: 22, fontWeight: 'bold', color: COLORS.simple.primary, marginBottom: 4 },
   headerContact: { fontSize: 9, color: '#6b7280', lineHeight: 1.5 },
@@ -22,7 +30,7 @@ export const simpleStyles = StyleSheet.create({
 });
 
 export const professionalStyles = StyleSheet.create({
-  page: { padding: 0, fontFamily: 'Helvetica', fontSize: 10, color: '#1f2937', flexDirection: 'row' as const },
+  page: { padding: 0, fontFamily: 'Roboto', fontSize: 10, color: '#1f2937', flexDirection: 'row' as const },
   sidebar: { width: '35%', backgroundColor: COLORS.professional.bg, padding: 24, minHeight: '100%' },
   mainContent: { width: '65%', padding: 24 },
   header: { backgroundColor: COLORS.professional.primary, marginTop: -24, marginLeft: -24, marginRight: -24, marginBottom: 16, padding: 24 },
@@ -39,7 +47,7 @@ export const professionalStyles = StyleSheet.create({
 });
 
 export const modernStyles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 10, color: '#1f2937' },
+  page: { padding: 40, fontFamily: 'Roboto', fontSize: 10, color: '#1f2937' },
   header: { backgroundColor: COLORS.modern.bg, marginTop: -40, marginLeft: -40, marginRight: -40, marginBottom: 20, padding: 30, borderBottomWidth: 3, borderBottomColor: COLORS.modern.primary },
   headerName: { fontSize: 24, fontWeight: 'bold', color: COLORS.modern.primary, marginBottom: 4 },
   headerContact: { fontSize: 9, color: '#6b7280', lineHeight: 1.5 },

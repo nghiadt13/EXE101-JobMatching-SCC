@@ -12,6 +12,7 @@ export interface CvProfile {
   website?: string;
   summary?: string;
   location?: CvLocation;
+  photo?: string;
 }
 
 export interface CvExperience {
