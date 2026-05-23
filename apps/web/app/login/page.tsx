@@ -1,9 +1,8 @@
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
+import { AuthLayout } from '@/components/auth/auth-layout';
 import { LoginForm } from '@/components/auth/login-form';
 import { getRoleDashboardPath } from '@/lib/auth-redirect';
-import { PUBLIC_JOBS_LISTING_ROUTE } from '@/lib/routes';
 
 type LoginPageProps = {
   searchParams: Promise<{ callbackUrl?: string }>;
@@ -18,21 +17,21 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const { callbackUrl } = await searchParams;
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-16">
-      <div className="rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm">
-        <h1 className="text-2xl font-semibold text-zinc-900">Sign in</h1>
-        <p className="mt-2 text-sm text-zinc-600">
-          Use your account credentials to access the platform.
-        </p>
-        <div className="mt-6">
-          <LoginForm callbackUrl={callbackUrl} />
-        </div>
-        <p className="mt-4 text-center text-sm text-zinc-500">
-          <Link href={PUBLIC_JOBS_LISTING_ROUTE} className="font-medium text-zinc-700 hover:underline">
-            Browse open positions →
-          </Link>
-        </p>
+    <AuthLayout>
+      <h2 className="text-[32px] font-bold text-neutral-800 tracking-tight mb-1">Sign in</h2>
+      <p className="text-[13px] text-slate-400 font-medium mb-8">Use your account credentials to access the platform</p>
+      <LoginForm callbackUrl={callbackUrl} />
+      <div className="flex justify-between items-center text-[12px] text-slate-400 font-medium mt-8 border-t border-slate-200/60 pt-4">
+        <span>
+          New here?{' '}
+          <a href="/register" className="text-neutral-800 font-semibold underline underline-offset-2 hover:text-blue-500 transition-colors">
+            Create account
+          </a>
+        </span>
+        <a href="#" className="text-slate-400 underline underline-offset-2 hover:text-neutral-800 transition-colors">
+          Terms & Conditions
+        </a>
       </div>
-    </main>
+    </AuthLayout>
   );
 }

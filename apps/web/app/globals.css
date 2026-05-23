@@ -283,3 +283,42 @@ dialog[open] {
   box-shadow: 0 8px 25px -5px rgb(0 0 0 / 0.08), 0 4px 10px -4px rgb(0 0 0 / 0.04);
   border-color: #93c5fd;
 }
+
+/* ===== Auth Page Styles ===== */
+.auth-page {
+  background-color: #a2b4c7;
+}
+
+.form-gradient {
+  background: radial-gradient(circle at 10% 90%, #bae6fd 0%, #f1f5f9 60%, #ffffff 100%);
+}
+
+.stripe-pattern {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(255, 255, 255, 0) 0px,
+    rgba(255, 255, 255, 0) 6px,
+    rgba(255, 255, 255, 0.2) 6px,
+    rgba(255, 255, 255, 0.2) 12px
+  );
+}
+
+@keyframes bounce-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.animate-bounce-slow {
+  animation: bounce-slow 3s ease-in-out infinite;
+}
+
+.auth-page ::-webkit-scrollbar {
+  width: 6px;
+}
+.auth-page ::-webkit-scrollbar-track {
+  background: transparent;
+}
+.auth-page ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}

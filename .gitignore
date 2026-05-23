@@ -8,3 +8,7 @@ apps/demo-video/out/
 !.env.example
 /docs/
 /plans/
+/UI/
+/Project_overview/
+check-users.sql
+.kiro/
