@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { SignOutButton } from './sign-out-button';
 import { MobileNav } from './mobile-nav';
 import { SiteHeader } from '@/components/layout/site-header';
@@ -39,7 +40,7 @@ export function DashboardShell({
     'User';
 
   return (
-    <div className="min-h-screen bg-gray-50 text-slate-900">
+    <div className="min-h-screen bg-md-background text-md-on-background">
       <SiteHeader
         isAuthenticated
         role={role}
@@ -52,10 +53,34 @@ export function DashboardShell({
       />
       <div className="flex">
         {navItems.length > 0 ? (
-          <aside className="hidden w-[240px] shrink-0 border-r border-primary-100 bg-white lg:block">
-            <div className="sticky top-20 flex h-[calc(100vh-5rem)] flex-col px-3 py-5">
+          <aside className="hidden w-[256px] shrink-0 border-r border-md-outline-variant/30 bg-md-surface lg:flex lg:flex-col">
+            <div className="flex h-full flex-col px-4 py-6 gap-1">
+              {/* User Profile Section */}
+              <div className="flex items-center gap-3 px-3 pb-5 mb-2">
+                {userAvatarUrl ? (
+                  <Image
+                    src={userAvatarUrl}
+                    alt={resolvedUserName}
+                    width={48}
+                    height={48}
+                    className="h-12 w-12 rounded-full border-2 border-md-surface-container-highest object-cover"
+                  />
+                ) : (
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-md-surface-container-highest bg-md-primary-container text-md-on-primary font-semibold text-lg">
+                    {resolvedUserName.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-semibold text-md-on-surface">{resolvedUserName}</div>
+                  <div className="truncate text-xs text-md-on-surface-variant">
+                    {role === 'CANDIDATE' ? 'Candidate' : role === 'RECRUITER' ? 'Recruiter' : 'Admin'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Navigation */}
               {isRecruiter ? (
-                <div className="mb-4 flex items-center gap-2 px-3">
+                <div className="mb-3 flex items-center gap-2 px-3">
                   <span className="recruiter-sidebar-badge">
                     <i className="fa-solid fa-building-columns text-[8px]" /> HR Portal
                   </span>
@@ -70,20 +95,20 @@ export function DashboardShell({
                       key={item.href}
                       href={item.href}
                       aria-current={isActive ? 'page' : undefined}
-                      className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                      className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                         isActive
-                          ? 'bg-primary-600 text-white'
-                          : 'text-slate-600 hover:bg-primary-50 hover:text-primary-700'
+                          ? 'bg-md-surface-container-high text-md-primary'
+                          : 'text-md-on-surface-variant hover:bg-md-surface-container-low hover:text-md-on-surface'
                       }`}
                     >
-                      <Icon className="h-4 w-4 shrink-0" />
+                      <Icon className="h-5 w-5 shrink-0" />
                       {item.label}
                     </Link>
                   );
                 })}
               </nav>
-              <div className="mt-auto border-t border-primary-100 pt-4">
-                <p className="mb-3 truncate px-3 text-xs text-slate-500">{email ?? 'User'}</p>
+              <div className="mt-auto border-t border-md-outline-variant/30 pt-4">
+                <p className="mb-3 truncate px-3 text-xs text-md-on-surface-variant">{email ?? 'User'}</p>
                 <SignOutButton />
               </div>
             </div>
@@ -91,7 +116,7 @@ export function DashboardShell({
         ) : null}
 
         <main className="relative flex-1 overflow-x-hidden">
-          <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+          <div className="max-w-7xl px-4 py-6 sm:px-6 lg:px-6 lg:py-8">
             <div className="mb-4 flex items-center justify-end gap-2 lg:hidden">
               <MobileNav items={navItems} currentPath={currentPath} />
               <SignOutButton />
@@ -101,9 +126,9 @@ export function DashboardShell({
 
             <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
               <div>
-                <h1 className="text-2xl font-semibold text-slate-900">{title}</h1>
+                <h1 className="text-2xl font-semibold text-md-on-surface">{title}</h1>
                 {description ? (
-                  <p className="mt-1 max-w-2xl text-sm text-slate-600">{description}</p>
+                  <p className="mt-1 max-w-2xl text-sm text-md-on-surface-variant">{description}</p>
                 ) : null}
               </div>
               {actions ? (

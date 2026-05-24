@@ -10,6 +10,7 @@ import { PillInput } from '@/components/ui/pill-input';
 import { SocialButton } from '@/components/ui/social-button';
 import { AuthModal } from '@/components/auth/auth-modal';
 import { AuthToast } from '@/components/auth/auth-toast';
+import { useSocialAuthErrorToast } from '@/components/auth/use-social-auth-error';
 import { PUBLIC_JOBS_LISTING_ROUTE } from '@/lib/routes';
 
 const loginSchema = z.object({
@@ -32,11 +33,20 @@ function safeCallbackUrl(raw: string | undefined): string | null {
   return null;
 }
 
+function setSocialSignupRoleCookie(role: 'CANDIDATE' | 'RECRUITER') {
+  document.cookie = `social_signup_role=${role}; path=/; max-age=300`;
+}
+
 export function LoginForm({ callbackUrl }: LoginFormProps) {
   const router = useRouter();
   const [submitError, setSubmitError] = useState('');
   const [toast, setToast] = useState({ visible: false, message: '', icon: '⚡' });
   const [signinModalOpen, setSigninModalOpen] = useState(false);
+
+  const handleSocialSignIn = (provider: 'google' | 'facebook') => {
+    setSocialSignupRoleCookie('CANDIDATE');
+    void signIn(provider, { callbackUrl });
+  };
 
   const {
     register,
@@ -68,6 +78,10 @@ export function LoginForm({ callbackUrl }: LoginFormProps) {
   const showToast = (message: string, icon = '⚡') => {
     setToast({ visible: true, message, icon });
   };
+
+  // Surface NextAuth `?error=` failures (cancellation, backend outages, etc.)
+  // as toasts so the user sees Req 5.1 / Req 5.3 messaging on the login page.
+  useSocialAuthErrorToast(showToast);
 
   return (
     <>
@@ -108,7 +122,8 @@ export function LoginForm({ callbackUrl }: LoginFormProps) {
       {/* Social login buttons */}
       <div className="flex gap-3 mt-4">
         <SocialButton provider="apple" onClick={() => showToast('Opening Apple authentication...', '🔄')} />
-        <SocialButton provider="google" onClick={() => showToast('Opening Google authentication...', '🔄')} />
+        <SocialButton provider="google" onClick={() => handleSocialSignIn('google')} />
+        <SocialButton provider="facebook" onClick={() => handleSocialSignIn('facebook')} />
       </div>
 
       {/* Sign-in modal (for "Have any account? Sign in" link context) */}

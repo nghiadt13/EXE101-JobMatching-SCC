@@ -6,11 +6,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { signIn } from 'next-auth/react';
 import { z } from 'zod';
-import { ApiError, registerUser } from '@/lib/api-client';
+import { ApiError, registerUser, type UserRole } from '@/lib/api-client';
 import { getRoleDashboardPath } from '@/lib/auth-redirect';
 import { PillInput } from '@/components/ui/pill-input';
 import { SocialButton } from '@/components/ui/social-button';
 import { AuthToast } from '@/components/auth/auth-toast';
+import { useSocialAuthErrorToast } from '@/components/auth/use-social-auth-error';
 
 const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -20,6 +21,18 @@ const registerSchema = z.object({
 });
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
+
+type SignupRole = Extract<UserRole, 'CANDIDATE' | 'RECRUITER'>;
+
+/**
+ * Persist the selected signup role in a short-lived cookie so the NextAuth
+ * `signIn` callback can read it server-side after the OAuth round-trip.
+ * Lifetime: 300s (5 minutes) — long enough for the OAuth redirect, short
+ * enough to avoid leaking stale state across sessions.
+ */
+function persistSignupRole(role: SignupRole) {
+  document.cookie = `social_signup_role=${role}; path=/; max-age=300`;
+}
 
 export function RegisterForm() {
   const router = useRouter();
@@ -63,6 +76,21 @@ export function RegisterForm() {
 
   const showToast = (message: string, icon = '⚡') => {
     setToast({ visible: true, message, icon });
+  };
+
+  // Surface NextAuth `?error=` failures (cancellation, backend outages, etc.)
+  // as toasts so the user sees Req 5.1 / Req 5.3 messaging if NextAuth ever
+  // redirects back here with an error.
+  useSocialAuthErrorToast(showToast);
+
+  const handleSocialSignIn = (provider: 'google' | 'facebook', role: SignupRole) => {
+    persistSignupRole(role);
+    void signIn(provider, { callbackUrl: getRoleDashboardPath(role) });
+  };
+
+  const handleAppleClick = (role: SignupRole) => {
+    persistSignupRole(role);
+    showToast(`Opening Apple authentication for ${role.toLowerCase()}...`, '🔄');
   };
 
   return (
@@ -113,10 +141,55 @@ export function RegisterForm() {
         </button>
       </form>
 
-      {/* Social login buttons */}
-      <div className="flex gap-3 mt-4">
-        <SocialButton provider="apple" onClick={() => showToast('Opening Apple authentication...', '🔄')} />
-        <SocialButton provider="google" onClick={() => showToast('Opening Google authentication...', '🔄')} />
+      {/* Two clearly labeled social-signup zones — Candidate vs Recruiter */}
+      <div className="mt-6 space-y-5">
+        {/* Candidate zone */}
+        <section
+          aria-labelledby="social-zone-candidate"
+          className="rounded-2xl border border-slate-200/60 bg-white/40 p-4"
+        >
+          <h3
+            id="social-zone-candidate"
+            className="text-[12px] font-semibold text-neutral-800 mb-3"
+          >
+            Dành cho Người tìm việc (CANDIDATE)
+          </h3>
+          <div className="flex gap-3">
+            <SocialButton provider="apple" onClick={() => handleAppleClick('CANDIDATE')} />
+            <SocialButton
+              provider="google"
+              onClick={() => handleSocialSignIn('google', 'CANDIDATE')}
+            />
+            <SocialButton
+              provider="facebook"
+              onClick={() => handleSocialSignIn('facebook', 'CANDIDATE')}
+            />
+          </div>
+        </section>
+
+        {/* Recruiter zone */}
+        <section
+          aria-labelledby="social-zone-recruiter"
+          className="rounded-2xl border border-slate-200/60 bg-white/40 p-4"
+        >
+          <h3
+            id="social-zone-recruiter"
+            className="text-[12px] font-semibold text-neutral-800 mb-3"
+          >
+            Dành cho Nhà tuyển dụng (RECRUITER)
+          </h3>
+          <div className="flex gap-3">
+            <SocialButton provider="apple" onClick={() => handleAppleClick('RECRUITER')} />
+            <SocialButton
+              provider="google"
+              onClick={() => handleSocialSignIn('google', 'RECRUITER')}
+            />
+            <SocialButton
+              provider="facebook"
+              onClick={() => handleSocialSignIn('facebook', 'RECRUITER')}
+            />
+          </div>
+        </section>
       </div>
 
       {/* Toast */}

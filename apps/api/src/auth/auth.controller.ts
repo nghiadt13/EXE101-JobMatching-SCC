@@ -3,6 +3,7 @@ import { AuthService } from './auth.service';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { SocialLoginDto } from './dto/social-login.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import type { AuthResponse, AuthUser } from './auth.types';
 
@@ -18,6 +19,11 @@ export class AuthController {
   @Post('login')
   login(@Body() dto: LoginDto): Promise<AuthResponse> {
     return this.authService.login(dto);
+  }
+
+  @Post('social-login')
+  socialLogin(@Body() dto: SocialLoginDto): Promise<AuthResponse> {
+    return this.authService.socialLogin(dto);
   }
 
   @UseGuards(JwtAuthGuard)

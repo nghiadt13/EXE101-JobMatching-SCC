@@ -18,6 +18,7 @@ describe('AuthService', () => {
       findUnique: jest.Mock;
       findFirst: jest.Mock;
       create: jest.Mock;
+      update: jest.Mock;
     };
   };
   let jwtService: { signAsync: jest.Mock };
@@ -28,6 +29,7 @@ describe('AuthService', () => {
         findUnique: jest.fn(),
         findFirst: jest.fn(),
         create: jest.fn(),
+        update: jest.fn(),
       },
     };
     jwtService = {
@@ -193,5 +195,222 @@ describe('AuthService', () => {
       name: 'Admin User',
       role: UserRole.ADMIN,
     });
+  });
+
+  describe('socialLogin', () => {
+    const baseGoogleDto = {
+      email: 'new-candidate@example.com',
+      name: 'New Candidate',
+      avatar: 'https://example.com/avatar.png',
+      provider: 'google' as const,
+      providerId: 'google-oauth-id-123',
+      role: 'CANDIDATE' as const,
+    };
+
+    it('creates a new CANDIDATE user with an empty Candidate profile (Google)', async () => {
+      prismaService.user.findUnique.mockResolvedValue(null);
+      prismaService.user.create.mockResolvedValue({
+        id: 'social-1',
+        email: baseGoogleDto.email,
+        name: baseGoogleDto.name,
+        role: UserRole.CANDIDATE,
+      });
+
+      const result = await authService.socialLogin(baseGoogleDto);
+
+      const [createCall] = prismaService.user.create.mock.calls as [
+        [
+          {
+            data: {
+              email: string;
+              name: string;
+              role: UserRole;
+              password: string;
+              avatar?: string;
+              candidate?: { create: Record<string, never> };
+            };
+          },
+        ],
+      ];
+      expect(createCall[0].data.email).toBe(baseGoogleDto.email);
+      expect(createCall[0].data.name).toBe(baseGoogleDto.name);
+      expect(createCall[0].data.role).toBe(UserRole.CANDIDATE);
+      expect(createCall[0].data.avatar).toBe(baseGoogleDto.avatar);
+      expect(createCall[0].data.candidate).toEqual({ create: {} });
+      expect(typeof createCall[0].data.password).toBe('string');
+      expect(createCall[0].data.password).not.toBe('');
+      // Password must be a bcrypt hash, not plain text
+      expect(createCall[0].data.password.startsWith('$2')).toBe(true);
+
+      expect(prismaService.user.update).not.toHaveBeenCalled();
+      expect(result.user).toEqual({
+        id: 'social-1',
+        email: baseGoogleDto.email,
+        name: baseGoogleDto.name,
+        role: UserRole.CANDIDATE,
+      });
+      expect(result.accessToken).toBe('signed-jwt-token');
+      expect(result.token).toBe('signed-jwt-token');
+    });
+
+    it('creates a new RECRUITER user without a Candidate profile (Facebook)', async () => {
+      prismaService.user.findUnique.mockResolvedValue(null);
+      prismaService.user.create.mockResolvedValue({
+        id: 'social-2',
+        email: 'new-recruiter@example.com',
+        name: 'New Recruiter',
+        role: UserRole.RECRUITER,
+      });
+
+      const result = await authService.socialLogin({
+        email: 'new-recruiter@example.com',
+        name: 'New Recruiter',
+        avatar: 'https://example.com/recruiter.png',
+        provider: 'facebook',
+        providerId: 'fb-oauth-id-456',
+        role: 'RECRUITER',
+      });
+
+      const [createCall] = prismaService.user.create.mock.calls as [
+        [
+          {
+            data: {
+              role: UserRole;
+              candidate?: { create: Record<string, never> };
+            };
+          },
+        ],
+      ];
+      expect(createCall[0].data.role).toBe(UserRole.RECRUITER);
+      expect(createCall[0].data.candidate).toBeUndefined();
+
+      expect(result.user.role).toBe(UserRole.RECRUITER);
+    });
+
+    it('auto-links an existing user without checking password and skips avatar update when unchanged', async () => {
+      prismaService.user.findUnique.mockResolvedValue({
+        id: 'existing-1',
+        email: 'existing@example.com',
+        name: 'Existing User',
+        role: UserRole.CANDIDATE,
+        avatar: 'https://example.com/avatar.png',
+        deletedAt: null,
+      });
+
+      const result = await authService.socialLogin({
+        email: 'existing@example.com',
+        name: 'Existing User',
+        avatar: 'https://example.com/avatar.png', // same avatar
+        provider: 'google',
+        providerId: 'google-oauth-id-existing',
+        role: 'CANDIDATE',
+      });
+
+      expect(prismaService.user.create).not.toHaveBeenCalled();
+      expect(prismaService.user.update).not.toHaveBeenCalled();
+      expect(result.user).toEqual({
+        id: 'existing-1',
+        email: 'existing@example.com',
+        name: 'Existing User',
+        role: UserRole.CANDIDATE,
+      });
+      expect(result.accessToken).toBe('signed-jwt-token');
+    });
+
+    it('updates avatar when an existing user has a different avatar', async () => {
+      prismaService.user.findUnique.mockResolvedValue({
+        id: 'existing-2',
+        email: 'avatar-change@example.com',
+        name: 'Avatar Change',
+        role: UserRole.CANDIDATE,
+        avatar: 'https://example.com/old-avatar.png',
+        deletedAt: null,
+      });
+      prismaService.user.update.mockResolvedValue({
+        id: 'existing-2',
+        email: 'avatar-change@example.com',
+        name: 'Avatar Change',
+        role: UserRole.CANDIDATE,
+      });
+
+      const result = await authService.socialLogin({
+        email: 'avatar-change@example.com',
+        name: 'Avatar Change',
+        avatar: 'https://example.com/new-avatar.png',
+        provider: 'facebook',
+        providerId: 'fb-oauth-id-789',
+        role: 'CANDIDATE',
+      });
+
+      expect(prismaService.user.update).toHaveBeenCalledTimes(1);
+      const [updateCall] = prismaService.user.update.mock.calls as [
+        [
+          {
+            where: { id: string };
+            data: { avatar: string };
+          },
+        ],
+      ];
+      expect(updateCall[0].where).toEqual({ id: 'existing-2' });
+      expect(updateCall[0].data).toEqual({
+        avatar: 'https://example.com/new-avatar.png',
+      });
+
+      expect(prismaService.user.create).not.toHaveBeenCalled();
+      expect(result.user.id).toBe('existing-2');
+    });
+
+    it('throws UnauthorizedException when the existing user has been deleted', async () => {
+      prismaService.user.findUnique.mockResolvedValue({
+        id: 'deleted-1',
+        email: 'deleted@example.com',
+        name: 'Deleted User',
+        role: UserRole.CANDIDATE,
+        avatar: null,
+        deletedAt: new Date('2025-01-01T00:00:00Z'),
+      });
+
+      await expect(
+        authService.socialLogin({
+          email: 'deleted@example.com',
+          name: 'Deleted User',
+          avatar: 'https://example.com/x.png',
+          provider: 'google',
+          providerId: 'google-oauth-id-deleted',
+          role: 'CANDIDATE',
+        }),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+
+      expect(prismaService.user.create).not.toHaveBeenCalled();
+      expect(prismaService.user.update).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['google' as const, 'google-id-1'],
+      ['facebook' as const, 'fb-id-1'],
+    ])(
+      'accepts %s as a valid provider when registering a new user',
+      async (provider, providerId) => {
+        prismaService.user.findUnique.mockResolvedValue(null);
+        prismaService.user.create.mockResolvedValue({
+          id: `user-${provider}`,
+          email: `${provider}@example.com`,
+          name: `${provider} User`,
+          role: UserRole.CANDIDATE,
+        });
+
+        const result = await authService.socialLogin({
+          email: `${provider}@example.com`,
+          name: `${provider} User`,
+          avatar: undefined,
+          provider,
+          providerId,
+          role: 'CANDIDATE',
+        });
+
+        expect(result.user.id).toBe(`user-${provider}`);
+        expect(prismaService.user.create).toHaveBeenCalledTimes(1);
+      },
+    );
   });
 });

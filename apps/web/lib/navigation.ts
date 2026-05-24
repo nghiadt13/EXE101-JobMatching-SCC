@@ -5,6 +5,9 @@ import {
   Users,
   UserCircle,
   ClipboardList,
+  Heart,
+  Settings,
+  Sparkles,
   type LucideIcon,
 } from 'lucide-react';
 import { LEGACY_JOBS_LISTING_ROUTE, PUBLIC_JOBS_LISTING_ROUTE } from './routes';
@@ -15,7 +18,10 @@ export type NavIconName =
   | 'briefcase'
   | 'users'
   | 'user-circle'
-  | 'clipboard-list';
+  | 'clipboard-list'
+  | 'heart'
+  | 'settings'
+  | 'sparkles';
 
 export type NavItem = {
   label: string;
@@ -27,6 +33,7 @@ export const candidateNav: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard/candidate', iconName: 'home' },
   { label: 'My CVs', href: '/dashboard/candidate/cvs', iconName: 'file-text' },
   { label: 'Applications', href: '/dashboard/candidate/applications', iconName: 'clipboard-list' },
+  { label: 'Smart Job Match', href: '/dashboard/candidate/recommendations', iconName: 'sparkles' },
   { label: 'Browse Jobs', href: PUBLIC_JOBS_LISTING_ROUTE, iconName: 'briefcase' },
   { label: 'Profile', href: '/dashboard/profile', iconName: 'user-circle' },
 ];
@@ -51,6 +58,9 @@ const navIcons: Record<NavIconName, LucideIcon> = {
   users: Users,
   'user-circle': UserCircle,
   'clipboard-list': ClipboardList,
+  heart: Heart,
+  settings: Settings,
+  sparkles: Sparkles,
 };
 
 const DASHBOARD_ROOT_PATHS = new Set([

@@ -19,6 +19,17 @@ type RegisterPayload = {
   role: Extract<UserRole, 'CANDIDATE' | 'RECRUITER'>;
 };
 
+export type SocialProvider = 'google' | 'facebook';
+
+export type SocialLoginPayload = {
+  email: string;
+  name: string;
+  avatar?: string;
+  provider: SocialProvider;
+  providerId: string;
+  role: Extract<UserRole, 'CANDIDATE' | 'RECRUITER'>;
+};
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api';
 
 export class ApiError extends Error {
@@ -96,6 +107,13 @@ export function loginWithCredentials(email: string, password: string) {
 
 export function registerUser(payload: RegisterPayload) {
   return apiRequest<AuthApiResponse>('/auth/register', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function socialLoginClient(payload: SocialLoginPayload) {
+  return apiRequest<AuthApiResponse>('/auth/social-login', {
     method: 'POST',
     body: JSON.stringify(payload),
   });

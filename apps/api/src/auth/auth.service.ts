@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { UserRole } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { randomUUID } from 'crypto';
 import type { StringValue } from 'ms';
 import {
   ALLOWED_PUBLIC_REGISTRATION_ROLES,
@@ -16,6 +17,7 @@ import {
 } from './auth.constants';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { SocialLoginDto } from './dto/social-login.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import type { AuthResponse, AuthUser, JwtPayload } from './auth.types';
 
@@ -110,6 +112,81 @@ export class AuthService {
       name: user.name,
       role: user.role,
     });
+  }
+
+  async socialLogin(dto: SocialLoginDto): Promise<AuthResponse> {
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        avatar: true,
+        deletedAt: true,
+      },
+    });
+
+    let authUser: AuthUser;
+
+    if (existingUser) {
+      if (existingUser.deletedAt) {
+        throw new UnauthorizedException('Account has been deactivated');
+      }
+
+      const shouldUpdateAvatar =
+        !!dto.avatar && existingUser.avatar !== dto.avatar;
+
+      if (shouldUpdateAvatar) {
+        const updated = await this.prisma.user.update({
+          where: { id: existingUser.id },
+          data: { avatar: dto.avatar },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            role: true,
+          },
+        });
+        authUser = updated;
+      } else {
+        authUser = {
+          id: existingUser.id,
+          email: existingUser.email,
+          name: existingUser.name,
+          role: existingUser.role,
+        };
+      }
+    } else {
+      const dummyPassword = randomUUID();
+      const dummyPasswordHash = await bcrypt.hash(
+        dummyPassword,
+        this.getSaltRounds(),
+      );
+
+      const role = dto.role as UserRole;
+      const created = await this.prisma.user.create({
+        data: {
+          email: dto.email,
+          name: dto.name,
+          password: dummyPasswordHash,
+          role,
+          avatar: dto.avatar,
+          candidate:
+            role === UserRole.CANDIDATE ? { create: {} } : undefined,
+        },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+        },
+      });
+
+      authUser = created;
+    }
+
+    return this.buildAuthResponse(authUser);
   }
 
   async me(userId: string): Promise<AuthUser> {

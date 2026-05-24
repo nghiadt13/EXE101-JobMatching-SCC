@@ -5,6 +5,37 @@
 :root {
   --background: #f9fafb;
   --foreground: #0f172a;
+
+  /* Material Design 3 Color Tokens */
+  --md-primary: #003f87;
+  --md-on-primary: #ffffff;
+  --md-primary-container: #0056b3;
+  --md-on-primary-container: #bbd0ff;
+  --md-surface: #f8f9ff;
+  --md-surface-container-lowest: #ffffff;
+  --md-surface-container-low: #eff4ff;
+  --md-surface-container: #e5eeff;
+  --md-surface-container-high: #dce9ff;
+  --md-surface-container-highest: #d3e4fe;
+  --md-on-surface: #0b1c30;
+  --md-on-surface-variant: #424752;
+  --md-outline: #727784;
+  --md-outline-variant: #c2c6d4;
+  --md-tertiary: #00456f;
+  --md-tertiary-container: #005d94;
+  --md-on-tertiary-container: #acd4ff;
+  --md-error: #ba1a1a;
+  --md-error-container: #ffdad6;
+  --md-on-error-container: #93000a;
+  --md-surface-variant: #d3e4fe;
+  --md-background: #f8f9ff;
+  --md-on-background: #0b1c30;
+  --md-inverse-surface: #213145;
+  --md-inverse-on-surface: #eaf1ff;
+  --md-inverse-primary: #acc7ff;
+  --md-surface-tint: #115cb9;
+  --md-surface-dim: #cbdbf5;
+  --md-surface-bright: #f8f9ff;
 }
 
 @theme inline {
@@ -59,6 +90,56 @@
   --color-background-dark: #0f172a;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* MD3 Color Tokens for Tailwind utilities */
+  --color-md-primary: var(--md-primary);
+  --color-md-on-primary: var(--md-on-primary);
+  --color-md-primary-container: var(--md-primary-container);
+  --color-md-on-primary-container: var(--md-on-primary-container);
+  --color-md-surface: var(--md-surface);
+  --color-md-surface-container-lowest: var(--md-surface-container-lowest);
+  --color-md-surface-container-low: var(--md-surface-container-low);
+  --color-md-surface-container: var(--md-surface-container);
+  --color-md-surface-container-high: var(--md-surface-container-high);
+  --color-md-surface-container-highest: var(--md-surface-container-highest);
+  --color-md-on-surface: var(--md-on-surface);
+  --color-md-on-surface-variant: var(--md-on-surface-variant);
+  --color-md-outline: var(--md-outline);
+  --color-md-outline-variant: var(--md-outline-variant);
+  --color-md-tertiary: var(--md-tertiary);
+  --color-md-tertiary-container: var(--md-tertiary-container);
+  --color-md-on-tertiary-container: var(--md-on-tertiary-container);
+  --color-md-error: var(--md-error);
+  --color-md-error-container: var(--md-error-container);
+  --color-md-on-error-container: var(--md-on-error-container);
+  --color-md-surface-variant: var(--md-surface-variant);
+  --color-md-background: var(--md-background);
+  --color-md-on-background: var(--md-on-background);
+  --color-md-inverse-surface: var(--md-inverse-surface);
+  --color-md-inverse-on-surface: var(--md-inverse-on-surface);
+  --color-md-inverse-primary: var(--md-inverse-primary);
+  --color-md-surface-tint: var(--md-surface-tint);
+  --color-md-surface-dim: var(--md-surface-dim);
+  --color-md-surface-bright: var(--md-surface-bright);
+
+  /* MD3 Typography Scale */
+  --font-size-body-sm: 0.875rem;
+  --font-size-body-md: 1rem;
+  --font-size-body-lg: 1.125rem;
+  --font-size-label-sm: 0.75rem;
+  --font-size-label-md: 0.875rem;
+  --font-size-headline-md: 1.5rem;
+  --font-size-headline-lg: 2rem;
+  --font-size-headline-xl: 2.5rem;
+
+  /* MD3 Spacing */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.75rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 3rem;
+  --spacing-gutter: 1.5rem;
+  --spacing-container-max: 80rem;
 }
 
 html {
@@ -70,6 +151,25 @@ body {
   color: var(--foreground);
   font-family: var(--font-inter), sans-serif;
 }
+
+/* MD3 Typography Utility Classes */
+.font-body-sm { font-size: 0.875rem; line-height: 1.25rem; font-weight: 400; }
+.font-body-md { font-size: 1rem; line-height: 1.5rem; font-weight: 400; }
+.font-body-lg { font-size: 1.125rem; line-height: 1.75rem; font-weight: 400; }
+.font-label-sm { font-size: 0.75rem; line-height: 1rem; font-weight: 500; letter-spacing: 0.01em; }
+.font-label-md { font-size: 0.875rem; line-height: 1rem; font-weight: 600; }
+.font-headline-md { font-size: 1.5rem; line-height: 2rem; font-weight: 600; }
+.font-headline-lg { font-size: 2rem; line-height: 2.5rem; letter-spacing: -0.01em; font-weight: 700; }
+.font-headline-xl { font-size: 2.5rem; line-height: 3rem; letter-spacing: -0.02em; font-weight: 700; }
+
+.text-body-sm { font-size: 0.875rem; line-height: 1.25rem; }
+.text-body-md { font-size: 1rem; line-height: 1.5rem; }
+.text-body-lg { font-size: 1.125rem; line-height: 1.75rem; }
+.text-label-sm { font-size: 0.75rem; line-height: 1rem; }
+.text-label-md { font-size: 0.875rem; line-height: 1rem; }
+.text-headline-md { font-size: 1.5rem; line-height: 2rem; }
+.text-headline-lg { font-size: 2rem; line-height: 2.5rem; }
+.text-headline-xl { font-size: 2.5rem; line-height: 3rem; }
 
 ::selection {
   background-color: #dbeafe;
