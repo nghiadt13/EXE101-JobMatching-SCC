@@ -14,9 +14,9 @@ export function CvStatsCard({ onCreateClick, onUploadClick }: CvStatsCardProps) 
       {/* Glow gradient border effect */}
       <div className="absolute -inset-px bg-gradient-to-r from-brand-500/20 to-indigo-500/0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
-      <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6 w-full">
         {/* Analytics stats */}
-        <div className="space-y-4 max-w-md">
+        <div className="space-y-4 flex-1 min-w-0">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-400">
             <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-ping" />
             Nhu cầu tuyển dụng tăng cao
@@ -52,7 +52,7 @@ export function CvStatsCard({ onCreateClick, onUploadClick }: CvStatsCardProps) 
         </div>
 
         {/* Sparkline chart */}
-        <div className="w-full md:w-auto md:flex-1 md:max-w-xs min-w-0 flex flex-col justify-end items-end">
+        <div className="w-full md:w-72 shrink-0 flex flex-col justify-end items-end">
           <span className="text-xs font-bold text-blue-500 flex items-center gap-0.5 self-end mb-2">
             <TrendingUp className="h-4 w-4" /> +27.4% tương tác
           </span>
