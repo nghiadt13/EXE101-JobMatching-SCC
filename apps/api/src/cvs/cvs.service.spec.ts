@@ -4,6 +4,8 @@ import {
   ServiceUnavailableException,
   UnprocessableEntityException,
 } from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
+import { validate } from 'class-validator';
 import { AiNormalizationError } from '../normalization/normalization.errors';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CandidateProfileService } from '../matching/services/candidate-profile.service';
@@ -14,6 +16,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AiNormalizationService } from '../normalization/ai-normalization.service';
 import { CvStorageService } from './services/cv-storage.service';
 import { CvTextExtractorService } from './services/cv-text-extractor.service';
+import { CreateCvDto } from './dto/create-cv.dto';
 
 describe('CvsService', () => {
   let service: CvsService;
@@ -296,5 +299,133 @@ describe('CvsService', () => {
         expect.objectContaining({ canonical: 'kubernetes' }),
       ]),
     );
+  });
+
+  describe('designTokens mapping', () => {
+    const baseDto: CreateCvDto = {
+      templateId: 'simple',
+      profile: { name: 'Test User' },
+      experience: [],
+      education: [],
+      skills: [],
+      projects: [],
+      certifications: [],
+      languages: [],
+    };
+
+    const validTokens = {
+      fontFamily: 'Inter, sans-serif',
+      fontSize: 12,
+      lineHeight: 1.5,
+      primaryColor: '#0f172a',
+      pageMargin: 40,
+    };
+
+    // Reach the private builder via index access; it is a deterministic pure
+    // mapper so wiring up the full `updateBuilderCv` path is unnecessary for
+    // verifying the round-trip semantics required by 7.7 / 7.9.
+    type ParsedDataShape = {
+      builderData: { designTokens?: unknown };
+    };
+    const callBuilder = (dto: CreateCvDto): ParsedDataShape =>
+      (
+        service as unknown as {
+          buildNormalizedParsedData: (d: CreateCvDto) => ParsedDataShape;
+        }
+      ).buildNormalizedParsedData(dto);
+
+    it('writes designTokens into parsedData.builderData when provided', () => {
+      const parsed = callBuilder({ ...baseDto, designTokens: validTokens });
+
+      expect(parsed.builderData.designTokens).toEqual(validTokens);
+    });
+
+    it('preserves undefined when designTokens is absent on the DTO', () => {
+      const parsed = callBuilder({ ...baseDto });
+
+      // Per design.md: server preserves `undefined` rather than coercing to
+      // DEFAULT_DESIGN_TOKENS so the frontend default kicks in on read.
+      expect(parsed.builderData.designTokens).toBeUndefined();
+    });
+  });
+});
+
+describe('CreateCvDto designTokens validation', () => {
+  const baseDtoPlain = {
+    templateId: 'simple',
+    profile: { name: 'Test User' },
+    experience: [],
+    education: [],
+    skills: [],
+    projects: [],
+    certifications: [],
+    languages: [],
+  };
+
+  const validTokens = {
+    fontFamily: 'Inter, sans-serif',
+    fontSize: 12,
+    lineHeight: 1.5,
+    primaryColor: '#0f172a',
+    pageMargin: 40,
+  };
+
+  // Locate the validation error nested under `designTokens.<field>` regardless
+  // of how class-validator structures its children list across versions.
+  const findDesignTokenFieldErrors = (
+    errors: Awaited<ReturnType<typeof validate>>,
+    field: string,
+  ) => {
+    const top = errors.find((e) => e.property === 'designTokens');
+    if (!top) return [];
+    const nested = (top.children ?? []).find((c) => c.property === field);
+    return nested?.constraints ? Object.keys(nested.constraints) : [];
+  };
+
+  it('accepts in-range designTokens', async () => {
+    const dto = plainToInstance(CreateCvDto, {
+      ...baseDtoPlain,
+      designTokens: validTokens,
+    });
+
+    const errors = await validate(dto, { whitelist: true });
+
+    expect(errors).toEqual([]);
+  });
+
+  it('rejects fontSize above max=16', async () => {
+    const dto = plainToInstance(CreateCvDto, {
+      ...baseDtoPlain,
+      designTokens: { ...validTokens, fontSize: 99 },
+    });
+
+    const errors = await validate(dto, { whitelist: true });
+    const constraints = findDesignTokenFieldErrors(errors, 'fontSize');
+
+    expect(constraints).toContain('max');
+  });
+
+  it('rejects lineHeight above max=2.0', async () => {
+    const dto = plainToInstance(CreateCvDto, {
+      ...baseDtoPlain,
+      designTokens: { ...validTokens, lineHeight: 5.0 },
+    });
+
+    const errors = await validate(dto, { whitelist: true });
+    const constraints = findDesignTokenFieldErrors(errors, 'lineHeight');
+
+    expect(constraints).toContain('max');
+  });
+
+  it('rejects pageMargin above max=60', async () => {
+    const dto = plainToInstance(CreateCvDto, {
+      ...baseDtoPlain,
+      designTokens: { ...validTokens, pageMargin: 1000 },
+    });
+
+    const errors = await validate(dto, { whitelist: true });
+    const constraints = findDesignTokenFieldErrors(errors, 'pageMargin');
+
+    expect(constraints).toContain('max');
   });
 });

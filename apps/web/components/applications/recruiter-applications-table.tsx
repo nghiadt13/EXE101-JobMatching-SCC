@@ -75,10 +75,10 @@ export function RecruiterApplicationsTable({ items, action }: RecruiterApplicati
               ) : item.matchingSnapshot ? (
                 <>
                   <div className="mt-2 grid gap-2 text-xs text-zinc-600 md:grid-cols-2">
-                    <p>Strengths: {item.matchingSnapshot.strengths.slice(0, 2).join(', ') || 'None'}</p>
-                    <p>Gaps: {item.matchingSnapshot.gaps.slice(0, 2).join(', ') || 'None'}</p>
+                    <p>Strengths: {item.matchingSnapshot.strengths?.slice(0, 2).join(', ') || 'None'}</p>
+                    <p>Gaps: {item.matchingSnapshot.gaps?.slice(0, 2).join(', ') || 'None'}</p>
                   </div>
-                  {item.matchingSnapshot.warnings.length > 0 && (
+                  {item.matchingSnapshot.warnings?.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-1">
                       {item.matchingSnapshot.warnings.slice(0, 2).map((warning) => (
                         <Badge key={`${item.id}-${warning}`} variant="warning">{warning}</Badge>

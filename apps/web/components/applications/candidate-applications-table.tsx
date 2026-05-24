@@ -87,12 +87,12 @@ export function CandidateApplicationsTable({ items }: CandidateApplicationsTable
                 ) : (
                   <>
                     <p>{Math.round(item.matchScore)}%</p>
-                    {item.matchingSnapshot ? (
+                    {item.matchingSnapshot?.strengths?.length ? (
                       <p className="mt-1 text-xs text-zinc-500">
-                        {item.matchingSnapshot.strengths.slice(0, 2).join(', ') || 'Profile review needed'}
+                        {item.matchingSnapshot.strengths.slice(0, 2).join(', ')}
                       </p>
                     ) : null}
-                    {item.matchingSnapshot?.warnings.length ? (
+                    {item.matchingSnapshot?.warnings?.length ? (
                       <div className="mt-2 flex flex-wrap gap-1">
                         {item.matchingSnapshot.warnings.slice(0, 2).map((warning) => (
                           <Badge key={`${item.id}-${warning}`} variant="warning">{warning}</Badge>
