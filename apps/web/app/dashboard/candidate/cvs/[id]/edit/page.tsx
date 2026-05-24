@@ -3,7 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { auth } from '@/auth';
 import { DashboardShell } from '@/components/auth/dashboard-shell';
 import { CvBuilderPage } from '@/components/cv/builder/cv-builder-page';
-import { EMPTY_CV_DATA } from '@/types/cv-builder';
+import { DEFAULT_DESIGN_TOKENS, EMPTY_CV_DATA } from '@/types/cv-builder';
 import type { CvBuilderData } from '@/types/cv-builder';
 import { getCvById, updateBuilderCv } from '@/lib/cv-client';
 import { ApiError } from '@/lib/api-client';
@@ -35,6 +35,7 @@ export default async function EditCvPage({ params }: PageProps) {
   const initialData: CvBuilderData = builderData
     ? {
         templateId: cv.templateId ?? builderData.templateId ?? 'simple',
+        designTokens: builderData.designTokens ?? DEFAULT_DESIGN_TOKENS,
         profile: builderData.profile ?? EMPTY_CV_DATA.profile,
         experience: builderData.experience ?? [],
         education: builderData.education ?? [],
@@ -43,7 +44,7 @@ export default async function EditCvPage({ params }: PageProps) {
         certifications: builderData.certifications ?? [],
         languages: builderData.languages ?? [],
       }
-    : { ...EMPTY_CV_DATA, templateId: cv.templateId ?? 'simple' };
+    : { ...EMPTY_CV_DATA, templateId: cv.templateId ?? 'simple', designTokens: DEFAULT_DESIGN_TOKENS };
 
   async function saveAction(data: CvBuilderData): Promise<string | null> {
     'use server';

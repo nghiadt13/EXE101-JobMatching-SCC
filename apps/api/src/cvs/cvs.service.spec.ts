@@ -232,6 +232,7 @@ describe('CvsService', () => {
     prismaService.candidate.findFirst.mockResolvedValue({ id: 'candidate-1' });
     prismaService.cV.findFirst.mockResolvedValue({
       id: 'cv-1',
+      candidateId: 'candidate-1',
       isPrimary: true,
       filePath: 'candidate-1/file.pdf',
       parsedData: {

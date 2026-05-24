@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
   PayloadTooLargeException,
@@ -344,6 +345,9 @@ export class CvsService {
       normalizedProfile,
       builderData: {
         templateId: dto.templateId ?? 'simple',
+        // Preserve `undefined` semantics — do not coerce missing tokens to
+        // defaults on the server. Frontend applies DEFAULT_DESIGN_TOKENS on read.
+        designTokens: dto.designTokens,
         profile: dto.profile,
         experience: dto.experience,
         education: dto.education,
@@ -605,14 +609,17 @@ export class CvsService {
     skills: Prisma.JsonValue;
     source: string;
   }> {
+    // Look up the CV by id only (without candidate scoping) so we can
+    // distinguish between "does not exist" (404) and "exists but not owned
+    // by this candidate" (403). Soft-deleted CVs are treated as missing.
     const cv = await this.prisma.cV.findFirst({
       where: {
         id: cvId,
-        candidateId,
         deletedAt: null,
       },
       select: {
         id: true,
+        candidateId: true,
         isPrimary: true,
         filePath: true,
         parsedData: true,
@@ -627,7 +634,22 @@ export class CvsService {
       );
     }
 
-    return cv;
+    if (cv.candidateId !== candidateId) {
+      throw new ForbiddenException(
+        buildErrorPayload(
+          ERROR_CODES.forbidden,
+          'You do not have permission to access this CV',
+        ),
+      );
+    }
+
+    return {
+      isPrimary: cv.isPrimary,
+      filePath: cv.filePath,
+      parsedData: cv.parsedData,
+      skills: cv.skills,
+      source: cv.source,
+    };
   }
 
   private readParseStatus(value: Prisma.JsonValue): ParseStatus {

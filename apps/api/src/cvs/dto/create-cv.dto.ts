@@ -4,9 +4,12 @@ import {
   IsArray,
   IsIn,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
+  Max,
   MaxLength,
+  Min,
   ValidateNested,
 } from 'class-validator';
 
@@ -137,6 +140,29 @@ export class ProjectDto {
   tech?: string[];
 }
 
+export class CvDesignTokensDto {
+  @IsString()
+  fontFamily: string;
+
+  @IsNumber()
+  @Min(10)
+  @Max(16)
+  fontSize: number;
+
+  @IsNumber()
+  @Min(1.2)
+  @Max(2.0)
+  lineHeight: number;
+
+  @IsString()
+  primaryColor: string;
+
+  @IsNumber()
+  @Min(20)
+  @Max(60)
+  pageMargin: number;
+}
+
 export class CreateCvDto {
   @IsOptional()
   @IsIn(['simple', 'professional', 'modern'])
@@ -181,4 +207,9 @@ export class CreateCvDto {
   @IsString({ each: true })
   @ArrayMaxSize(50)
   languages?: string[];
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CvDesignTokensDto)
+  designTokens?: CvDesignTokensDto;
 }
