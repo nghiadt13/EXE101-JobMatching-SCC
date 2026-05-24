@@ -18,7 +18,7 @@ export function PdfProfile({ data, styles }: Props) {
     <View style={{ ...styles.header, flexDirection: 'row', alignItems: 'center' }}>
       {data.photo && (
         <View style={{ width: 70, height: 70, marginRight: 20, borderRadius: 35, overflow: 'hidden' }}>
-          <Image src={data.photo} alt="Profile Photo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <Image src={data.photo} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         </View>
       )}
       <View style={{ flex: 1 }}>

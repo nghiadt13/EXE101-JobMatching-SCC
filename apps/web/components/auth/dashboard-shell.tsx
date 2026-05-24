@@ -124,17 +124,19 @@ export function DashboardShell({
 
             {breadcrumbs ? <Breadcrumbs items={breadcrumbs} className="mb-4" /> : null}
 
-            <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <h1 className="text-2xl font-semibold text-md-on-surface">{title}</h1>
-                {description ? (
-                  <p className="mt-1 max-w-2xl text-sm text-md-on-surface-variant">{description}</p>
+            {title || description || actions ? (
+              <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <h1 className="text-2xl font-semibold text-md-on-surface">{title}</h1>
+                  {description ? (
+                    <p className="mt-1 max-w-2xl text-sm text-md-on-surface-variant">{description}</p>
+                  ) : null}
+                </div>
+                {actions ? (
+                  <div className="flex flex-wrap items-center gap-2">{actions}</div>
                 ) : null}
-              </div>
-              {actions ? (
-                <div className="flex flex-wrap items-center gap-2">{actions}</div>
-              ) : null}
-            </header>
+              </header>
+            ) : null}
 
             {children}
           </div>

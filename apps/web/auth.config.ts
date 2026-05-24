@@ -37,6 +37,54 @@ function isUserRole(value: unknown): value is UserRole {
   return typeof value === 'string' && USER_ROLES.includes(value as UserRole);
 }
 
+/**
+ * Resolve a pair of OAuth env vars (clientId + clientSecret). If either is
+ * missing or empty, log a one-time warning and return `null`, signalling to
+ * the caller that the provider should not be registered.
+ *
+ * NextAuth v5 silently forwards `undefined` to the upstream provider when a
+ * key is missing, which produces a confusing `Error 401: invalid_client`
+ * redirect (with `client_id=undefined` in the URL). Skipping registration
+ * keeps the app bootable and lets the social button surface a clean error
+ * instead of crashing the whole module graph.
+ */
+function resolveOAuthCredentials(
+  providerLabel: string,
+  idKey: string,
+  secretKey: string,
+): { clientId: string; clientSecret: string } | null {
+  const clientId = process.env[idKey];
+  const clientSecret = process.env[secretKey];
+
+  if (
+    typeof clientId !== 'string' ||
+    clientId.length === 0 ||
+    typeof clientSecret !== 'string' ||
+    clientSecret.length === 0
+  ) {
+    if (process.env.NODE_ENV !== 'test') {
+      console.warn(
+        `[auth.config] ${providerLabel} OAuth disabled: set ${idKey} and ${secretKey} ` +
+          `in apps/web/.env to enable it. See .env.example for the required keys.`,
+      );
+    }
+    return null;
+  }
+
+  return { clientId, clientSecret };
+}
+
+const googleCreds = resolveOAuthCredentials(
+  'Google',
+  'AUTH_GOOGLE_ID',
+  'AUTH_GOOGLE_SECRET',
+);
+const facebookCreds = resolveOAuthCredentials(
+  'Facebook',
+  'AUTH_FACEBOOK_ID',
+  'AUTH_FACEBOOK_SECRET',
+);
+
 function isSocialSignupRole(value: unknown): value is SocialSignupRole {
   return (
     typeof value === 'string' &&
@@ -91,14 +139,22 @@ const authConfig: NextAuthConfig = {
     strategy: 'jwt',
   },
   providers: [
-    GoogleProvider({
-      clientId: process.env.AUTH_GOOGLE_ID,
-      clientSecret: process.env.AUTH_GOOGLE_SECRET,
-    }),
-    FacebookProvider({
-      clientId: process.env.AUTH_FACEBOOK_ID,
-      clientSecret: process.env.AUTH_FACEBOOK_SECRET,
-    }),
+    ...(googleCreds
+      ? [
+          GoogleProvider({
+            clientId: googleCreds.clientId,
+            clientSecret: googleCreds.clientSecret,
+          }),
+        ]
+      : []),
+    ...(facebookCreds
+      ? [
+          FacebookProvider({
+            clientId: facebookCreds.clientId,
+            clientSecret: facebookCreds.clientSecret,
+          }),
+        ]
+      : []),
     Credentials({
       name: 'Credentials',
       credentials: {
