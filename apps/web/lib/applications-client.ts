@@ -113,6 +113,7 @@ export type ApplicationItem = {
     id: string;
     title: string;
     slug: string;
+    companyName?: string | null;
   };
   candidate: {
     id: string;

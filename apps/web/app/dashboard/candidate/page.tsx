@@ -46,7 +46,7 @@ export default async function CandidateDashboardPage() {
   const recentApps = applications.items.slice(0, 3).map((app) => ({
     id: app.id,
     jobTitle: app.job?.title ?? 'Unknown Position',
-    companyName: app.job?.title ?? 'Unknown Company',
+    companyName: app.job?.companyName ?? 'Confidential Company',
     status: app.status,
     appliedAt: app.appliedAt,
   }));
@@ -160,9 +160,9 @@ export default async function CandidateDashboardPage() {
           <h1 className="font-headline-lg text-headline-lg text-on-surface">Tổng quan tài khoản</h1>
           <p className="font-body-md text-body-md text-on-surface-variant mt-xs">Chào mừng trở lại, xem qua tiến độ của bạn hôm nay.</p>
         </div>
-        <Button asChild className="hidden sm:flex items-center gap-sm bg-primary-container text-on-primary px-lg py-sm rounded-lg font-label-md text-label-md hover:opacity-90 transition-opacity shadow-sm border-0">
-          <Link href="/dashboard/candidate/cvs">
-            <Upload className="h-4 w-4" />
+        <Button asChild className="hidden sm:flex items-center gap-sm bg-primary-container text-white px-lg py-sm rounded-lg font-label-md text-label-md hover:opacity-90 transition-opacity shadow-sm border-0">
+          <Link href="/dashboard/candidate/cvs" className="text-white">
+            <Upload className="h-4 w-4 text-white" />
             Tải CV Lên
           </Link>
         </Button>
@@ -222,9 +222,9 @@ export default async function CandidateDashboardPage() {
       {/* Mobile Upload FAB */}
       <Link
         href="/dashboard/candidate/cvs"
-        className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary-container text-on-primary shadow-lg transition-colors hover:bg-primary sm:hidden"
+        className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary-container text-white shadow-lg transition-colors hover:bg-primary sm:hidden"
       >
-        <Upload className="h-6 w-6" />
+        <Upload className="h-6 w-6 text-white" />
       </Link>
 
       <SiteFooter />

@@ -23,8 +23,7 @@ const FALLBACK_HOMEPAGE: HomepageResponse = {
     headline: 'Find Your Dream Job',
     subheadline:
       'Over 500,000 active job openings from top-tier companies and innovative startups worldwide.',
-    backgroundImageUrl:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuDfgq41SCyJjCh8zdZiRw6w8jt0VVFLbbLZt7ykfAFG5aMhH40ASM8UMZ9MfGO8putfc51TN2a1kZKzgL-xf1h2OCA2zfSWVROPUmoryvq3LWede7BycCZTqzh84lcsbOCYi2E_Uci0U4tKT8uz1n9flsEcFS-JQpNGsZwDylU6idlM9bD_qSH0Ka99HwwLlw_9-MwVTdiTw3FGdxMlEg-6TyTfakh-LEv5JrJRl1lGhd3E8PBaADKLpsv489FaNa0QW7cfRgIorbk',
+    backgroundImageUrl: '/hero-bg.jpg',
     popularKeywords: [
       'Software Engineer',
       'Product Designer',
@@ -112,8 +111,7 @@ const STATIC_HERO = {
   headline: 'Find Your Dream Job',
   subheadline:
     'Over 500,000 active job openings from top-tier companies and innovative startups worldwide.',
-  backgroundImageUrl:
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuDfgq41SCyJjCh8zdZiRw6w8jt0VVFLbbLZt7ykfAFG5aMhH40ASM8UMZ9MfGO8putfc51TN2a1kZKzgL-xf1h2OCA2zfSWVROPUmoryvq3LWede7BycCZTqzh84lcsbOCYi2E_Uci0U4tKT8uz1n9flsEcFS-JQpNGsZwDylU6idlM9bD_qSH0Ka99HwwLlw_9-MwVTdiTw3FGdxMlEg-6TyTfakh-LEv5JrJRl1lGhd3E8PBaADKLpsv489FaNa0QW7cfRgIorbk',
+  backgroundImageUrl: '/hero-bg.jpg',
   popularKeywords: [
     'Software Engineer',
     'Product Designer',
@@ -356,6 +354,53 @@ function formatShortDate(value: string): string {
   return `${day}/${month}`;
 }
 
+const ALL_HOMEPAGE_CATEGORIES = [
+  // Page 1
+  { name: 'Kinh doanh/Bán hàng', keyword: 'Kinh doanh' },
+  { name: 'Marketing/PR/Quảng cáo', keyword: 'Marketing' },
+  { name: 'Chăm sóc khách hàng (Custome...', keyword: 'Chăm sóc khách hàng' },
+  { name: 'Nhân sự/Hành chính/Pháp chế', keyword: 'Nhân sự' },
+  { name: 'Công nghệ Thông tin', keyword: 'Công nghệ Thông tin' },
+  { name: 'Lao động phổ thông', keyword: 'Lao động phổ thông' },
+  // Page 2
+  { name: 'Tài chính/Kế toán', keyword: 'Kế toán' },
+  { name: 'Xây dựng/Kiến trúc', keyword: 'Xây dựng' },
+  { name: 'Khách sạn/Du lịch', keyword: 'Du lịch' },
+  { name: 'Y tế/Dược phẩm', keyword: 'Y tế' },
+  { name: 'Giáo dục/Đào tạo', keyword: 'Giáo dục' },
+  { name: 'Logistics/Vận tải', keyword: 'Vận tải' },
+  // Page 3
+  { name: 'Ngôn ngữ/Biên phiên dịch', keyword: 'Biên phiên dịch' },
+  { name: 'Luật/Pháp lý', keyword: 'Pháp lý' },
+  { name: 'Thiết kế/Đồ họa', keyword: 'Thiết kế' },
+  { name: 'Kỹ thuật/Cơ khí', keyword: 'Kỹ thuật' },
+  { name: 'Sản xuất/Vận hành', keyword: 'Sản xuất' },
+  { name: 'Bất động sản', keyword: 'Bất động sản' },
+  // Page 4
+  { name: 'Spa/Làm đẹp', keyword: 'Làm đẹp' },
+  { name: 'Thời trang/Mỹ phẩm', keyword: 'Thời trang' },
+  { name: 'Nông/Lâm/Ngư nghiệp', keyword: 'Nông nghiệp' },
+  { name: 'Thực phẩm/Đồ uống', keyword: 'Thực phẩm' },
+  { name: 'Báo chí/Truyền thông', keyword: 'Truyền thông' },
+  { name: 'Xuất nhập khẩu', keyword: 'Xuất nhập khẩu' },
+  // Page 5
+  { name: 'Hàng tiêu dùng', keyword: 'Hàng tiêu dùng' },
+  { name: 'An ninh/Bảo vệ', keyword: 'Bảo vệ' },
+  { name: 'Kỹ thuật điện/Điện tử', keyword: 'Điện tử' },
+  { name: 'Tư vấn/Trợ lý', keyword: 'Tư vấn' },
+  { name: 'Thương mại điện tử', keyword: 'Thương mại điện tử' },
+  { name: 'Khác', keyword: 'Khác' },
+];
+
+const SUGGESTED_SEARCH_TAGS = [
+  'Kỹ sư thiết kế công nghệ',
+  'Nhân viên kinh doanh online',
+  'Nhân viên kinh doanh',
+  'Kỹ sư thiết kế',
+  'Trực page',
+  'Sale online',
+];
+
 type HomepageMainProps = {
   initialData: HomepageResponse | null;
   accessToken: string | null;
@@ -384,6 +429,74 @@ export function HomepageMain({
   const [hasMoreJobs, setHasMoreJobs] = useState<boolean>(true);
   const [isLoadingMoreJobs, setIsLoadingMoreJobs] = useState<boolean>(false);
   const [isSearchingJobs, setIsSearchingJobs] = useState<boolean>(false);
+
+  const [categoryPage, setCategoryPage] = useState<number>(1);
+  const [activeSlide, setActiveSlide] = useState<number>(0);
+  const [isAutoplayPaused, setIsAutoplayPaused] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (isAutoplayPaused) return;
+    const interval = setInterval(() => {
+      setActiveSlide((prev) => (prev + 1) % 3);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [isAutoplayPaused]);
+
+  const handleCategoryClick = async (keyword: string) => {
+    if (keyword === 'Khác') {
+      document.getElementById('best-jobs-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    setSearchKeyword(keyword);
+    setActionError(null);
+    setIsSearchingJobs(true);
+    try {
+      const response = await getJobs({
+        page: 1,
+        limit: 6,
+        q: keyword.trim() || undefined,
+        status: 'PUBLISHED',
+      });
+      const mapped = response.items.map(toHomepageJob);
+      setFeaturedJobs(mapped);
+      setJobsPage(response.pagination.page);
+      setTotalPages(response.pagination.totalPages);
+      setHasMoreJobs(response.pagination.page < response.pagination.totalPages);
+      
+      document.getElementById('best-jobs-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (error) {
+      console.error('Failed to search jobs by category', error);
+      setActionError('Could not load jobs for this category.');
+    } finally {
+      setIsSearchingJobs(false);
+    }
+  };
+
+  const handleSuggestedTagClick = async (tag: string) => {
+    setSearchKeyword(tag);
+    setActionError(null);
+    setIsSearchingJobs(true);
+    try {
+      const response = await getJobs({
+        page: 1,
+        limit: 6,
+        q: tag.trim() || undefined,
+        status: 'PUBLISHED',
+      });
+      const mapped = response.items.map(toHomepageJob);
+      setFeaturedJobs(mapped);
+      setJobsPage(response.pagination.page);
+      setTotalPages(response.pagination.totalPages);
+      setHasMoreJobs(response.pagination.page < response.pagination.totalPages);
+      
+      document.getElementById('best-jobs-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (error) {
+      console.error('Failed to search jobs by tag', error);
+      setActionError('Could not load jobs for this tag.');
+    } finally {
+      setIsSearchingJobs(false);
+    }
+  };
 
   useEffect(() => {
     if (initialData) {
@@ -534,30 +647,32 @@ export function HomepageMain({
         }}
       />
       <main>
-        <section className="relative flex h-[600px] items-center justify-center overflow-hidden">
-          <Image
+        <section className="relative flex min-h-[750px] items-center justify-center overflow-hidden py-12 px-4 text-white">
+          <img
             alt="Office Collaboration"
             className="absolute inset-0 h-full w-full object-cover"
             src={STATIC_HERO.backgroundImageUrl}
-            fill
-            sizes="100vw"
-            unoptimized
           />
-          <div className="hero-overlay absolute inset-0" />
-          <div className="relative z-10 w-full max-w-4xl px-4 text-center">
-            <h1 className="mb-6 text-4xl leading-tight font-extrabold text-white md:text-6xl">
-              {STATIC_HERO.headline} <br />
-              <span className="text-primary-400">Where You Belong.</span>
-            </h1>
-            <p className="mx-auto mb-10 max-w-2xl text-lg text-gray-300">
-              {STATIC_HERO.subheadline}
-            </p>
-            <div className="mx-auto flex max-w-3xl flex-col items-center gap-2 rounded-2xl bg-white p-2 shadow-2xl md:flex-row">
+          
+          <div className="relative z-10 w-full max-w-7xl mx-auto flex flex-col items-center">
+            {/* Headline */}
+            <div className="text-center mb-8">
+              <h1 className="mb-4 text-3xl leading-tight font-extrabold text-white md:text-5xl drop-shadow-[0_4px_12px_rgba(0,0,0,0.85)]">
+                {STATIC_HERO.headline} <br />
+                <span className="text-primary-300 drop-shadow-[0_2px_8px_rgba(0,0,0,0.85)]">Where You Belong.</span>
+              </h1>
+              <p className="mx-auto max-w-2xl text-sm md:text-base text-slate-100 font-medium drop-shadow-[0_2px_8px_rgba(0,0,0,0.85)]">
+                {STATIC_HERO.subheadline}
+              </p>
+            </div>
+
+            {/* Search Box Card */}
+            <div className="w-full max-w-4xl mx-auto flex flex-col items-center gap-2 rounded-2xl bg-white p-2.5 shadow-2xl md:flex-row border border-slate-200/10">
               <div className="flex w-full flex-1 items-center px-4">
-                <i className="fa-solid fa-magnifying-glass mr-3 text-gray-400" />
+                <i className="fa-solid fa-magnifying-glass mr-3 text-slate-400" />
                 <input
-                  className="w-full border-none py-3 text-slate-800 focus:ring-0"
-                  placeholder="Job title, keywords..."
+                  className="w-full border-none py-3 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-0 text-sm md:text-base"
+                  placeholder="Vị trí tuyển dụng, từ khóa..."
                   type="text"
                   value={searchKeyword}
                   onChange={(event) => {
@@ -567,9 +682,9 @@ export function HomepageMain({
               </div>
               <div className="hidden h-8 w-px bg-gray-200 md:block" />
               <div className="flex w-full flex-1 items-center px-4">
-                <i className="fa-solid fa-location-dot mr-3 text-gray-400" />
+                <i className="fa-solid fa-location-dot mr-3 text-slate-400" />
                 <input
-                  className="w-full border-none py-3 text-slate-800 focus:ring-0"
+                  className="w-full border-none py-3 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-0 text-sm md:text-base"
                   placeholder="Miền Bắc, Miền Nam, Hà Nội, TP.HCM..."
                   type="text"
                   value={searchLocationInput}
@@ -579,27 +694,391 @@ export function HomepageMain({
                 />
               </div>
               <button
-                className="w-full rounded-xl bg-primary-600 px-8 py-3.5 font-bold text-white transition-standard hover:bg-primary-700 md:w-auto"
+                className="w-full rounded-xl bg-primary-600 px-8 py-3.5 font-bold text-white transition-all hover:bg-primary-700 active:scale-95 md:w-auto shadow-md cursor-pointer"
                 type="button"
                 disabled={isSearchingJobs}
                 onClick={() => {
                   void handleSearchJobs();
                 }}
               >
-                {isSearchingJobs ? 'Searching...' : 'Search Jobs'}
+                {isSearchingJobs ? 'Đang tìm...' : 'Tìm việc làm'}
               </button>
             </div>
-            <div className="mt-8 flex flex-wrap justify-center gap-4 text-sm text-white/80">
-              <span>Popular:</span>
-              {STATIC_HERO.popularKeywords.map((keyword) => (
-                <a
-                  key={keyword}
-                  className="underline hover:text-white"
-                  href="#"
+
+            {/* Gợi ý tags */}
+            <div className="w-full max-w-4xl mx-auto mt-5 flex flex-wrap items-center gap-2 text-sm justify-start pl-2">
+              <span className="text-slate-100 font-bold tracking-wide">Gợi ý:</span>
+              <div className="flex flex-wrap gap-2">
+                {SUGGESTED_SEARCH_TAGS.map((tag) => (
+                  <button
+                    key={tag}
+                    onClick={() => void handleSuggestedTagClick(tag)}
+                    className="bg-white text-primary-700 px-3.5 py-1 text-xs font-semibold rounded-full hover:bg-primary-50 active:scale-95 transition-all shadow-sm cursor-pointer"
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 2-Column: Categories (Left) & Banner Slider (Right) */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-8 w-full max-w-7xl">
+              {/* Category card (Left) */}
+              <div className="lg:col-span-4 xl:col-span-3 bg-white text-slate-800 rounded-3xl p-5 shadow-xl flex flex-col justify-between h-[450px] border border-slate-100/50">
+                <div className="space-y-1">
+                  <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest px-4 mb-3">
+                    Danh mục nghề nghiệp
+                  </h3>
+                  {ALL_HOMEPAGE_CATEGORIES.slice((categoryPage - 1) * 6, categoryPage * 6).map((cat) => (
+                    <button
+                      key={cat.name}
+                      onClick={() => void handleCategoryClick(cat.keyword)}
+                      className="w-full flex items-center justify-between py-3 px-4 rounded-2xl hover:bg-blue-50/70 hover:text-blue-700 transition-all duration-200 group text-left cursor-pointer"
+                    >
+                      <span className="text-[13px] md:text-[14px] font-bold text-slate-700 group-hover:text-blue-700 truncate mr-2">
+                        {cat.name}
+                      </span>
+                      <i className="fa-solid fa-chevron-right text-slate-300 group-hover:text-blue-500 text-xs transition-transform group-hover:translate-x-1" />
+                    </button>
+                  ))}
+                </div>
+
+                {/* Left Card Pagination */}
+                <div className="flex items-center justify-between border-t border-slate-100 pt-4 mt-auto">
+                  <span className="text-xs font-black text-slate-400 uppercase tracking-wider px-2">
+                    Trang {categoryPage} / 5
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => setCategoryPage((prev) => Math.max(1, prev - 1))}
+                      disabled={categoryPage === 1}
+                      className="w-8 h-8 rounded-full border border-slate-200 text-slate-400 flex items-center justify-center hover:border-blue-500 hover:text-blue-700 disabled:opacity-30 disabled:hover:border-slate-200 disabled:hover:text-slate-400 transition-all cursor-pointer"
+                      aria-label="Trang trước"
+                    >
+                      <i className="fa-solid fa-chevron-left text-xs" />
+                    </button>
+                    <button
+                      onClick={() => setCategoryPage((prev) => Math.min(5, prev + 1))}
+                      disabled={categoryPage === 5}
+                      className="w-8 h-8 rounded-full border border-slate-200 text-slate-400 flex items-center justify-center hover:border-blue-500 hover:text-blue-700 disabled:opacity-30 disabled:hover:border-slate-200 disabled:hover:text-slate-400 transition-all cursor-pointer"
+                      aria-label="Trang sau"
+                    >
+                      <i className="fa-solid fa-chevron-right text-xs" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Banner Carousel Slider (Right) */}
+              <div 
+                className="lg:col-span-8 xl:col-span-9 rounded-3xl overflow-hidden shadow-xl h-[450px] relative group border border-slate-100"
+                onMouseEnter={() => setIsAutoplayPaused(true)}
+                onMouseLeave={() => setIsAutoplayPaused(false)}
+              >
+                {/* Carousel Slides */}
+                <div className="w-full h-full relative overflow-hidden">
+                  {/* SLIDE 0: CTY TNHH LUYỆN KIM TRẦN HỒNG QUÂN */}
+                  {activeSlide === 0 && (
+                    <div className="relative w-full h-full p-6 md:p-10 flex flex-col justify-between select-none transition-all duration-700 animate-fadeIn bg-slate-950">
+                      {/* Background Photo with 100% opacity */}
+                      <Image
+                        src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=1200&auto=format&fit=crop"
+                        alt="Aluminium Factory"
+                        fill
+                        className="absolute inset-0 object-cover z-0 opacity-100"
+                        unoptimized
+                      />
+                      {/* Subtle left-side dark gradient to protect text legibility, leaving the right bright and natural */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/35 to-transparent z-0 pointer-events-none" />
+
+                      {/* Header block */}
+                      <div className="relative z-10 flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center border border-amber-400/50 shadow-md shrink-0">
+                          <span className="text-[10px] font-extrabold text-primary-700 leading-none text-center">THQ<br/>LK</span>
+                        </div>
+                        <div>
+                          <span className="text-[11px] font-bold text-amber-300 tracking-widest uppercase block drop-shadow-sm">CTY TNHH LUYỆN KIM TRẦN HỒNG QUÂN</span>
+                        </div>
+                      </div>
+
+                      {/* Main Center body */}
+                      <div className="relative z-10 my-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                        <div className="flex-1 max-w-xl">
+                          <h2 className="text-xl md:text-3xl font-extrabold text-white tracking-wide leading-tight drop-shadow-md">
+                            NHÀ MÁY SẢN XUẤT NHÔM KIM LOẠI
+                          </h2>
+                          <div className="mt-2 inline-block bg-amber-400 text-slate-950 text-xs font-black px-3 py-1 rounded-sm uppercase tracking-wider shadow-sm animate-pulse">
+                            ĐẦU TIÊN TẠI VIỆT NAM
+                          </div>
+                          <p className="mt-4 text-xs md:text-sm font-bold text-slate-100 flex items-center gap-2 drop-shadow-md">
+                            TUYỂN DỤNG <span className="text-yellow-300 text-2xl md:text-3xl font-black drop-shadow-sm">600</span> NHÂN SỰ MỚI
+                          </p>
+                        </div>
+                        
+                        {/* QR and Details card */}
+                        <div className="flex items-center gap-3 shrink-0 bg-black/40 p-3 rounded-2xl border border-white/10 backdrop-blur-sm shadow-md">
+                          <div className="bg-white p-2 rounded-xl flex flex-col items-center justify-center shrink-0 border border-primary-500 shadow-sm w-20 h-20 md:w-24 md:h-24">
+                            <svg className="w-14 h-14 md:w-18 md:h-18 text-slate-900" viewBox="0 0 100 100" fill="currentColor">
+                              <rect x="5" y="5" width="25" height="25" />
+                              <rect x="10" y="10" width="15" height="15" fill="white" />
+                              <rect x="70" y="5" width="25" height="25" />
+                              <rect x="75" y="10" width="15" height="15" fill="white" />
+                              <rect x="5" y="70" width="25" height="25" />
+                              <rect x="10" y="75" width="15" height="15" fill="white" />
+                              <rect x="40" y="5" width="10" height="10" />
+                              <rect x="55" y="15" width="10" height="20" />
+                              <rect x="40" y="25" width="20" height="10" />
+                              <rect x="5" y="40" width="20" height="10" />
+                              <rect x="20" y="55" width="10" height="10" />
+                              <rect x="35" y="45" width="15" height="15" />
+                              <rect x="50" y="60" width="15" height="10" />
+                              <rect x="70" y="40" width="10" height="15" />
+                              <rect x="85" y="45" width="10" height="10" />
+                              <rect x="70" y="65" width="25" height="10" />
+                              <rect x="40" y="80" width="15" height="15" />
+                              <rect x="60" y="80" width="10" height="10" />
+                              <rect x="80" y="80" width="15" height="15" />
+                            </svg>
+                            <span className="text-[6px] md:text-[7px] font-black text-center text-slate-800 mt-1 uppercase tracking-tight leading-none">Quét Ứng Tuyển</span>
+                          </div>
+                          <div className="hidden sm:block w-px h-16 bg-white/20" />
+                          <div className="hidden sm:flex flex-col text-left">
+                            <span className="text-[10px] font-black text-amber-300">THU NHẬP HẤP DẪN</span>
+                            <span className="text-base md:text-lg font-bold text-white tracking-wide">8 - 18 TRIỆU</span>
+                            <span className="text-[9px] text-slate-300">Tùy từng vị trí tuyển dụng</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Benefits Footer row with glassmorphic cards */}
+                      <div className="relative z-10 grid grid-cols-2 md:grid-cols-5 gap-2 mt-auto">
+                        <div className="bg-black/50 border border-white/10 backdrop-blur-xs rounded-xl p-2 text-center flex flex-col justify-center items-center shadow-md">
+                          <i className="fa-solid fa-helmet-safety text-amber-400 text-xs mb-1" />
+                          <span className="text-[9px] font-black tracking-tight leading-tight text-white uppercase leading-none">KỸ THUẬT VIÊN & CÔNG NHÂN</span>
+                          <span className="text-[7px] text-amber-200 mt-0.5 leading-none">Đắk Nông, Lâm Đồng</span>
+                        </div>
+                        <div className="bg-black/50 border border-white/10 backdrop-blur-xs rounded-xl p-2 text-center flex flex-col justify-center items-center shadow-md">
+                          <i className="fa-solid fa-road text-amber-400 text-xs mb-1" />
+                          <span className="text-[9px] font-black tracking-tight leading-tight text-white uppercase">LỘ TRÌNH PHÁT TRIỂN</span>
+                        </div>
+                        <div className="bg-black/50 border border-white/10 backdrop-blur-xs rounded-xl p-2 text-center flex flex-col justify-center items-center shadow-md">
+                          <i className="fa-solid fa-hand-holding-heart text-amber-400 text-xs mb-1" />
+                          <span className="text-[9px] font-black tracking-tight leading-tight text-white uppercase">PHÚC LỢI ĐẦY ĐỦ</span>
+                          <span className="text-[7px] text-amber-200 mt-0.5 leading-none">Lương T13, BHXH đầy đủ</span>
+                        </div>
+                        <div className="bg-black/50 border border-white/10 backdrop-blur-xs rounded-xl p-2 text-center flex flex-col justify-center items-center shadow-md">
+                          <i className="fa-solid fa-dollar-sign text-amber-400 text-xs mb-1" />
+                          <span className="text-[9px] font-black tracking-tight leading-tight text-white uppercase">THU NHẬP HẤP DẪN</span>
+                          <span className="text-[7px] text-amber-200 mt-0.5 leading-none">8 - 18 Triệu/Tháng</span>
+                        </div>
+                        <div className="bg-black/50 border border-white/10 backdrop-blur-xs rounded-xl p-2 text-center flex flex-col justify-center items-center shadow-md col-span-2 md:col-span-1">
+                          <i className="fa-solid fa-hotel text-amber-400 text-xs mb-1" />
+                          <span className="text-[9px] font-black tracking-tight leading-tight text-white uppercase">PHỤ CẤP 3 BỮA + KÝ TÚC XÁ</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SLIDE 1: SCC TECH RECRUITMENT */}
+                  {activeSlide === 1 && (
+                    <div className="relative w-full h-full p-6 md:p-10 flex flex-col justify-between select-none transition-all duration-700 animate-fadeIn bg-slate-950">
+                      {/* Background Photo with 100% opacity */}
+                      <Image
+                        src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200&auto=format&fit=crop"
+                        alt="Tech Platform"
+                        fill
+                        className="absolute inset-0 object-cover z-0 opacity-100"
+                        unoptimized
+                      />
+                      {/* Left-side gradient overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/35 to-transparent z-0 pointer-events-none" />
+
+                      <div className="relative z-10 flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center border border-indigo-400/30 shadow-md shrink-0">
+                          <i className="fa-solid fa-brain text-indigo-400 text-lg" />
+                        </div>
+                        <div>
+                          <span className="text-[11px] font-bold text-indigo-300 tracking-widest uppercase block drop-shadow-sm">SCC SMART CAREER CONNECTOR</span>
+                        </div>
+                      </div>
+
+                      <div className="relative z-10 my-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                        <div className="flex-1 max-w-xl">
+                          <h2 className="text-xl md:text-3xl font-extrabold text-white tracking-wide leading-tight drop-shadow-md">
+                            SCC AI MATCHING ENGINE PLATFORM
+                          </h2>
+                          <div className="mt-2 inline-block bg-indigo-500 text-white text-xs font-black px-3 py-1 rounded-sm uppercase tracking-wider shadow-sm animate-pulse">
+                            CƠ HỘI ĐỘT PHÁ SỰ NGHIỆP IT
+                          </div>
+                          <p className="mt-4 text-xs md:text-sm font-bold text-slate-100 flex items-center gap-2 drop-shadow-md">
+                            TUYỂN DỤNG <span className="text-indigo-300 text-2xl md:text-3xl font-black drop-shadow-sm">50+</span> KỸ SƯ AI & FULLSTACK
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-3 shrink-0 bg-black/40 p-3 rounded-2xl border border-white/10 backdrop-blur-sm shadow-md">
+                          <div className="bg-white p-2 rounded-xl flex flex-col items-center justify-center shrink-0 border border-indigo-500 shadow-sm w-20 h-20 md:w-24 md:h-24">
+                            <svg className="w-14 h-14 md:w-18 md:h-18 text-indigo-950" viewBox="0 0 100 100" fill="currentColor">
+                              <rect x="5" y="5" width="25" height="25" />
+                              <rect x="10" y="10" width="15" height="15" fill="white" />
+                              <rect x="70" y="5" width="25" height="25" />
+                              <rect x="75" y="10" width="15" height="15" fill="white" />
+                              <rect x="5" y="70" width="25" height="25" />
+                              <rect x="10" y="75" width="15" height="15" fill="white" />
+                              <rect x="40" y="10" width="10" height="15" />
+                              <rect x="55" y="5" width="10" height="10" />
+                              <rect x="35" y="30" width="25" height="15" />
+                              <rect x="15" y="40" width="10" height="15" />
+                              <rect x="75" y="35" width="15" height="20" />
+                              <rect x="45" y="55" width="10" height="10" />
+                              <rect x="60" y="60" width="20" height="15" />
+                              <rect x="80" y="80" width="15" height="15" />
+                            </svg>
+                            <span className="text-[6px] md:text-[7px] font-black text-center text-slate-800 mt-1 uppercase tracking-tight leading-none">Nộp CV Ngay</span>
+                          </div>
+                          <div className="hidden sm:block w-px h-16 bg-white/20" />
+                          <div className="hidden sm:flex flex-col text-left">
+                            <span className="text-[10px] font-black text-indigo-300">MỨC LƯƠNG HẤP DẪN</span>
+                            <span className="text-base md:text-lg font-bold text-white tracking-wide">$2000 - $5000</span>
+                            <span className="text-[9px] text-slate-300">Thỏa thuận theo năng lực</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 gap-2 mt-auto">
+                        <div className="bg-black/50 border border-white/10 backdrop-blur-xs rounded-xl p-2 text-center flex flex-col justify-center items-center shadow-md">
+                          <i className="fa-solid fa-house-laptop text-indigo-400 text-xs mb-1" />
+                          <span className="text-[9px] font-black tracking-tight leading-tight text-white uppercase leading-none">LÀM VIỆC HYBRID / REMOTE</span>
+                        </div>
+                        <div className="bg-black/50 border border-white/10 backdrop-blur-xs rounded-xl p-2 text-center flex flex-col justify-center items-center shadow-md">
+                          <i className="fa-solid fa-gift text-indigo-400 text-xs mb-1" />
+                          <span className="text-[9px] font-black tracking-tight leading-tight text-white uppercase leading-none">THƯỞNG DỰ ÁN CỰC CAO</span>
+                        </div>
+                        <div className="bg-black/50 border border-white/10 backdrop-blur-xs rounded-xl p-2 text-center flex flex-col justify-center items-center shadow-md">
+                          <i className="fa-solid fa-laptop text-indigo-400 text-xs mb-1" />
+                          <span className="text-[9px] font-black tracking-tight leading-tight text-white uppercase leading-none">CẤP MACBOOK PRO M3</span>
+                        </div>
+                        <div className="bg-black/50 border border-white/10 backdrop-blur-xs rounded-xl p-2 text-center flex flex-col justify-center items-center shadow-md">
+                          <i className="fa-solid fa-kit-medical text-indigo-400 text-xs mb-1" />
+                          <span className="text-[9px] font-black tracking-tight leading-tight text-white uppercase leading-none">BẢO HIỂM CHĂM SÓC SỨC KHỎE</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SLIDE 2: CORPORATE FINANCE/BANKING */}
+                  {activeSlide === 2 && (
+                    <div className="relative w-full h-full p-6 md:p-10 flex flex-col justify-between select-none transition-all duration-700 animate-fadeIn bg-slate-950">
+                      {/* Background Photo with 100% opacity */}
+                      <Image
+                        src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1200&auto=format&fit=crop"
+                        alt="Banking Partner"
+                        fill
+                        className="absolute inset-0 object-cover z-0 opacity-100"
+                        unoptimized
+                      />
+                      {/* Left-side gradient overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/35 to-transparent z-0 pointer-events-none" />
+
+                      <div className="relative z-10 flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center border border-amber-400 shadow-md shrink-0">
+                          <i className="fa-solid fa-landmark text-amber-600 text-lg" />
+                        </div>
+                        <div>
+                          <span className="text-[11px] font-bold text-amber-300 tracking-widest uppercase block drop-shadow-sm">NGÂN HÀNG THƯƠNG MẠI ĐỐI TÁC</span>
+                        </div>
+                      </div>
+
+                      <div className="relative z-10 my-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                        <div className="flex-1 max-w-xl">
+                          <h2 className="text-xl md:text-3xl font-extrabold text-white tracking-wide leading-tight drop-shadow-md">
+                            HỆ THỐNG GIAO DỊCH VIÊN & RM TOÀN QUỐC
+                          </h2>
+                          <div className="mt-2 inline-block bg-amber-400 text-slate-900 text-xs font-black px-3 py-1 rounded-sm uppercase tracking-wider shadow-sm animate-pulse">
+                            BỨT PHÁ SỰ NGHIỆP TÀI CHÍNH
+                          </div>
+                          <p className="mt-4 text-xs md:text-sm font-bold text-slate-100 flex items-center gap-2 drop-shadow-md">
+                            TUYỂN DỤNG <span className="text-amber-300 text-2xl md:text-3xl font-black drop-shadow-sm">150+</span> NHÂN SỰ CHUYÊN NGHIỆP
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-3 shrink-0 bg-black/40 p-3 rounded-2xl border border-white/10 backdrop-blur-sm shadow-md">
+                          <div className="bg-white p-2 rounded-xl flex flex-col items-center justify-center shrink-0 border border-amber-500 shadow-sm w-20 h-20 md:w-24 md:h-24">
+                            <svg className="w-14 h-14 md:w-18 md:h-18 text-slate-900" viewBox="0 0 100 100" fill="currentColor">
+                              <rect x="5" y="5" width="25" height="25" />
+                              <rect x="10" y="10" width="15" height="15" fill="white" />
+                              <rect x="70" y="5" width="25" height="25" />
+                              <rect x="75" y="10" width="15" height="15" fill="white" />
+                              <rect x="5" y="70" width="25" height="25" />
+                              <rect x="10" y="75" width="15" height="15" fill="white" />
+                              <rect x="40" y="5" width="15" height="15" />
+                              <rect x="5" y="40" width="10" height="20" />
+                              <rect x="25" y="45" width="15" height="15" />
+                              <rect x="45" y="30" width="20" height="20" />
+                              <rect x="70" y="40" width="20" height="10" />
+                              <rect x="75" y="60" width="15" height="15" />
+                              <rect x="40" y="75" width="20" height="20" />
+                            </svg>
+                            <span className="text-[6px] md:text-[7px] font-black text-center text-slate-800 mt-1 uppercase tracking-tight leading-none">Ứng Tuyển Nhanh</span>
+                          </div>
+                          <div className="hidden sm:block w-px h-16 bg-white/20" />
+                          <div className="hidden sm:flex flex-col text-left">
+                            <span className="text-[10px] font-black text-amber-300">THU NHẬP HẤP DẪN</span>
+                            <span className="text-base md:text-lg font-bold text-white tracking-wide">12 - 25 TRIỆU</span>
+                            <span className="text-[9px] text-slate-300">Thưởng doanh số cực cao</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 gap-2 mt-auto">
+                        <div className="bg-black/50 border border-white/10 backdrop-blur-xs rounded-xl p-2 text-center flex flex-col justify-center items-center shadow-md">
+                          <i className="fa-solid fa-graduation-cap text-amber-400 text-xs mb-1" />
+                          <span className="text-[9px] font-black tracking-tight leading-tight text-white uppercase leading-none">ĐÀO TẠO CHUẨN QUỐC TẾ</span>
+                        </div>
+                        <div className="bg-black/50 border border-white/10 backdrop-blur-xs rounded-xl p-2 text-center flex flex-col justify-center items-center shadow-md">
+                          <i className="fa-solid fa-briefcase-medical text-amber-400 text-xs mb-1" />
+                          <span className="text-[9px] font-black tracking-tight leading-tight text-white uppercase leading-none">BẢO HIỂM SỨC KHỎE AON</span>
+                        </div>
+                        <div className="bg-black/50 border border-white/10 backdrop-blur-xs rounded-xl p-2 text-center flex flex-col justify-center items-center shadow-md">
+                          <i className="fa-solid fa-chart-line text-amber-400 text-xs mb-1" />
+                          <span className="text-[9px] font-black tracking-tight leading-tight text-white uppercase leading-none">LỘ TRÌNH THĂNG TIẾN</span>
+                        </div>
+                        <div className="bg-black/50 border border-white/10 backdrop-blur-xs rounded-xl p-2 text-center flex flex-col justify-center items-center shadow-md">
+                          <i className="fa-solid fa-plane text-amber-400 text-xs mb-1" />
+                          <span className="text-[9px] font-black tracking-tight leading-tight text-white uppercase leading-none">DU LỊCH NGHỈ DƯỠNG HÀNG NĂM</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Carousel dots */}
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-20">
+                  {[0, 1, 2].map((idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setActiveSlide(idx)}
+                      className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${activeSlide === idx ? 'w-6 bg-amber-400' : 'w-2 bg-white/40 hover:bg-white/60'}`}
+                      aria-label={`Go to slide ${idx + 1}`}
+                    />
+                  ))}
+                </div>
+
+                {/* Carousel chevrons */}
+                <button
+                  onClick={() => setActiveSlide((prev) => (prev - 1 + 3) % 3)}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/20 hover:bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20 cursor-pointer"
+                  aria-label="Previous slide"
                 >
-                  {keyword}
-                </a>
-              ))}
+                  <i className="fa-solid fa-chevron-left text-xs" />
+                </button>
+                <button
+                  onClick={() => setActiveSlide((prev) => (prev + 1) % 3)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/20 hover:bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20 cursor-pointer"
+                  aria-label="Next slide"
+                >
+                  <i className="fa-solid fa-chevron-right text-xs" />
+                </button>
+              </div>
             </div>
           </div>
         </section>
@@ -852,21 +1331,21 @@ export function HomepageMain({
         <section id="best-jobs-section" className="bg-white py-20">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-center">
-              <div>
-                <h2 className="text-3xl font-bold text-slate-900">
-                  Best Jobs For You
-                </h2>
-                <p className="mt-1 flex items-center gap-2 text-gray-500">
-                  <span className="h-2 w-2 rounded-full bg-green-500" />{' '}
-                  Recommendations by SCC AI
+              <div className="flex flex-col items-start gap-2.5">
+                <div className="inline-block bg-[#f27024] text-white px-5 py-2.5 text-[14px] font-black rounded-tr-2xl rounded-bl-2xl shadow-md uppercase tracking-wider animate-bounce-slow">
+                  Việc làm mới nhất dành cho bạn
+                </div>
+                <p className="text-sm flex items-center gap-2 text-slate-500 font-bold mt-1">
+                  <span className="h-2.5 w-2.5 rounded-full bg-primary-500 animate-pulse" />{' '}
+                  Gợi ý việc làm phù hợp nhất từ AI của SCC
                 </p>
               </div>
               <Link
-                className="font-bold text-primary-600 hover:underline"
+                className="font-bold text-primary-600 hover:text-primary-700 flex items-center gap-1.5 transition-all text-sm"
                 href="/jobs"
               >
-                View all{' '}
-                <i className="fa-solid fa-chevron-right ml-1 text-xs" />
+                Xem tất cả việc làm{' '}
+                <i className="fa-solid fa-chevron-right text-xs" />
               </Link>
             </div>
 

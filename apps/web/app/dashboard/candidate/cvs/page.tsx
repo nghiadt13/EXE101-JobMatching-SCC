@@ -128,6 +128,7 @@ export default async function CandidateCvsPage({ searchParams }: PageProps) {
             onDelete={deleteAction}
             onSetDefault={setPrimaryAction}
             onRename={renameAction}
+            accessToken={session.accessToken}
           />
         </div>
 

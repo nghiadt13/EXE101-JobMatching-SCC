@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import type { CvItem } from '@/lib/cv-client';
+import { useState, useMemo, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import { uploadCv, type CvItem } from '@/lib/cv-client';
 import { CvPageHeader } from './cv-page-header';
 import { AnnouncementBanner } from './announcement-banner';
 import { CvStatsCard } from './cv-stats-card';
@@ -11,6 +12,7 @@ import { CvCreateModal } from './cv-create-modal';
 import { CvPreviewModal } from './cv-preview-modal';
 import { Button } from '@/components/ui/button';
 import { Plus, FileText } from 'lucide-react';
+import { toast } from 'sonner';
 
 type CvPageContentProps = {
   items: CvItem[];
@@ -18,6 +20,7 @@ type CvPageContentProps = {
   onDelete: (cvId: string) => Promise<void>;
   onSetDefault: (cvId: string) => Promise<void>;
   onRename: (cvId: string, newTitle: string) => Promise<void>;
+  accessToken?: string;
 };
 
 export function CvPageContent({
@@ -26,10 +29,57 @@ export function CvPageContent({
   onDelete,
   onSetDefault,
   onRename,
+  accessToken,
 }: CvPageContentProps) {
+  const router = useRouter();
   const [search, setSearch] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [previewCv, setPreviewCv] = useState<CvItem | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validation
+    const validTypes = [
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    ];
+    const fileExtension = file.name.split('.').pop()?.toLowerCase();
+    
+    if (!validTypes.includes(file.type) && fileExtension !== 'pdf' && fileExtension !== 'docx') {
+      toast.error('Chỉ hỗ trợ tải lên file định dạng PDF hoặc DOCX.');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Kích thước file CV tối đa là 5MB.');
+      return;
+    }
+
+    if (!accessToken) {
+      toast.error('Phiên làm việc hết hạn. Vui lòng đăng nhập lại.');
+      return;
+    }
+
+    setIsUploading(true);
+    const toastId = toast.loading('Đang tải CV lên và phân tích AI... Vui lòng đợi.');
+
+    try {
+      await uploadCv(accessToken, file);
+      toast.success('Tải CV lên và phân tích AI thành công!', { id: toastId });
+      router.refresh();
+      // Clear input
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    } catch (error: any) {
+      const msg = error?.message || 'Có lỗi xảy ra khi tải CV lên.';
+      toast.error(`Tải CV thất bại: ${msg}`, { id: toastId });
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const filtered = useMemo(() => {
     if (!search.trim()) return items;
@@ -52,7 +102,7 @@ export function CvPageContent({
       {/* Stats Card: Career Opportunities */}
       <CvStatsCard
         onCreateClick={() => setShowCreateModal(true)}
-        onUploadClick={() => setShowCreateModal(true)}
+        onUploadClick={() => fileInputRef.current?.click()}
       />
 
       {/* CV List Section */}
@@ -118,6 +168,16 @@ export function CvPageContent({
         }}
       />
       <CvPreviewModal isOpen={!!previewCv} onClose={() => setPreviewCv(null)} cv={previewCv} />
+
+      {/* Hidden file input for seamless uploading */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        style={{ display: 'none' }}
+        accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        disabled={isUploading}
+      />
     </div>
   );
 }

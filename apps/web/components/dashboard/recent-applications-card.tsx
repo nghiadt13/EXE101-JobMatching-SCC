@@ -70,31 +70,33 @@ export function RecentApplicationsCard({
           Chưa có đơn đăng ký nào.
         </p>
       ) : (
-        <ul className="space-y-3">
+        <ul className="space-y-3.5">
           {applications.map((app) => (
             <li
               key={app.id}
-              className="flex items-center gap-3 rounded-lg p-2 transition-colors hover:bg-md-surface-container-low"
+              className="flex items-center gap-4 rounded-xl border border-md-outline-variant/20 bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all duration-200 hover:border-primary/30 hover:shadow-[0_4px_12px_rgba(0,0,0,0.05)]"
             >
               {/* Company initial avatar */}
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-md-primary-container font-label-md text-md-on-primary">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-md-primary-container/20 font-bold text-md-primary text-sm shadow-sm">
                 {getInitial(app.companyName)}
               </div>
 
               {/* Job info */}
               <div className="min-w-0 flex-1">
-                <p className="truncate font-body-md text-md-on-surface">
+                <p className="truncate font-semibold text-sm text-md-on-surface hover:text-md-primary transition-colors">
                   {app.jobTitle}
                 </p>
-                <p className="truncate font-body-sm text-md-on-surface-variant">
-                  {app.companyName} · {timeAgo(app.appliedAt)}
+                <p className="truncate text-xs text-md-on-surface-variant mt-1 flex items-center gap-1.5">
+                  <span className="font-medium text-md-on-surface/75">{app.companyName}</span>
+                  <span className="text-md-outline/60">•</span>
+                  <span>{timeAgo(app.appliedAt)}</span>
                 </p>
               </div>
 
               {/* Status badge */}
               <span
                 className={cn(
-                  'inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 font-label-sm',
+                  'inline-flex shrink-0 items-center rounded-lg px-3 py-1 text-[11px] font-semibold tracking-wide uppercase',
                   STATUS_STYLES[app.status],
                 )}
               >

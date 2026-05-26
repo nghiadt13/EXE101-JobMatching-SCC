@@ -6,7 +6,7 @@ export function SkillsKeywordsCard({ skills }: SkillsKeywordsCardProps) {
   return (
     <div className="rounded-xl border border-md-outline-variant/30 bg-md-surface-container-lowest p-5 shadow-sm">
       <h3 className="font-headline-md text-md-on-surface mb-3">
-        Kỹ năng & từ khoạ
+        Kỹ năng & từ khóa
       </h3>
 
       {skills.length === 0 ? (

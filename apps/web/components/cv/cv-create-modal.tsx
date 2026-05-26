@@ -47,15 +47,50 @@ export function CvCreateModal({ isOpen, onClose, onCreate }: CvCreateModalProps)
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: '100vw',
+        height: '100vh',
+        zIndex: 9999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '1rem',
       }}
       role="dialog"
       aria-modal="true"
       aria-label="Khởi tạo CV mới"
     >
-      <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
+      {/* Backdrop */}
+      <div
+        className="backdrop-blur-sm animate-in fade-in duration-200"
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: '100%',
+          height: '100%',
+          backgroundColor: 'rgba(15, 23, 42, 0.6)',
+        }}
+        onClick={onClose}
+      />
+
+      {/* Modal Content */}
+      <div 
+        className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200"
+        style={{
+          position: 'relative',
+          width: '100%',
+          maxWidth: '448px',
+          zIndex: 10000,
+        }}
+      >
         {/* Header */}
         <div className="flex items-center justify-between">
           <h4 className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
