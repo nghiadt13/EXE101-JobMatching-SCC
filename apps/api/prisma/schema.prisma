@@ -1,0 +1,378 @@
+// Reconstructed from 9 migration files (20260305190000_init through 20260323084128_add_cv_builder_fields)
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  ADMIN
+  RECRUITER
+  CANDIDATE
+}
+
+enum JobStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+  ARCHIVED
+}
+
+enum ApplicationStatus {
+  APPLIED
+  REVIEWING
+  INTERVIEW
+  OFFER
+  REJECTED
+  WITHDRAWN
+  PENDING_MATCHING
+}
+
+enum RecommendationScanStatus {
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+model User {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  password  String
+  name      String
+  role      UserRole  @default(CANDIDATE)
+  avatar    String?
+  planName  String    @default("Free Plan")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  // Relations
+  candidates    Candidate[]
+  jobs          Job[]
+  savedJobs     SavedJob[]
+  notifications Notification[]
+
+  @@index([email])
+  @@index([role])
+  @@index([deletedAt])
+}
+
+model Candidate {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  phone     String?
+  location  Json?
+  bio       String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  cvs                 CV[]
+  applications        Application[]
+  recommendationScans RecommendationScan[]
+
+  @@index([userId])
+}
+
+model CV {
+  id                      String    @id @default(cuid())
+  candidateId             String
+  fileName                String
+  filePath                String
+  fileSize                Int
+  mimeType                String
+  parsedData              Json
+  skills                  Json
+  isPrimary               Boolean   @default(false)
+  skillAtoms              Json?
+  candidateProfile        Json?
+  candidateProfileVersion String?
+  rawText                 String?
+  source                  String    @default("upload")
+  templateId              String    @default("simple")
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+  deletedAt               DateTime?
+
+  // Relations
+  candidate    Candidate     @relation(fields: [candidateId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  applications Application[]
+
+  @@index([candidateId])
+  @@index([isPrimary])
+  @@index([deletedAt])
+}
+
+model Job {
+  id                        String    @id @default(cuid())
+  recruiterId               String
+  title                     String
+  slug                      String    @unique
+  description               String
+  skills                    Json
+  location                  Json?
+  salaryMin                 Int?
+  salaryMax                 Int?
+  employmentType            String
+  status                    JobStatus @default(DRAFT)
+  publishedAt               DateTime?
+  closedAt                  DateTime?
+  skillAtoms                Json?
+  requirementsSchema        Json?
+  requirementsSchemaVersion String?
+  categoryId                String?
+  companyId                 String?
+  shortDescription          String?
+  // Filter metadata fields
+  workingDayStatus          String?
+  experienceLevel           String?
+  minExperienceMonths       Int?
+  companyIndustryKey        String?
+  jobFieldKey               String?
+  jobLevel                  String?
+  salesModel                String?
+  salaryNegotiable          Boolean   @default(false)
+  applicationDeadline       DateTime?
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+  deletedAt                 DateTime?
+
+  // Relations
+  recruiter             User                   @relation(fields: [recruiterId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  company               Company?               @relation(fields: [companyId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  category              JobCategory?           @relation(fields: [categoryId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  applications          Application[]
+  savedJobs             SavedJob[]
+  recommendationResults RecommendationResult[]
+  jobCategories         JobCategoryOnJob[]
+  jobCustomerTypes      JobCustomerTypeOnJob[]
+
+  @@index([recruiterId])
+  @@index([status])
+  @@index([publishedAt])
+  @@index([slug])
+  @@index([deletedAt])
+  @@index([companyId])
+  @@index([categoryId])
+  @@index([workingDayStatus])
+  @@index([experienceLevel])
+  @@index([companyIndustryKey])
+  @@index([jobFieldKey])
+  @@index([jobLevel])
+  @@index([salesModel])
+  @@index([applicationDeadline])
+  @@index([salaryNegotiable])
+}
+
+model Application {
+  id               String            @id @default(cuid())
+  jobId            String
+  candidateId      String
+  cvId             String
+  matchScore       Float             @default(0)
+  status           ApplicationStatus @default(APPLIED)
+  notes            String?
+  matchingSnapshot Json?
+  appliedAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  // Relations
+  job       Job       @relation(fields: [jobId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "Application_jobId_fkey")
+  candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "Application_candidateId_fkey")
+  cv        CV        @relation(fields: [cvId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "Application_cvId_fkey")
+
+  @@unique([jobId, candidateId])
+  @@index([jobId])
+  @@index([candidateId])
+  @@index([cvId])
+  @@index([matchScore])
+  @@index([status])
+}
+
+model Skill {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  category  String
+  createdAt DateTime @default(now())
+
+  @@index([name])
+  @@index([category])
+}
+
+model Company {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String?  @unique
+  logoUrl     String?
+  iconKey     String?
+  isTrusted   Boolean  @default(false)
+  companyType String?  @default("normal")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  jobs Job[]
+
+  @@index([isTrusted])
+  @@index([companyType])
+}
+
+model JobCategory {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  iconKey   String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  jobs          Job[]
+  jobCategories JobCategoryOnJob[]
+
+  @@index([sortOrder])
+}
+
+model SavedJob {
+  id        String   @id @default(cuid())
+  userId    String
+  jobId     String
+  createdAt DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "SavedJob_userId_fkey")
+  job  Job  @relation(fields: [jobId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "SavedJob_jobId_fkey")
+
+  @@unique([userId, jobId])
+  @@index([userId])
+  @@index([jobId])
+}
+
+model HomepageContent {
+  id                     String   @id @default(cuid())
+  slug                   String   @unique @default("home-main")
+  heroHeadline           String
+  heroSubheadline        String
+  heroBackgroundImageUrl String
+  popularKeywords        Json
+  footerQuickLinks       Json
+  footerSupportLinks     Json
+  footerSocialLinks      Json
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+}
+
+model MarketStatDaily {
+  id              String   @id @default(cuid())
+  statDate        DateTime @unique
+  newJobs24h      Int      @default(0)
+  activeJobs      Int      @default(0)
+  hiringCompanies Int      @default(0)
+  createdAt       DateTime @default(now())
+
+  @@index([statDate(sort: Desc)])
+}
+
+model IndustryDemandDaily {
+  id            String   @id @default(cuid())
+  statDate      DateTime
+  industryKey   String
+  industryLabel String
+  demandValue   Int      @default(0)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  @@unique([statDate, industryKey])
+  @@index([statDate(sort: Desc)])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  body      String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId, isRead])
+}
+
+model RecommendationScan {
+  id           String                   @id @default(cuid())
+  candidateId  String
+  cvId         String
+  status       RecommendationScanStatus @default(PROCESSING)
+  totalJobs    Int                      @default(0)
+  preFiltered  Int                      @default(0)
+  aiEvaluated  Int                      @default(0)
+  processingMs Int?
+  errorMessage String?
+  createdAt    DateTime                 @default(now())
+  completedAt  DateTime?
+
+  // Relations
+  candidate Candidate              @relation(fields: [candidateId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  results   RecommendationResult[]
+
+  @@index([candidateId, createdAt(sort: Desc)])
+  @@index([status])
+}
+
+model RecommendationResult {
+  id               String   @id @default(cuid())
+  scanId           String
+  jobId            String
+  rank             Int
+  matchScore       Float
+  matchTier        String
+  matchingVersion  String
+  matchingSnapshot Json?
+  strengths        Json     @default("[]")
+  gaps             Json     @default("[]")
+  confidenceScore  Float    @default(0)
+  createdAt        DateTime @default(now())
+
+  // Relations
+  scan RecommendationScan @relation(fields: [scanId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "RecommendationResult_scanId_fkey")
+  job  Job                @relation(fields: [jobId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "RecommendationResult_jobId_fkey")
+
+  @@index([scanId, rank])
+  @@index([jobId])
+}
+
+// ─── Filter Join Tables ────────────────────────────────────────────────────────
+
+model JobCategoryOnJob {
+  jobId      String
+  categoryId String
+  createdAt  DateTime @default(now())
+
+  job      Job         @relation(fields: [jobId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  category JobCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@id([jobId, categoryId])
+  @@index([categoryId])
+}
+
+model JobCustomerTypeOnJob {
+  jobId     String
+  type      String
+  createdAt DateTime @default(now())
+
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@id([jobId, type])
+  @@index([type])
+}

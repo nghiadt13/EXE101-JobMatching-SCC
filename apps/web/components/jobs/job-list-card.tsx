@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
 import type { JobItem } from '@/lib/jobs-client';
+import { EXPERIENCE_LEVEL_LABELS, type ExperienceLevel } from '@/lib/job-filter-options';
 
 type JobListCardProps = {
   job: JobItem;
@@ -37,23 +38,25 @@ export function JobListCard({
   const [isSaved, setIsSaved] = useState(false);
 
   const skills = job.skills?.slice(0, 5) ?? [];
-  const experienceText = job.employmentType || 'Full-time';
+  const experienceLabel = job.experienceLevel
+    ? EXPERIENCE_LEVEL_LABELS[job.experienceLevel as ExperienceLevel] ?? null
+    : null;
 
   return (
-    <div className="job-list-card group rounded-xl border border-gray-200 bg-white p-4 md:p-5">
+    <article className="job-list-card group rounded-xl border border-primary-200 bg-white p-3 transition-all hover:border-primary-400 hover:bg-primary-50/40 md:p-4">
       <div className="flex gap-4">
         {/* Company Logo */}
         <Link
           href={`/jobs/${job.slug}`}
-          className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border border-gray-100 bg-gray-50 p-2 transition-all group-hover:border-primary-200 md:h-20 md:w-20"
+          className="flex h-20 w-20 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-white p-2 transition-all group-hover:border-primary-200 md:h-24 md:w-24"
         >
           {job.companyLogoUrl ? (
             <Image
               src={job.companyLogoUrl}
               alt={job.companyName ?? 'Company'}
-              width={56}
-              height={56}
-              className="h-12 w-12 object-contain md:h-14 md:w-14"
+              width={64}
+              height={64}
+              className="h-14 w-14 object-contain md:h-16 md:w-16"
               unoptimized
             />
           ) : (
@@ -67,33 +70,43 @@ export function JobListCard({
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
-              <Link href={`/jobs/${job.slug}`}>
-                <h3 className="mb-1 truncate text-base font-bold text-slate-900 transition-colors group-hover:text-primary-600 md:text-lg">
-                  {job.title}
-                </h3>
-              </Link>
-              <p className="mb-2 truncate text-sm text-gray-500">
+              <div className="mb-1 flex items-center gap-2">
+                <Link href={`/jobs/${job.slug}`}>
+                  <h3 className="line-clamp-2 text-base font-bold leading-snug text-slate-800 transition-colors group-hover:text-primary-700">
+                    {job.title}
+                  </h3>
+                </Link>
+                {job.companyType === 'pro' && (
+                  <span className="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700">
+                    Pro
+                  </span>
+                )}
+              </div>
+              <p className="mb-2 truncate text-sm font-semibold text-slate-500">
                 {job.companyName ?? 'Confidential Company'}
               </p>
             </div>
             {/* Salary */}
             <div className="shrink-0 text-right">
-              <span className="text-base font-bold text-green-600 md:text-lg">
+              <span className="text-sm font-bold text-primary-600 md:text-base">
                 {salaryText}
               </span>
             </div>
           </div>
 
-          {/* Location & Experience */}
-          <div className="mb-3 flex flex-wrap items-center gap-3 text-sm text-gray-500">
-            <span className="flex items-center gap-1">
-              <i className="fa-solid fa-location-dot text-xs text-gray-400" />
+          {/* Location & Experience & Employment type */}
+          <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+            <span className="rounded-md bg-white/80 px-2 py-1">
               {locationLabel}
             </span>
-            {job.location && typeof job.location === 'object' && (
-              <span className="flex items-center gap-1">
-                <i className="fa-solid fa-building text-xs text-gray-400" />
-                {experienceText}
+            {experienceLabel && (
+              <span className="rounded-md bg-white/80 px-2 py-1">
+                {experienceLabel}
+              </span>
+            )}
+            {job.employmentType && (
+              <span className="rounded-md bg-white/80 px-2 py-1">
+                {job.employmentType}
               </span>
             )}
           </div>
@@ -116,12 +129,13 @@ export function JobListCard({
 
             {/* Time ago & Save button */}
             <div className="ml-auto flex items-center gap-3">
-              <span className="hidden text-xs text-gray-400 sm:inline">
+              <span className="hidden text-xs text-slate-400 sm:inline">
                 Đăng {timeAgo}
               </span>
               <button
-                className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 text-gray-400 transition-all hover:border-red-200 hover:text-red-500"
+                className="flex h-8 w-8 items-center justify-center rounded-full border border-primary-200 bg-white text-primary-500 transition-all hover:border-primary-500 hover:text-primary-700"
                 type="button"
+                aria-label={isSaved ? 'Bỏ lưu việc làm' : 'Lưu việc làm'}
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -136,6 +150,6 @@ export function JobListCard({
           </div>
         </div>
       </div>
-    </div>
+    </article>
   );
 }

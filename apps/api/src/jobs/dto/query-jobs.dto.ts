@@ -14,7 +14,7 @@ import {
 } from 'class-validator';
 import { JobStatus } from '@prisma/client';
 
-export const JOB_SORT_VALUES = ['newest', 'salary_asc', 'salary_desc'] as const;
+export const JOB_SORT_VALUES = ['newest', 'salary_asc', 'salary_desc', 'deadline_soon', 'relevance'] as const;
 export type JobsSort = (typeof JOB_SORT_VALUES)[number];
 
 export const JOB_REMOTE_VALUES = ['any', 'true', 'false'] as const;
@@ -117,6 +117,84 @@ export class QueryJobsDto {
   @Type(() => Number)
   @IsIn(JOB_POSTED_WITHIN_DAYS_VALUES)
   postedWithinDays?: JobsPostedWithinDays;
+
+  @IsOptional()
+  @Transform(({ value }) => parseCsvArray(value))
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsString({ each: true })
+  categorySlugs?: string[];
+
+  @IsOptional()
+  @Transform(({ value }) => parseCsvArray(value))
+  @IsArray()
+  @ArrayMaxSize(10)
+  @IsString({ each: true })
+  experienceLevels?: string[];
+
+  @IsOptional()
+  @Transform(({ value }) => parseCsvArray(value))
+  @IsArray()
+  @ArrayMaxSize(10)
+  @IsString({ each: true })
+  companyIndustryKeys?: string[];
+
+  @IsOptional()
+  @Transform(({ value }) => parseCsvArray(value))
+  @IsArray()
+  @ArrayMaxSize(10)
+  @IsString({ each: true })
+  jobFieldKeys?: string[];
+
+  @IsOptional()
+  @Transform(({ value }) => parseCsvArray(value))
+  @IsArray()
+  @ArrayMaxSize(5)
+  @IsString({ each: true })
+  companyTypes?: string[];
+
+  @IsOptional()
+  @Transform(({ value }) => parseCsvArray(value))
+  @IsArray()
+  @ArrayMaxSize(10)
+  @IsString({ each: true })
+  salaryBands?: string[];
+
+  @IsOptional()
+  @Transform(({ value }) => parseCsvArray(value))
+  @IsArray()
+  @ArrayMaxSize(10)
+  @IsString({ each: true })
+  jobLevels?: string[];
+
+  @IsOptional()
+  @Transform(({ value }) => parseCsvArray(value))
+  @IsArray()
+  @ArrayMaxSize(5)
+  @IsString({ each: true })
+  salesModels?: string[];
+
+  @IsOptional()
+  @Transform(({ value }) => parseCsvArray(value))
+  @IsArray()
+  @ArrayMaxSize(5)
+  @IsString({ each: true })
+  customerTypes?: string[];
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(30)
+  workingDayStatus?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  searchScope?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  location?: string;
 
   @IsOptional()
   @Transform(({ value }) => value === true || value === 'true')

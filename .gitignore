@@ -12,3 +12,5 @@ apps/demo-video/out/
 /Project_overview/
 check-users.sql
 .kiro/
+tmp/
+Error/

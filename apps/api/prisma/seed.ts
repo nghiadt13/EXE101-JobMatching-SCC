@@ -208,6 +208,14 @@ async function main() {
           employmentType: 'FULL_TIME',
           status: JobStatus.PUBLISHED,
           publishedAt: now,
+          workingDayStatus: 'saturday_off',
+          experienceLevel: '3',
+          minExperienceMonths: 36,
+          jobLevel: 'staff',
+          companyIndustryKey: 'it_software',
+          jobFieldKey: 'it',
+          salaryNegotiable: false,
+          applicationDeadline: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000),
         },
       }),
       prisma.job.create({
@@ -226,6 +234,13 @@ async function main() {
           salaryMax: 2400,
           employmentType: 'FULL_TIME',
           status: JobStatus.DRAFT,
+          workingDayStatus: 'saturday_working',
+          experienceLevel: '2',
+          jobLevel: 'leader',
+          companyIndustryKey: 'it_software',
+          jobFieldKey: 'it',
+          salesModel: 'online_sales',
+          salaryNegotiable: false,
         },
       }),
       prisma.job.create({
@@ -246,6 +261,13 @@ async function main() {
           status: JobStatus.CLOSED,
           publishedAt: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
           closedAt: now,
+          workingDayStatus: 'saturday_off',
+          experienceLevel: '2',
+          minExperienceMonths: 24,
+          jobLevel: 'staff',
+          companyIndustryKey: 'it_software',
+          jobFieldKey: 'it',
+          salaryNegotiable: false,
         },
       }),
       prisma.job.create({
@@ -265,9 +287,26 @@ async function main() {
           employmentType: 'FULL_TIME',
           status: JobStatus.PUBLISHED,
           publishedAt: now,
+          workingDayStatus: 'saturday_off',
+          experienceLevel: '3',
+          minExperienceMonths: 36,
+          jobLevel: 'staff',
+          companyIndustryKey: 'it_software',
+          jobFieldKey: 'data',
+          salaryNegotiable: false,
+          applicationDeadline: new Date(now.getTime() + 21 * 24 * 60 * 60 * 1000),
         },
       }),
     ]);
+
+  // Add category join rows for seed jobs
+  await prisma.jobCategoryOnJob.createMany({
+    data: [
+      { jobId: jobBackendPublished.id, categoryId: categoryEngineering.id },
+      { jobId: jobDataPublished.id, categoryId: categoryData.id },
+    ],
+    skipDuplicates: true,
+  });
 
   await prisma.application.createMany({
     data: [

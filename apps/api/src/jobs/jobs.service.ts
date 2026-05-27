@@ -43,6 +43,10 @@ import {
   type JobsSort,
 } from './dto/query-jobs.dto';
 import { UpdateJobDto } from './dto/update-job.dto';
+import {
+  SALARY_BAND_RANGES,
+  WORKING_DAY_STATUS_VALUES,
+} from './job-filter.constants';
 import { JobsListResponse, JobView, SaveJobResponse } from './jobs.types';
 import { JobSlugService } from './services/job-slug.service';
 
@@ -122,9 +126,40 @@ export class JobsService {
           salaryMin: dto.salaryMin ?? null,
           salaryMax: dto.salaryMax ?? null,
           employmentType: dto.employmentType,
+          workingDayStatus: dto.workingDayStatus ?? null,
+          experienceLevel: dto.experienceLevel ?? null,
+          minExperienceMonths: dto.minExperienceMonths ?? null,
+          companyIndustryKey: dto.companyIndustryKey ?? null,
+          jobFieldKey: dto.jobFieldKey ?? null,
+          jobLevel: dto.jobLevel ?? null,
+          salesModel: dto.salesModel ?? null,
+          salaryNegotiable: dto.salaryNegotiable ?? (dto.salaryMin == null && dto.salaryMax == null),
+          applicationDeadline: dto.applicationDeadline ? new Date(dto.applicationDeadline) : null,
         },
         select: this.jobViewSelect,
       });
+
+      // Create category join rows
+      if (dto.categorySlugs?.length) {
+        const categories = await this.prisma.jobCategory.findMany({
+          where: { slug: { in: dto.categorySlugs } },
+          select: { id: true },
+        });
+        if (categories.length > 0) {
+          await this.prisma.jobCategoryOnJob.createMany({
+            data: categories.map(cat => ({ jobId: created.id, categoryId: cat.id })),
+            skipDuplicates: true,
+          });
+        }
+      }
+
+      // Create customer type join rows
+      if (dto.customerTypes?.length) {
+        await this.prisma.jobCustomerTypeOnJob.createMany({
+          data: dto.customerTypes.map(type => ({ jobId: created.id, type })),
+          skipDuplicates: true,
+        });
+      }
 
       return this.toView(created);
     });
@@ -216,6 +251,8 @@ export class JobsService {
               salaryMin: null,
               salaryMax: null,
               employmentType: draft.employmentType,
+              workingDayStatus: 'not_mentioned',
+              salaryNegotiable: true,
               status: JobStatus.DRAFT,
             },
             select: this.jobViewSelect,
@@ -343,6 +380,42 @@ export class JobsService {
             : {}),
           ...(normalizedQuery.postedWithinDays !== undefined
             ? { postedWithinDays: normalizedQuery.postedWithinDays }
+            : {}),
+          ...(normalizedQuery.categorySlugs?.length
+            ? { categorySlugs: normalizedQuery.categorySlugs }
+            : {}),
+          ...(normalizedQuery.experienceLevels?.length
+            ? { experienceLevels: normalizedQuery.experienceLevels }
+            : {}),
+          ...(normalizedQuery.companyIndustryKeys?.length
+            ? { companyIndustryKeys: normalizedQuery.companyIndustryKeys }
+            : {}),
+          ...(normalizedQuery.jobFieldKeys?.length
+            ? { jobFieldKeys: normalizedQuery.jobFieldKeys }
+            : {}),
+          ...(normalizedQuery.companyTypes?.length
+            ? { companyTypes: normalizedQuery.companyTypes }
+            : {}),
+          ...(normalizedQuery.salaryBands?.length
+            ? { salaryBands: normalizedQuery.salaryBands }
+            : {}),
+          ...(normalizedQuery.jobLevels?.length
+            ? { jobLevels: normalizedQuery.jobLevels }
+            : {}),
+          ...(normalizedQuery.salesModels?.length
+            ? { salesModels: normalizedQuery.salesModels }
+            : {}),
+          ...(normalizedQuery.customerTypes?.length
+            ? { customerTypes: normalizedQuery.customerTypes }
+            : {}),
+          ...(normalizedQuery.workingDayStatus
+            ? { workingDayStatus: normalizedQuery.workingDayStatus }
+            : {}),
+          ...(normalizedQuery.searchScope
+            ? { searchScope: normalizedQuery.searchScope }
+            : {}),
+          ...(normalizedQuery.location
+            ? { location: normalizedQuery.location }
             : {}),
         },
       };
@@ -485,9 +558,46 @@ export class JobsService {
           ...(dto.employmentType !== undefined
             ? { employmentType: dto.employmentType }
             : {}),
+          ...(dto.workingDayStatus !== undefined ? { workingDayStatus: dto.workingDayStatus } : {}),
+          ...(dto.experienceLevel !== undefined ? { experienceLevel: dto.experienceLevel } : {}),
+          ...(dto.minExperienceMonths !== undefined ? { minExperienceMonths: dto.minExperienceMonths } : {}),
+          ...(dto.companyIndustryKey !== undefined ? { companyIndustryKey: dto.companyIndustryKey } : {}),
+          ...(dto.jobFieldKey !== undefined ? { jobFieldKey: dto.jobFieldKey } : {}),
+          ...(dto.jobLevel !== undefined ? { jobLevel: dto.jobLevel } : {}),
+          ...(dto.salesModel !== undefined ? { salesModel: dto.salesModel } : {}),
+          ...(dto.salaryNegotiable !== undefined ? { salaryNegotiable: dto.salaryNegotiable } : {}),
+          ...(dto.applicationDeadline !== undefined
+            ? { applicationDeadline: dto.applicationDeadline ? new Date(dto.applicationDeadline) : null }
+            : {}),
         },
         select: this.jobViewSelect,
       });
+
+      // Replace category join rows
+      if (dto.categorySlugs !== undefined) {
+        await this.prisma.jobCategoryOnJob.deleteMany({ where: { jobId: id } });
+        if (dto.categorySlugs.length > 0) {
+          const categories = await this.prisma.jobCategory.findMany({
+            where: { slug: { in: dto.categorySlugs } },
+            select: { id: true },
+          });
+          if (categories.length > 0) {
+            await this.prisma.jobCategoryOnJob.createMany({
+              data: categories.map(cat => ({ jobId: id, categoryId: cat.id })),
+            });
+          }
+        }
+      }
+
+      // Replace customer type join rows
+      if (dto.customerTypes !== undefined) {
+        await this.prisma.jobCustomerTypeOnJob.deleteMany({ where: { jobId: id } });
+        if (dto.customerTypes.length > 0) {
+          await this.prisma.jobCustomerTypeOnJob.createMany({
+            data: dto.customerTypes.map(type => ({ jobId: id, type })),
+          });
+        }
+      }
 
       const response = this.toView(updated);
       this.homepageCache.clearAll();
@@ -529,12 +639,49 @@ export class JobsService {
             ...(dto.employmentType !== undefined
               ? { employmentType: dto.employmentType }
               : {}),
+            ...(dto.workingDayStatus !== undefined ? { workingDayStatus: dto.workingDayStatus } : {}),
+            ...(dto.experienceLevel !== undefined ? { experienceLevel: dto.experienceLevel } : {}),
+            ...(dto.minExperienceMonths !== undefined ? { minExperienceMonths: dto.minExperienceMonths } : {}),
+            ...(dto.companyIndustryKey !== undefined ? { companyIndustryKey: dto.companyIndustryKey } : {}),
+            ...(dto.jobFieldKey !== undefined ? { jobFieldKey: dto.jobFieldKey } : {}),
+            ...(dto.jobLevel !== undefined ? { jobLevel: dto.jobLevel } : {}),
+            ...(dto.salesModel !== undefined ? { salesModel: dto.salesModel } : {}),
+            ...(dto.salaryNegotiable !== undefined ? { salaryNegotiable: dto.salaryNegotiable } : {}),
+            ...(dto.applicationDeadline !== undefined
+              ? { applicationDeadline: dto.applicationDeadline ? new Date(dto.applicationDeadline) : null }
+              : {}),
           },
           select: this.jobViewSelect,
         });
       },
       existing.id,
     );
+
+    // Replace category join rows
+    if (dto.categorySlugs !== undefined) {
+      await this.prisma.jobCategoryOnJob.deleteMany({ where: { jobId: id } });
+      if (dto.categorySlugs.length > 0) {
+        const categories = await this.prisma.jobCategory.findMany({
+          where: { slug: { in: dto.categorySlugs } },
+          select: { id: true },
+        });
+        if (categories.length > 0) {
+          await this.prisma.jobCategoryOnJob.createMany({
+            data: categories.map(cat => ({ jobId: id, categoryId: cat.id })),
+          });
+        }
+      }
+    }
+
+    // Replace customer type join rows
+    if (dto.customerTypes !== undefined) {
+      await this.prisma.jobCustomerTypeOnJob.deleteMany({ where: { jobId: id } });
+      if (dto.customerTypes.length > 0) {
+        await this.prisma.jobCustomerTypeOnJob.createMany({
+          data: dto.customerTypes.map(type => ({ jobId: id, type })),
+        });
+      }
+    }
 
     const response = this.toView(updated);
     this.homepageCache.clearAll();
@@ -659,6 +806,17 @@ export class JobsService {
         requirementsSchemaVersion: true,
         employmentType: true,
         status: true,
+        salaryMin: true,
+        salaryMax: true,
+        salaryNegotiable: true,
+        workingDayStatus: true,
+        experienceLevel: true,
+        minExperienceMonths: true,
+        companyIndustryKey: true,
+        jobFieldKey: true,
+        jobLevel: true,
+        salesModel: true,
+        applicationDeadline: true,
       },
     });
 
@@ -719,6 +877,18 @@ export class JobsService {
     postedWithinDays?: JobsPostedWithinDays;
     includeFacets: boolean;
     status?: JobStatus;
+    categorySlugs?: string[];
+    experienceLevels?: string[];
+    companyIndustryKeys?: string[];
+    jobFieldKeys?: string[];
+    companyTypes?: string[];
+    salaryBands?: string[];
+    jobLevels?: string[];
+    salesModels?: string[];
+    customerTypes?: string[];
+    workingDayStatus?: string;
+    searchScope?: string;
+    location?: string;
   } {
     const q = (query.q ?? query.search)?.trim() || undefined;
     if (q && this.isSensitiveQuery(q)) {
@@ -750,6 +920,22 @@ export class JobsService {
         ? query.postedWithinDays
         : undefined;
 
+    const workingDayStatus =
+      query.workingDayStatus &&
+      (WORKING_DAY_STATUS_VALUES as readonly string[]).includes(
+        query.workingDayStatus,
+      )
+        ? query.workingDayStatus
+        : undefined;
+
+    const searchScope =
+      query.searchScope &&
+      (['job', 'company', 'both'] as readonly string[]).includes(
+        query.searchScope,
+      )
+        ? query.searchScope
+        : undefined;
+
     return {
       ...(q ? { q } : {}),
       sort,
@@ -766,6 +952,34 @@ export class JobsService {
       ...(postedWithinDays !== undefined ? { postedWithinDays } : {}),
       includeFacets: query.includeFacets === true,
       ...(query.status ? { status: query.status } : {}),
+      ...(query.categorySlugs?.length
+        ? { categorySlugs: query.categorySlugs }
+        : {}),
+      ...(query.experienceLevels?.length
+        ? { experienceLevels: query.experienceLevels }
+        : {}),
+      ...(query.companyIndustryKeys?.length
+        ? { companyIndustryKeys: query.companyIndustryKeys }
+        : {}),
+      ...(query.jobFieldKeys?.length
+        ? { jobFieldKeys: query.jobFieldKeys }
+        : {}),
+      ...(query.companyTypes?.length
+        ? { companyTypes: query.companyTypes }
+        : {}),
+      ...(query.salaryBands?.length
+        ? { salaryBands: query.salaryBands }
+        : {}),
+      ...(query.jobLevels?.length ? { jobLevels: query.jobLevels } : {}),
+      ...(query.salesModels?.length
+        ? { salesModels: query.salesModels }
+        : {}),
+      ...(query.customerTypes?.length
+        ? { customerTypes: query.customerTypes }
+        : {}),
+      ...(workingDayStatus ? { workingDayStatus } : {}),
+      ...(searchScope ? { searchScope } : {}),
+      ...(query.location ? { location: query.location } : {}),
     };
   }
 
@@ -779,27 +993,48 @@ export class JobsService {
       salaryMaxLte?: number;
       postedWithinDays?: JobsPostedWithinDays;
       status?: JobStatus;
+      categorySlugs?: string[];
+      experienceLevels?: string[];
+      companyIndustryKeys?: string[];
+      jobFieldKeys?: string[];
+      companyTypes?: string[];
+      salaryBands?: string[];
+      jobLevels?: string[];
+      salesModels?: string[];
+      customerTypes?: string[];
+      workingDayStatus?: string;
+      searchScope?: string;
+      location?: string;
     },
   ): Prisma.JobWhereInput {
     const andFilters: Prisma.JobWhereInput[] = [];
 
+    // Search with scope support
     if (query.q) {
-      andFilters.push({
-        OR: [
-          {
-            title: {
-              contains: query.q,
-              mode: Prisma.QueryMode.insensitive,
-            },
+      const searchScope = query.searchScope ?? 'job';
+      if (searchScope === 'company') {
+        andFilters.push({
+          company: {
+            name: { contains: query.q, mode: Prisma.QueryMode.insensitive },
           },
-          {
-            description: {
-              contains: query.q,
-              mode: Prisma.QueryMode.insensitive,
-            },
-          },
-        ],
-      });
+        });
+      } else if (searchScope === 'both') {
+        andFilters.push({
+          OR: [
+            { title: { contains: query.q, mode: Prisma.QueryMode.insensitive } },
+            { description: { contains: query.q, mode: Prisma.QueryMode.insensitive } },
+            { company: { name: { contains: query.q, mode: Prisma.QueryMode.insensitive } } },
+          ],
+        });
+      } else {
+        // 'job' scope - default behavior
+        andFilters.push({
+          OR: [
+            { title: { contains: query.q, mode: Prisma.QueryMode.insensitive } },
+            { description: { contains: query.q, mode: Prisma.QueryMode.insensitive } },
+          ],
+        });
+      }
     }
 
     if (query.employmentTypes?.length) {
@@ -841,6 +1076,100 @@ export class JobsService {
       });
     }
 
+    // Category filter (relation)
+    if (query.categorySlugs?.length) {
+      andFilters.push({
+        jobCategories: {
+          some: {
+            category: {
+              slug: { in: query.categorySlugs },
+            },
+          },
+        },
+      });
+    }
+
+    // Customer type filter (relation)
+    if (query.customerTypes?.length) {
+      andFilters.push({
+        jobCustomerTypes: {
+          some: {
+            type: { in: query.customerTypes, mode: Prisma.QueryMode.insensitive },
+          },
+        },
+      });
+    }
+
+    // Scalar filters
+    if (query.workingDayStatus && query.workingDayStatus !== 'any') {
+      andFilters.push({ workingDayStatus: query.workingDayStatus });
+    }
+    if (query.experienceLevels?.length) {
+      andFilters.push({ experienceLevel: { in: query.experienceLevels } });
+    }
+    if (query.companyIndustryKeys?.length) {
+      andFilters.push({ companyIndustryKey: { in: query.companyIndustryKeys } });
+    }
+    if (query.jobFieldKeys?.length) {
+      andFilters.push({ jobFieldKey: { in: query.jobFieldKeys } });
+    }
+    if (query.jobLevels?.length) {
+      andFilters.push({ jobLevel: { in: query.jobLevels } });
+    }
+    if (query.salesModels?.length) {
+      andFilters.push({ salesModel: { in: query.salesModels } });
+    }
+
+    // Company type filter (through company relation)
+    if (query.companyTypes?.length) {
+      andFilters.push({
+        company: {
+          companyType: { in: query.companyTypes },
+        },
+      });
+    }
+
+    // Salary band filter
+    if (query.salaryBands?.length) {
+      const bandOr: Prisma.JobWhereInput[] = [];
+      for (const band of query.salaryBands) {
+        if (band === 'negotiable') {
+          bandOr.push({ salaryNegotiable: true });
+        } else {
+          const range = SALARY_BAND_RANGES[band as keyof typeof SALARY_BAND_RANGES];
+          if (range) {
+            const rangeAnd: Prisma.JobWhereInput[] = [];
+            if (range.min !== undefined) {
+              rangeAnd.push({
+                OR: [{ salaryMax: { gte: range.min } }, { salaryMax: null }],
+              });
+            }
+            if (range.maxExclusive !== undefined) {
+              rangeAnd.push({
+                OR: [{ salaryMin: { lt: range.maxExclusive } }, { salaryMin: null }],
+              });
+            }
+            if (rangeAnd.length > 0) {
+              bandOr.push({ AND: rangeAnd });
+            }
+          }
+        }
+      }
+      if (bandOr.length > 0) {
+        andFilters.push({ OR: bandOr });
+      }
+    }
+
+    // Location filter
+    if (query.location) {
+      andFilters.push({
+        location: {
+          path: ['city'],
+          equals: query.location,
+        },
+      });
+    }
+
     if (viewer?.role === UserRole.RECRUITER) {
       return {
         recruiterId: viewer.sub,
@@ -876,18 +1205,103 @@ export class JobsService {
         { createdAt: 'desc' },
       ];
     }
+    if (sort === 'deadline_soon') {
+      return [
+        { applicationDeadline: 'asc' },
+        { publishedAt: 'desc' },
+        { createdAt: 'desc' },
+      ];
+    }
+    if (sort === 'relevance') {
+      return [{ publishedAt: 'desc' }, { createdAt: 'desc' }];
+    }
     return [{ publishedAt: 'desc' }, { createdAt: 'desc' }];
   }
 
   private async computeFacets(
     where: Prisma.JobWhereInput,
   ): Promise<NonNullable<JobsListResponse['facets']>> {
-    const [employmentTypeRows, locationRows] = await Promise.all([
+    const [
+      categoryRows,
+      workingDayRows,
+      experienceRows,
+      industryRows,
+      jobFieldRows,
+      companyTypeRows,
+      salaryBandRows,
+      jobLevelRows,
+      employmentTypeRows,
+      salesModelRows,
+      customerTypeRows,
+      locationRows,
+    ] = await Promise.all([
+      // Categories via join table
+      this.prisma.jobCategoryOnJob.groupBy({
+        by: ['categoryId'],
+        where: { job: where },
+        _count: { _all: true },
+      }),
+      // Working day status
+      this.prisma.job.groupBy({
+        by: ['workingDayStatus'],
+        where: { ...where, workingDayStatus: { not: null } },
+        _count: { _all: true },
+      }),
+      // Experience level
+      this.prisma.job.groupBy({
+        by: ['experienceLevel'],
+        where: { ...where, experienceLevel: { not: null } },
+        _count: { _all: true },
+      }),
+      // Company industry key
+      this.prisma.job.groupBy({
+        by: ['companyIndustryKey'],
+        where: { ...where, companyIndustryKey: { not: null } },
+        _count: { _all: true },
+      }),
+      // Job field key
+      this.prisma.job.groupBy({
+        by: ['jobFieldKey'],
+        where: { ...where, jobFieldKey: { not: null } },
+        _count: { _all: true },
+      }),
+      // Company type (through company)
+      this.prisma.company.groupBy({
+        by: ['companyType'],
+        where: { jobs: { some: where } },
+        _count: { _all: true },
+      }),
+      // For salary bands, we need to compute from Job directly
+      this.prisma.job.findMany({
+        where,
+        select: { salaryMin: true, salaryMax: true, salaryNegotiable: true },
+        take: 5000,
+      }),
+      // Job level
+      this.prisma.job.groupBy({
+        by: ['jobLevel'],
+        where: { ...where, jobLevel: { not: null } },
+        _count: { _all: true },
+      }),
+      // Employment type
       this.prisma.job.groupBy({
         by: ['employmentType'],
         where,
         _count: { _all: true },
       }),
+      // Sales model
+      this.prisma.job.groupBy({
+        by: ['salesModel'],
+        where: { ...where, salesModel: { not: null } },
+        _count: { _all: true },
+      }),
+      // Customer types via join table
+      this.prisma.jobCustomerTypeOnJob.groupBy({
+        by: ['type'],
+        where: { job: where },
+        _count: { _all: true },
+      }),
+      // Cities from location JSON
       this.prisma.job.findMany({
         where,
         select: { location: true },
@@ -895,41 +1309,116 @@ export class JobsService {
       }),
     ]);
 
-    const employmentTypes = employmentTypeRows
-      .map((row) => ({ value: row.employmentType, count: row._count._all }))
-      .filter((entry) => entry.count >= 5)
+    // Resolve category names
+    const categoryIds = categoryRows.map(r => r.categoryId);
+    const categoryMap = categoryIds.length > 0
+      ? new Map(
+          (await this.prisma.jobCategory.findMany({
+            where: { id: { in: categoryIds } },
+            select: { id: true, slug: true, name: true },
+          })).map(c => [c.id, c])
+        )
+      : new Map();
+
+    const categories = categoryRows
+      .map(row => {
+        const cat = categoryMap.get(row.categoryId);
+        return cat
+          ? { value: cat.slug, label: cat.name, count: row._count._all }
+          : null;
+      })
+      .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
       .sort((a, b) => b.count - a.count);
 
-    const remoteCounts = new Map<'true' | 'false', number>();
+    // Helper to map groupBy results
+    const mapGroupBy = <T extends { _count: { _all: number } }>(
+      rows: T[],
+      getValue: (row: T) => string | null,
+    ) =>
+      rows
+        .map(row => ({ value: getValue(row) ?? '', count: row._count._all }))
+        .filter(e => e.value && e.count > 0)
+        .sort((a, b) => b.count - a.count);
+
+    const workingDayStatus = mapGroupBy(workingDayRows, r => r.workingDayStatus);
+    const experienceLevels = mapGroupBy(experienceRows, r => r.experienceLevel);
+    const companyIndustryKeys = mapGroupBy(industryRows, r => r.companyIndustryKey);
+    const jobFieldKeys = mapGroupBy(jobFieldRows, r => r.jobFieldKey);
+    const companyTypes = mapGroupBy(companyTypeRows, r => r.companyType);
+    const jobLevels = mapGroupBy(jobLevelRows, r => r.jobLevel);
+    const employmentTypes = mapGroupBy(employmentTypeRows, r => r.employmentType);
+    const salesModels = mapGroupBy(salesModelRows, r => r.salesModel);
+    const customerTypes = mapGroupBy(customerTypeRows, r => r.type);
+
+    // Compute salary band counts
+    const salaryBandCounts = new Map<string, number>();
+    for (const job of salaryBandRows) {
+      const bands = this.resolveSalaryBands(job.salaryMin, job.salaryMax, job.salaryNegotiable);
+      for (const band of bands) {
+        salaryBandCounts.set(band, (salaryBandCounts.get(band) ?? 0) + 1);
+      }
+    }
+    const salaryBands = Array.from(salaryBandCounts.entries())
+      .map(([value, count]) => ({ value, count }))
+      .sort((a, b) => b.count - a.count);
+
+    // City counts from JSON location
     const cityCounts = new Map<string, number>();
     for (const row of locationRows) {
       const location = this.asRecord(row.location);
-      const remoteValue = location['remote'];
-      if (typeof remoteValue === 'boolean') {
-        const key: 'true' | 'false' = remoteValue ? 'true' : 'false';
-        remoteCounts.set(key, (remoteCounts.get(key) ?? 0) + 1);
-      }
       const cityValue = this.clampString(location['city'], 120);
       if (cityValue) {
         cityCounts.set(cityValue, (cityCounts.get(cityValue) ?? 0) + 1);
       }
     }
-
-    const remote = Array.from(remoteCounts.entries())
-      .map(([value, count]) => ({ value, count }))
-      .filter((entry) => entry.count >= 5)
-      .sort((a, b) => b.count - a.count);
     const cities = Array.from(cityCounts.entries())
       .map(([value, count]) => ({ value, count }))
-      .filter((entry) => entry.count >= 5)
+      .filter(e => e.count >= 1)
       .sort((a, b) => b.count - a.count)
-      .slice(0, 10);
+      .slice(0, 20);
 
     return {
+      categories,
+      workingDayStatus,
+      experienceLevels,
+      companyIndustryKeys,
+      jobFieldKeys,
+      companyTypes,
+      salaryBands,
+      jobLevels,
       employmentTypes,
-      remote,
+      salesModels,
+      customerTypes,
       cities,
     };
+  }
+
+  private resolveSalaryBands(
+    salaryMin: number | null,
+    salaryMax: number | null,
+    salaryNegotiable: boolean,
+  ): string[] {
+    const bands: string[] = [];
+
+    if (salaryNegotiable || (salaryMin === null && salaryMax === null)) {
+      bands.push('negotiable');
+      return bands;
+    }
+
+    const min = salaryMin ?? 0;
+    const max = salaryMax ?? Infinity;
+
+    // Each band: job range overlaps [bandMin, bandMax)
+    // Exclusive upper bound prevents double-counting at exact boundaries
+    if (max <= 10_000_000) bands.push('under_10');
+    if (min < 15_000_000 && max > 10_000_000) bands.push('10_15');
+    if (min < 20_000_000 && max > 15_000_000) bands.push('15_20');
+    if (min < 25_000_000 && max > 20_000_000) bands.push('20_25');
+    if (min < 30_000_000 && max > 25_000_000) bands.push('25_30');
+    if (min < 50_000_000 && max > 30_000_000) bands.push('30_50');
+    if (max > 50_000_000) bands.push('over_50');
+
+    return bands;
   }
 
   private isFeatureEnabled(envKey: string): boolean {
@@ -1078,6 +1567,7 @@ export class JobsService {
       name: string;
       logoUrl: string | null;
       iconKey: string | null;
+      companyType: string | null;
     } | null;
     title: string;
     slug: string;
@@ -1088,12 +1578,25 @@ export class JobsService {
     requirementsSchemaVersion: string | null;
     salaryMin: number | null;
     salaryMax: number | null;
+    salaryNegotiable?: boolean | null;
     employmentType: string;
+    workingDayStatus?: string | null;
+    experienceLevel?: string | null;
+    minExperienceMonths?: number | null;
+    companyIndustryKey?: string | null;
+    jobFieldKey?: string | null;
+    jobLevel?: string | null;
+    salesModel?: string | null;
+    applicationDeadline?: Date | null;
     status: JobStatus;
     publishedAt: Date | null;
     closedAt: Date | null;
     createdAt: Date;
     updatedAt: Date;
+    jobCategories?: Array<{
+      category: { slug: string; name: string };
+    }>;
+    jobCustomerTypes?: Array<{ type: string }>;
   }): JobView {
     const location =
       item.location &&
@@ -1125,6 +1628,7 @@ export class JobsService {
       companyName: item.company?.name ?? null,
       companyLogoUrl: item.company?.logoUrl ?? null,
       companyIconKey: item.company?.iconKey ?? null,
+      companyType: item.company?.companyType ?? null,
       skills: this.readPersistedOrNormalizedSkills(item.skills, item.location),
       inputMode:
         this.normalizeInputMode(normalization['inputMode']) ?? 'manual',
@@ -1146,6 +1650,17 @@ export class JobsService {
         Object.keys(parseTelemetry).length > 0
           ? (parseTelemetry as unknown as JobView['parseTelemetry'])
           : null,
+      workingDayStatus: item.workingDayStatus ?? null,
+      experienceLevel: item.experienceLevel ?? null,
+      minExperienceMonths: item.minExperienceMonths ?? null,
+      companyIndustryKey: item.companyIndustryKey ?? null,
+      jobFieldKey: item.jobFieldKey ?? null,
+      jobLevel: item.jobLevel ?? null,
+      salesModel: item.salesModel ?? null,
+      salaryNegotiable: item.salaryNegotiable ?? false,
+      applicationDeadline: item.applicationDeadline ?? null,
+      categorySlugs: item.jobCategories?.map(jc => jc.category.slug) ?? [],
+      customerTypes: item.jobCustomerTypes?.map(jct => jct.type) ?? [],
     };
   }
 
@@ -1158,6 +1673,7 @@ export class JobsService {
           name: true,
           logoUrl: true,
           iconKey: true,
+          companyType: true,
         },
       },
       title: true,
@@ -1170,12 +1686,31 @@ export class JobsService {
       requirementsSchemaVersion: true,
       salaryMin: true,
       salaryMax: true,
+      salaryNegotiable: true,
       employmentType: true,
+      workingDayStatus: true,
+      experienceLevel: true,
+      minExperienceMonths: true,
+      companyIndustryKey: true,
+      jobFieldKey: true,
+      jobLevel: true,
+      salesModel: true,
+      applicationDeadline: true,
       status: true,
       publishedAt: true,
       closedAt: true,
       createdAt: true,
       updatedAt: true,
+      jobCategories: {
+        select: {
+          category: {
+            select: { slug: true, name: true },
+          },
+        },
+      },
+      jobCustomerTypes: {
+        select: { type: true },
+      },
     } satisfies Prisma.JobSelect;
   }
 

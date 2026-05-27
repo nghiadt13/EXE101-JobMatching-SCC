@@ -97,6 +97,19 @@ export type JobItem = {
   closedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  // Filter metadata fields
+  workingDayStatus?: string | null;
+  experienceLevel?: string | null;
+  minExperienceMonths?: number | null;
+  companyIndustryKey?: string | null;
+  jobFieldKey?: string | null;
+  jobLevel?: string | null;
+  salesModel?: string | null;
+  salaryNegotiable?: boolean;
+  applicationDeadline?: string | null;
+  companyType?: string | null;
+  categorySlugs?: string[];
+  customerTypes?: string[];
 };
 
 export type JobsListResponse = {
@@ -116,16 +129,37 @@ export type JobsListResponse = {
       salaryMinGte?: number;
       salaryMaxLte?: number;
       postedWithinDays?: 1 | 3 | 7 | 14 | 30;
+      categorySlugs?: string[];
+      experienceLevels?: string[];
+      companyIndustryKeys?: string[];
+      jobFieldKeys?: string[];
+      companyTypes?: string[];
+      salaryBands?: string[];
+      jobLevels?: string[];
+      salesModels?: string[];
+      customerTypes?: string[];
+      workingDayStatus?: string;
+      searchScope?: string;
+      location?: string;
     };
   };
   facets?: {
+    categories: Array<{ value: string; label: string; count: number }>;
+    workingDayStatus: Array<{ value: string; count: number }>;
+    experienceLevels: Array<{ value: string; count: number }>;
+    companyIndustryKeys: Array<{ value: string; count: number }>;
+    jobFieldKeys: Array<{ value: string; count: number }>;
+    companyTypes: Array<{ value: string; count: number }>;
+    salaryBands: Array<{ value: string; count: number }>;
+    jobLevels: Array<{ value: string; count: number }>;
     employmentTypes: Array<{ value: string; count: number }>;
-    remote: Array<{ value: 'true' | 'false'; count: number }>;
+    salesModels: Array<{ value: string; count: number }>;
+    customerTypes: Array<{ value: string; count: number }>;
     cities: Array<{ value: string; count: number }>;
   };
 };
 
-export type JobsSort = 'newest' | 'salary_asc' | 'salary_desc';
+export type JobsSort = 'newest' | 'salary_asc' | 'salary_desc' | 'deadline_soon' | 'relevance';
 export type JobsRemoteFilter = 'any' | 'true' | 'false';
 
 export type JobsQuery = {
@@ -141,6 +175,18 @@ export type JobsQuery = {
   postedWithinDays?: 1 | 3 | 7 | 14 | 30;
   includeFacets?: boolean;
   status?: JobStatus;
+  categorySlugs?: string[];
+  experienceLevels?: string[];
+  companyIndustryKeys?: string[];
+  jobFieldKeys?: string[];
+  companyTypes?: string[];
+  salaryBands?: string[];
+  jobLevels?: string[];
+  salesModels?: string[];
+  customerTypes?: string[];
+  workingDayStatus?: string;
+  searchScope?: string;
+  location?: string;
 };
 
 type RequestOptions = {
@@ -204,6 +250,18 @@ export function buildJobsSearchParams(query?: JobsQuery): URLSearchParams {
     params.set('includeFacets', 'true');
   }
   if (query?.status) params.set('status', query.status);
+  if (query?.categorySlugs?.length) params.set('categorySlugs', query.categorySlugs.join(','));
+  if (query?.experienceLevels?.length) params.set('experienceLevels', query.experienceLevels.join(','));
+  if (query?.companyIndustryKeys?.length) params.set('companyIndustryKeys', query.companyIndustryKeys.join(','));
+  if (query?.jobFieldKeys?.length) params.set('jobFieldKeys', query.jobFieldKeys.join(','));
+  if (query?.companyTypes?.length) params.set('companyTypes', query.companyTypes.join(','));
+  if (query?.salaryBands?.length) params.set('salaryBands', query.salaryBands.join(','));
+  if (query?.jobLevels?.length) params.set('jobLevels', query.jobLevels.join(','));
+  if (query?.salesModels?.length) params.set('salesModels', query.salesModels.join(','));
+  if (query?.customerTypes?.length) params.set('customerTypes', query.customerTypes.join(','));
+  if (query?.workingDayStatus) params.set('workingDayStatus', query.workingDayStatus);
+  if (query?.searchScope) params.set('searchScope', query.searchScope);
+  if (query?.location) params.set('location', query.location);
   return params;
 }
 
@@ -225,6 +283,17 @@ export function createJob(
     employmentType: string;
     salaryMin?: number;
     salaryMax?: number;
+    categorySlugs?: string[];
+    workingDayStatus?: string;
+    experienceLevel?: string;
+    minExperienceMonths?: number;
+    companyIndustryKey?: string;
+    jobFieldKey?: string;
+    jobLevel?: string;
+    salesModel?: string;
+    customerTypes?: string[];
+    salaryNegotiable?: boolean;
+    applicationDeadline?: string;
   },
 ) {
   return apiRequest<JobItem>(
@@ -252,6 +321,17 @@ export function updateJob(
     employmentType: string;
     salaryMin: number;
     salaryMax: number;
+    categorySlugs: string[];
+    workingDayStatus: string;
+    experienceLevel: string;
+    minExperienceMonths: number;
+    companyIndustryKey: string;
+    jobFieldKey: string;
+    jobLevel: string;
+    salesModel: string;
+    customerTypes: string[];
+    salaryNegotiable: boolean;
+    applicationDeadline: string;
   }>,
 ) {
   return apiRequest<JobItem>(
