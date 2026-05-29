@@ -41,15 +41,15 @@ export function RecruiterApplicationsTable({ items, action }: RecruiterApplicati
   if (!items.length) {
     return (
       <EmptyState
-        title="No applications yet"
-        description="Applications from candidates will appear here once they apply to your published jobs."
+        title="Chưa có đơn ứng tuyển nào"
+        description="Đơn ứng tuyển từ ứng viên sẽ xuất hiện tại đây khi họ ứng tuyển vào việc làm đã đăng của bạn."
         action={
           <div className="flex flex-wrap justify-center gap-2">
             <Button asChild size="sm">
-              <Link href="/dashboard/recruiter/jobs">View your jobs</Link>
+              <Link href="/dashboard/recruiter/jobs">Xem việc làm của bạn</Link>
             </Button>
             <Button asChild variant="outline" size="sm">
-              <Link href="/dashboard/recruiter/jobs">Create a job</Link>
+              <Link href="/dashboard/recruiter/jobs">Tạo việc làm</Link>
             </Button>
           </div>
         }
@@ -68,15 +68,15 @@ export function RecruiterApplicationsTable({ items, action }: RecruiterApplicati
               <p className="text-sm font-medium text-zinc-900">{item.candidate.name}</p>
               <p className="text-xs text-zinc-500">{item.candidate.email}</p>
               <p className="mt-1 text-xs text-zinc-600">
-                Job: {item.job.title} · Score: {Math.round(item.matchScore)}%
+                Việc làm: {item.job.title} · Điểm: {Math.round(item.matchScore)}%
               </p>
               {isMatchingSnapshotV2(item.matchingSnapshot) ? (
                 <MatchingSnapshotV2View snapshot={item.matchingSnapshot} />
               ) : item.matchingSnapshot ? (
                 <>
                   <div className="mt-2 grid gap-2 text-xs text-zinc-600 md:grid-cols-2">
-                    <p>Strengths: {item.matchingSnapshot.strengths?.slice(0, 2).join(', ') || 'None'}</p>
-                    <p>Gaps: {item.matchingSnapshot.gaps?.slice(0, 2).join(', ') || 'None'}</p>
+                    <p>Điểm mạnh: {item.matchingSnapshot.strengths?.slice(0, 2).join(', ') || 'Không có'}</p>
+                    <p>Điểm yếu: {item.matchingSnapshot.gaps?.slice(0, 2).join(', ') || 'Không có'}</p>
                   </div>
                   {item.matchingSnapshot.warnings?.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-1">
@@ -105,11 +105,11 @@ export function RecruiterApplicationsTable({ items, action }: RecruiterApplicati
             </select>
             <input
               name="notes"
-              placeholder="Notes (optional)"
+              placeholder="Ghi chú (tùy chọn)"
               defaultValue={item.notes ?? ''}
               className="h-9 min-w-56 rounded-lg border border-zinc-300 bg-white px-3 text-sm focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-2"
             />
-            <Button type="submit" size="sm">Update</Button>
+            <Button type="submit" size="sm">Cập nhật</Button>
           </form>
         </article>
         );

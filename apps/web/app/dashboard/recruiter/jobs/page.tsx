@@ -119,28 +119,28 @@ export default async function RecruiterJobsPage({ searchParams }: PageProps) {
   const totalCount = jobs.pagination.totalItems;
 
   const routeError = resolveRouteError(query, {
-    'create-failed': 'Job creation failed. Please try again.',
-    'CV_FILE_TOO_LARGE': 'JD file is too large. Maximum size is 5MB.',
-    'DOCUMENT_UNSUPPORTED_TYPE': 'Only PDF and DOCX files are supported for JD upload.',
-    'JD_FILE_TOO_LARGE': 'JD file is too large. Maximum size is 5MB.',
-    'JD_PARSE_FAILED': 'AI parsing failed for this job. Upload a readable JD or try manual creation.',
-    'service-unavailable': 'AI service is temporarily unavailable. Please try the job action again later.',
-    'upload-failed': 'JD upload failed. Please try again.',
-    'AI_SERVICE_UNAVAILABLE': 'AI service is temporarily unavailable. Please try the job action again later.',
+    'create-failed': 'Tạo việc làm thất bại. Vui lòng thử lại.',
+    'CV_FILE_TOO_LARGE': 'File JD quá lớn. Kích thước tối đa là 5MB.',
+    'DOCUMENT_UNSUPPORTED_TYPE': 'Chỉ hỗ trợ file PDF và DOCX cho tải lên JD.',
+    'JD_FILE_TOO_LARGE': 'File JD quá lớn. Kích thước tối đa là 5MB.',
+    'JD_PARSE_FAILED': 'Phân tích AI thất bại cho việc làm này. Tải lên JD có thể đọc được hoặc thử tạo thủ công.',
+    'service-unavailable': 'Dịch vụ AI tạm thời không khả dụng. Vui lòng thử lại sau.',
+    'upload-failed': 'Tải lên JD thất bại. Vui lòng thử lại.',
+    'AI_SERVICE_UNAVAILABLE': 'Dịch vụ AI tạm thời không khả dụng. Vui lòng thử lại sau.',
   });
 
   return (
     <DashboardShell
-      title="Job Management"
-      description="Create jobs manually or upload a JD file, then review draft quality and publish when ready."
+      title="Quản lý việc làm"
+      description="Tạo việc làm thủ công hoặc tải lên file JD, sau đó kiểm tra chất lượng bản nháp và đăng tuyển khi sẵn sàng."
       email={session.user.email}
       userName={session.user.name}
       userAvatarUrl={session.user.image}
       role="RECRUITER"
       currentPath="/dashboard/recruiter/jobs"
       breadcrumbs={[
-        { label: 'Dashboard', href: '/dashboard/recruiter' },
-        { label: 'Jobs' },
+        { label: 'Bảng điều khiển', href: '/dashboard/recruiter' },
+        { label: 'Việc làm' },
       ]}
     >
       {routeError ? (
@@ -149,19 +149,19 @@ export default async function RecruiterJobsPage({ searchParams }: PageProps) {
 
       <section className="mb-6 grid gap-4 md:grid-cols-3">
         <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500">Total jobs</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500">Tổng việc làm</p>
           <p className="mt-3 text-3xl font-semibold text-zinc-950">{totalCount}</p>
-          <p className="mt-2 text-sm text-zinc-600">All drafts, published, and closed roles.</p>
+          <p className="mt-2 text-sm text-zinc-600">Tất cả bản nháp, đã đăng và đã đóng.</p>
         </div>
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-amber-700">Draft jobs</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-amber-700">Việc làm nháp</p>
           <p className="mt-3 text-3xl font-semibold text-amber-950">{draftCount}</p>
-          <p className="mt-2 text-sm text-amber-900/80">Jobs in draft — review and publish when ready.</p>
+          <p className="mt-2 text-sm text-amber-900/80">Việc làm đang nháp — duyệt và đăng tuyển khi sẵn sàng.</p>
         </div>
         <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-blue-700">Needs attention</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-blue-700">Cần chú ý</p>
           <p className="mt-3 text-3xl font-semibold text-blue-950">{reviewCount}</p>
-          <p className="mt-2 text-sm text-blue-900/80">Jobs needing manual parse verification.</p>
+          <p className="mt-2 text-sm text-blue-900/80">Việc làm cần xác minh phân tích thủ công.</p>
         </div>
       </section>
 
@@ -176,7 +176,7 @@ export default async function RecruiterJobsPage({ searchParams }: PageProps) {
         />
         <div className="space-y-6 xl:sticky xl:top-6">
           <JdUploadForm uploadAction={uploadAction} />
-          <RecruiterJobForm submitLabel="Create job" action={createAction} />
+          <RecruiterJobForm submitLabel="Tạo việc làm" action={createAction} />
         </div>
       </div>
     </DashboardShell>

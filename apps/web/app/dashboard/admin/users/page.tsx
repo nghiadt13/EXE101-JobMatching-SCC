@@ -43,21 +43,21 @@ export default async function AdminUsersPage() {
   try {
     usersData = await getUsers(session.accessToken);
   } catch (error) {
-    errorMessage = error instanceof ApiError ? error.message : 'Failed to load users';
+    errorMessage = error instanceof ApiError ? error.message : 'Không thể tải danh sách người dùng';
   }
 
   return (
     <DashboardShell
-      title="Users Management"
-      description={`${usersData.pagination.totalItems} registered users.`}
+      title="Quản lý người dùng"
+      description={`${usersData.pagination.totalItems} người dùng đã đăng ký.`}
       email={session.user.email}
       userName={session.user.name}
       userAvatarUrl={session.user.image}
       role="ADMIN"
       currentPath="/dashboard/admin/users"
       breadcrumbs={[
-        { label: 'Dashboard', href: '/dashboard/admin' },
-        { label: 'Users' },
+        { label: 'Bảng điều khiển', href: '/dashboard/admin' },
+        { label: 'Người dùng' },
       ]}
     >
       {errorMessage ? <Alert className="mb-4">{errorMessage}</Alert> : null}

@@ -1,6 +1,7 @@
 import { AiNormalizationService } from './ai-normalization.service';
 import { AiNormalizationError } from './normalization.errors';
 import { AppLogger } from '../common/logging/app-logger.service';
+import { DeepseekClientService } from './deepseek-client.service';
 import { GeminiClientService } from './gemini-client.service';
 import { KimiClientService } from './kimi-client.service';
 
@@ -13,6 +14,11 @@ describe('AiNormalizationService', () => {
   };
   let kimiClient: {
     provider: 'kimi';
+    generateText: jest.Mock;
+    getModelName: jest.Mock;
+  };
+  let deepseekClient: {
+    provider: 'deepseek';
     generateText: jest.Mock;
     getModelName: jest.Mock;
   };
@@ -33,6 +39,11 @@ describe('AiNormalizationService', () => {
       generateText: jest.fn(),
       getModelName: jest.fn().mockReturnValue('kimi-k2.5'),
     };
+    deepseekClient = {
+      provider: 'deepseek',
+      generateText: jest.fn(),
+      getModelName: jest.fn().mockReturnValue('deepseek-v4-flash'),
+    };
     logger = {
       info: jest.fn(),
       warn: jest.fn(),
@@ -42,14 +53,17 @@ describe('AiNormalizationService', () => {
       logger as unknown as AppLogger,
       geminiClient as unknown as GeminiClientService,
       kimiClient as unknown as KimiClientService,
+      deepseekClient as unknown as DeepseekClientService,
     );
     process.env.GEMINI_API_KEY = 'test-key';
     delete process.env.LLM_PROVIDER;
+    delete process.env.LLM_FALLBACK_PROVIDER;
   });
 
   afterEach(() => {
     delete process.env.GEMINI_API_KEY;
     delete process.env.LLM_PROVIDER;
+    delete process.env.LLM_FALLBACK_PROVIDER;
   });
 
   it('repairs malformed LLM output into a normalized profile', async () => {
@@ -124,6 +138,67 @@ describe('AiNormalizationService', () => {
     expect(result.telemetry.provider).toBe('kimi');
     expect(result.profile.skills).toEqual(['Docker', 'Kubernetes']);
     expect(geminiClient.generateText).not.toHaveBeenCalled();
+  });
+
+  it('uses the DeepSeek client when configured', async () => {
+    process.env.LLM_PROVIDER = 'deepseek';
+    deepseekClient.generateText.mockResolvedValue(
+      JSON.stringify({
+        schemaVersion: 'candidate_job_profile_v1',
+        language: 'en',
+        title: 'ML Engineer',
+        summary: 'Builds model pipelines',
+        skills: ['Python', 'Machine Learning'],
+        experience: [],
+        education: [],
+        certifications: [],
+        projects: [],
+        languages: ['English'],
+        location: { city: 'Hanoi', country: 'Vietnam' },
+        rawQuality: {
+          score: 84,
+          needsManualReview: false,
+          reason: '',
+        },
+      }),
+    );
+
+    const result = await service.normalizeCv('Python ML engineer');
+
+    expect(result.telemetry.provider).toBe('deepseek');
+    expect(result.profile.skills).toEqual(['Python', 'Machine Learning']);
+    expect(geminiClient.generateText).not.toHaveBeenCalled();
+  });
+
+  it('falls back to DeepSeek when the primary provider fails', async () => {
+    process.env.LLM_FALLBACK_PROVIDER = 'deepseek';
+    geminiClient.generateText.mockRejectedValue(new Error('quota exceeded'));
+    deepseekClient.generateText.mockResolvedValue(
+      JSON.stringify({
+        schemaVersion: 'candidate_job_profile_v1',
+        language: 'en',
+        title: 'Data Engineer',
+        summary: 'Builds data pipelines',
+        skills: ['Python', 'Airflow'],
+        experience: [],
+        education: [],
+        certifications: [],
+        projects: [],
+        languages: ['English'],
+        location: { city: 'Hanoi', country: 'Vietnam' },
+        rawQuality: {
+          score: 88,
+          needsManualReview: false,
+          reason: '',
+        },
+      }),
+    );
+
+    const result = await service.normalizeCv('Python Airflow engineer');
+
+    expect(result.telemetry.provider).toBe('deepseek');
+    expect(geminiClient.generateText).toHaveBeenCalled();
+    expect(deepseekClient.generateText).toHaveBeenCalled();
   });
 
   it('classifies timeout failures with retryable details', async () => {

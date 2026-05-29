@@ -14,6 +14,7 @@ import { RecommendationController } from './recommendation.controller';
 import { DocumentStorageService } from '../documents/services/document-storage.service';
 import { DocumentTextExtractorService } from '../documents/services/document-text-extractor.service';
 import { AiNormalizationService } from '../normalization/ai-normalization.service';
+import { DeepseekClientService } from '../normalization/deepseek-client.service';
 import { GeminiClientService } from '../normalization/gemini-client.service';
 import { KimiClientService } from '../normalization/kimi-client.service';
 
@@ -33,6 +34,7 @@ import { KimiClientService } from '../normalization/kimi-client.service';
     AiNormalizationService,
     GeminiClientService,
     KimiClientService,
+    DeepseekClientService,
     RecommendationService,
     RecommendationPrefilterService,
   ],

@@ -120,24 +120,24 @@ const STATIC_HERO = {
 };
 
 const STATIC_MARKET_STATS = {
-  asOfText: 'March 13, 2026',
+  asOfText: '13 tháng 3, 2026',
   newJobs24h: 5059,
   activeJobs: 63198,
   hiringCompanies: 18402,
 };
 
 const STATIC_QUICK_LINKS = [
-  { label: 'Browse Jobs', href: '/jobs' },
-  { label: 'Company Profile', href: '#' },
-  { label: 'Job Notifications', href: '#' },
-  { label: 'Career Advice', href: '#' },
+  { label: 'Tìm việc làm', href: '/jobs' },
+  { label: 'Hồ sơ công ty', href: '#' },
+  { label: 'Thông báo việc làm', href: '#' },
+  { label: 'Lời khuyên nghề nghiệp', href: '#' },
 ];
 
 const STATIC_SUPPORT_LINKS = [
-  { label: 'Privacy Policy', href: '#' },
-  { label: 'Terms of Service', href: '#' },
-  { label: 'Cookie Policy', href: '#' },
-  { label: 'Help Center', href: '#' },
+  { label: 'Chính sách bảo mật', href: '#' },
+  { label: 'Điều khoản dịch vụ', href: '#' },
+  { label: 'Chính sách cookie', href: '#' },
+  { label: 'Trung tâm trợ giúp', href: '#' },
 ];
 
 const STATIC_SOCIAL_LINKS = [
@@ -148,42 +148,42 @@ const STATIC_SOCIAL_LINKS = [
 ];
 
 const TOP_EMPLOYERS = [
-  { name: 'FPT Software', domain: 'fpt-software.com', tagline: 'Leading IT services', openPositions: 142 },
-  { name: 'VNG Corporation', domain: 'vng.com.vn', tagline: 'Technology & Gaming', openPositions: 87 },
-  { name: 'Viettel', domain: 'viettel.com.vn', tagline: 'Telecom & Digital', openPositions: 203 },
-  { name: 'Techcombank', domain: 'techcombank.com.vn', tagline: 'Banking & Finance', openPositions: 65 },
-  { name: 'VNPay', domain: 'vnpay.vn', tagline: 'Fintech & Payments', openPositions: 48 },
-  { name: 'MoMo', domain: 'momo.vn', tagline: 'E-Wallet & Finance', openPositions: 72 },
-  { name: 'Shopee Vietnam', domain: 'shopee.vn', tagline: 'E-commerce', openPositions: 156 },
-  { name: 'Grab Vietnam', domain: 'grab.com', tagline: 'Ride-hailing & Delivery', openPositions: 93 },
+  { name: 'FPT Software', domain: 'fpt-software.com', tagline: 'Dịch vụ IT hàng đầu', openPositions: 142 },
+  { name: 'VNG Corporation', domain: 'vng.com.vn', tagline: 'Công nghệ & Game', openPositions: 87 },
+  { name: 'Viettel', domain: 'viettel.com.vn', tagline: 'Viễn thông & Số', openPositions: 203 },
+  { name: 'Techcombank', domain: 'techcombank.com.vn', tagline: 'Ngân hàng & Tài chính', openPositions: 65 },
+  { name: 'VNPay', domain: 'vnpay.vn', tagline: 'Fintech & Thanh toán', openPositions: 48 },
+  { name: 'MoMo', domain: 'momo.vn', tagline: 'Ví điện tử & Tài chính', openPositions: 72 },
+  { name: 'Shopee Vietnam', domain: 'shopee.vn', tagline: 'Thương mại điện tử', openPositions: 156 },
+  { name: 'Grab Vietnam', domain: 'grab.com', tagline: 'Giao thông & Giao hàng', openPositions: 93 },
 ];
 
 const WHY_CHOOSE_FEATURES = [
   {
     icon: 'fa-solid fa-brain',
-    title: 'AI-Powered Matching',
-    description: 'Our advanced AI analyzes your skills and preferences to find the perfect job match with 95% accuracy.',
+    title: 'Ghép nối bằng AI',
+    description: 'AI phân tích kỹ năng và sở thích của bạn để tìm việc làm phù hợp nhất với độ chính xác 95%.',
     color: 'bg-purple-50 text-purple-600',
     hoverColor: 'group-hover:bg-purple-600',
   },
   {
     icon: 'fa-solid fa-shield-check',
-    title: 'Verified Employers',
-    description: 'Every company on SCC is verified to ensure safe, legitimate job opportunities for all candidates.',
+    title: 'Nhà tuyển dụng xác thực',
+    description: 'Mỗi công ty trên SCC đều được xác thực để đảm bảo cơ hội việc làm an toàn và hợp pháp cho ứng viên.',
     color: 'bg-green-50 text-green-600',
     hoverColor: 'group-hover:bg-green-600',
   },
   {
     icon: 'fa-solid fa-bell',
-    title: 'Real-time Notifications',
-    description: 'Get instant alerts when new jobs match your profile or when employers view your application.',
+    title: 'Thông báo thời gian thực',
+    description: 'Nhận cảnh báo tức thì khi có việc làm phù hợp hoặc khi nhà tuyển dụng xem hồ sơ của bạn.',
     color: 'bg-blue-50 text-primary-600',
     hoverColor: 'group-hover:bg-primary-600',
   },
   {
     icon: 'fa-solid fa-chart-pie',
-    title: 'Career Insights',
-    description: 'Access salary reports, industry trends, and personalized career advice to make informed decisions.',
+    title: 'Thông tin nghề nghiệp',
+    description: 'Xem báo cáo lương, xu hướng ngành và lời khuyên nghề nghiệp cá nhân hóa để đưa ra quyết định đúng đắn.',
     color: 'bg-orange-50 text-orange-600',
     hoverColor: 'group-hover:bg-orange-600',
   },
@@ -194,7 +194,7 @@ const BLOG_ARTICLES = [
     id: 'blog-1',
     title: '10 Kỹ năng mềm giúp bạn nổi bật trong mắt nhà tuyển dụng 2026',
     excerpt: 'Khám phá những kỹ năng mềm quan trọng nhất mà các nhà tuyển dụng hàng đầu đang tìm kiếm...',
-    category: 'Career Tips',
+    category: 'Mẹo nghề nghiệp',
     readTime: '5 phút đọc',
     imageUrl: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=400&h=250&fit=crop',
   },
@@ -202,7 +202,7 @@ const BLOG_ARTICLES = [
     id: 'blog-2',
     title: 'Xu hướng lương IT Việt Nam 2026: Ngành nào trả cao nhất?',
     excerpt: 'Phân tích chi tiết mức lương các vị trí IT phổ biến tại Việt Nam trong năm 2026...',
-    category: 'Salary Report',
+    category: 'Báo cáo lương',
     readTime: '8 phút đọc',
     imageUrl: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&h=250&fit=crop',
   },
@@ -210,7 +210,7 @@ const BLOG_ARTICLES = [
     id: 'blog-3',
     title: 'Cách viết CV ấn tượng: Bí quyết từ chuyên gia tuyển dụng',
     excerpt: 'Hướng dẫn từng bước cách tạo CV chuyên nghiệp giúp bạn vượt qua vòng sàng lọc...',
-    category: 'CV Guide',
+    category: 'Hướng dẫn CV',
     readTime: '6 phút đọc',
     imageUrl: 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=400&h=250&fit=crop',
   },
@@ -1095,7 +1095,7 @@ export function HomepageMain({
                     <div className="absolute -top-1 -right-1 h-4 w-4 animate-pulse rounded-full border-2 border-primary-900 bg-primary-400" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold">Job Market Today</h2>
+                    <h2 className="text-2xl font-bold">Thị trường việc làm hôm nay</h2>
                     <p className="text-sm text-primary-100">{STATIC_MARKET_STATS.asOfText}</p>
                   </div>
                 </div>
@@ -1105,7 +1105,7 @@ export function HomepageMain({
                       {STATIC_MARKET_STATS.newJobs24h.toLocaleString('en-US')}
                     </p>
                     <p className="text-sm font-medium text-primary-100">
-                      New Jobs in last 24h
+                      Việc làm mới trong 24h qua
                     </p>
                   </div>
                   <div className="rounded-2xl border border-white/10 bg-white/10 p-5 backdrop-blur-sm transition-all hover:bg-white/20">
@@ -1113,7 +1113,7 @@ export function HomepageMain({
                       {STATIC_MARKET_STATS.activeJobs.toLocaleString('en-US')}
                     </p>
                     <p className="text-sm font-medium text-primary-100">
-                      Total Active Openings
+                      Tổng việc làm đang tuyển
                     </p>
                   </div>
                   <div className="rounded-2xl border border-white/10 bg-white/10 p-5 backdrop-blur-sm transition-all hover:bg-white/20">
@@ -1121,7 +1121,7 @@ export function HomepageMain({
                       {STATIC_MARKET_STATS.hiringCompanies.toLocaleString('en-US')}
                     </p>
                     <p className="text-sm font-medium text-primary-100">
-                      Hiring Companies
+                      Công ty đang tuyển
                     </p>
                   </div>
                 </div>
@@ -1131,7 +1131,7 @@ export function HomepageMain({
                   <div className="mb-6 flex items-center justify-between">
                     <h3 className="text-sm font-bold tracking-wider text-white uppercase">
                       <i className="fa-solid fa-chart-line mr-2" />
-                      Job Opportunity Growth
+                      Tăng trưởng cơ hội việc làm
                     </h3>
                   </div>
                   <div className="relative flex h-48 items-end justify-between">
@@ -1166,10 +1166,10 @@ export function HomepageMain({
                   <div className="mb-6 flex items-center justify-between">
                     <h3 className="text-sm font-bold tracking-wider text-white uppercase">
                       <i className="fa-solid fa-chart-bar mr-2" />
-                      Demand by Industry
+                      Nhu cầu theo ngành
                     </h3>
                     <select className="rounded border border-white/20 bg-white/10 px-2 py-1 text-xs text-white focus:border-white/40 focus:ring-0">
-                      <option className="text-slate-800">Industries</option>
+                      <option className="text-slate-800">Ngành nghề</option>
                     </select>
                   </div>
                   <div className="flex h-48 items-end justify-around gap-2 px-2">
@@ -1207,7 +1207,7 @@ export function HomepageMain({
         <section className="border-b border-gray-100 bg-white py-12">
           <div className="mx-auto max-w-7xl px-4">
             <p className="mb-8 text-center text-sm font-semibold tracking-widest text-gray-400 uppercase">
-              Trusted by top companies in Vietnam
+              Được tin dùng bởi các công ty hàng đầu Việt Nam
             </p>
             <div className="flex flex-wrap items-center justify-center gap-8 md:gap-14">
               {[
@@ -1238,8 +1238,8 @@ export function HomepageMain({
         <section className="bg-gray-50 py-20">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="mb-12 text-center">
-              <h2 className="text-3xl font-bold text-slate-900">Top Employers</h2>
-              <p className="mt-2 text-gray-500">Leading companies actively hiring on SCC</p>
+              <h2 className="text-3xl font-bold text-slate-900">Nhà tuyển dụng hàng đầu</h2>
+              <p className="mt-2 text-gray-500">Các công ty hàng đầu đang tích cực tuyển dụng trên SCC</p>
             </div>
             <div className="grid grid-cols-2 gap-5 md:grid-cols-4">
               {TOP_EMPLOYERS.map((employer) => (
@@ -1282,17 +1282,17 @@ export function HomepageMain({
             <div className="mb-12 flex items-end justify-between">
               <div>
                 <h2 className="text-3xl font-bold text-slate-900">
-                  Explore by Category
+                  Khám phá theo danh mục
                 </h2>
                 <p className="mt-2 text-gray-500">
-                  Find the right path for your professional growth.
+                  Tìm con đường phù hợp cho sự nghiệp của bạn.
                 </p>
               </div>
               <Link
                 className="font-semibold text-primary-600 hover:underline"
                 href="/jobs"
               >
-                View all categories{' '}
+                Xem tất cả danh mục{' '}
                 <i className="fa-solid fa-arrow-right ml-1" />
               </Link>
             </div>
@@ -1332,7 +1332,7 @@ export function HomepageMain({
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-center">
               <div className="flex flex-col items-start gap-2.5">
-                <div className="inline-block bg-[#f27024] text-white px-5 py-2.5 text-[14px] font-black rounded-tr-2xl rounded-bl-2xl shadow-md uppercase tracking-wider animate-bounce-slow">
+                <div className="inline-block bg-primary-600 text-white px-5 py-2.5 text-[14px] font-black rounded-tr-2xl rounded-bl-2xl shadow-md uppercase tracking-wider">
                   Việc làm mới nhất dành cho bạn
                 </div>
                 <p className="text-sm flex items-center gap-2 text-slate-500 font-bold mt-1">
@@ -1358,7 +1358,7 @@ export function HomepageMain({
             <div className="hide-scrollbar mb-8 flex items-center gap-4 overflow-x-auto pb-2">
               <div className="flex shrink-0 items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-gray-500">
                 <i className="fa-solid fa-filter text-xs" />
-                <span className="text-sm font-medium">Filter by: Location</span>
+                <span className="text-sm font-medium">Lọc theo: Địa điểm</span>
                 <i className="fa-solid fa-chevron-down ml-2 text-[10px]" />
               </div>
               {HOMEPAGE_LOCATION_FILTERS.map((location) => (
@@ -1485,10 +1485,10 @@ export function HomepageMain({
           <div className="absolute inset-0 bg-linear-to-br from-slate-50 via-primary-50/30 to-slate-50" />
           <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="mb-14 text-center">
-              <span className="mb-3 inline-block rounded-full bg-primary-100 px-4 py-1 text-xs font-bold tracking-wider text-primary-700 uppercase">Why SCC</span>
-              <h2 className="text-3xl font-bold text-slate-900 md:text-4xl">Why Choose SCC?</h2>
+              <span className="mb-3 inline-block rounded-full bg-primary-100 px-4 py-1 text-xs font-bold tracking-wider text-primary-700 uppercase">Vì sao SCC</span>
+              <h2 className="text-3xl font-bold text-slate-900 md:text-4xl">Vì sao chọn SCC?</h2>
               <p className="mx-auto mt-3 max-w-2xl text-gray-500">
-                We combine cutting-edge AI technology with human expertise to deliver the best job matching experience in Vietnam.
+                Chúng tôi kết hợp công nghệ AI tiên tiến với chuyên gia tuyển dụng để mang đến trải nghiệm tìm việc tốt nhất tại Việt Nam.
               </p>
             </div>
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -1649,12 +1649,12 @@ export function HomepageMain({
                 <SCCBrandLogo iconClassName="h-8 w-8 rounded-md" textClassName="text-xl" />
               </div>
               <p className="mb-6 text-gray-500">
-                Join our newsletter to receive the latest job openings directly in your inbox.
+                Đăng ký nhận bản tin để cập nhật tin tuyển dụng mới nhất trực tiếp vào hộp mail của bạn.
               </p>
               <div className="flex">
                 <input
                   className="w-full rounded-l-lg border-gray-200 bg-gray-50 px-4 focus:border-primary-500 focus:ring-primary-500"
-                  placeholder="Email address"
+                  placeholder="Địa chỉ email"
                   type="email"
                 />
                 <button
@@ -1666,7 +1666,7 @@ export function HomepageMain({
               </div>
             </div>
             <div>
-              <h4 className="mb-6 font-bold text-slate-900">Quick Links</h4>
+              <h4 className="mb-6 font-bold text-slate-900">Liên kết nhanh</h4>
               <ul className="space-y-4 text-sm text-gray-500">
                 {STATIC_QUICK_LINKS.map((link) => (
                   <li key={`${link.label}-${link.href}`}>
@@ -1681,7 +1681,7 @@ export function HomepageMain({
               </ul>
             </div>
             <div>
-              <h4 className="mb-6 font-bold text-slate-900">Support</h4>
+              <h4 className="mb-6 font-bold text-slate-900">Hỗ trợ</h4>
               <ul className="space-y-4 text-sm text-gray-500">
                 {STATIC_SUPPORT_LINKS.map((link) => (
                   <li key={`${link.label}-${link.href}`}>
@@ -1696,7 +1696,7 @@ export function HomepageMain({
               </ul>
             </div>
             <div>
-              <h4 className="mb-6 font-bold text-slate-900">Connect With Us</h4>
+              <h4 className="mb-6 font-bold text-slate-900">Kết nối với chúng tôi</h4>
               <div className="flex space-x-4">
                 {STATIC_SOCIAL_LINKS.map((link) => (
                   <a
@@ -1711,13 +1711,13 @@ export function HomepageMain({
             </div>
           </div>
           <div className="flex flex-col items-center justify-between gap-4 border-t border-gray-100 pt-8 text-sm text-gray-400 md:flex-row">
-            <p>© 2023 SCC Smart Career Connector. All rights reserved.</p>
+            <p>© 2023 SCC Smart Career Connector. Bảo lưu mọi quyền.</p>
             <div className="flex space-x-6">
               <a className="hover:text-slate-600" href="#">
-                Sitemap
+                Sơ đồ trang
               </a>
               <a className="hover:text-slate-600" href="#">
-                English (US)
+                Tiếng Việt
               </a>
             </div>
           </div>

@@ -125,7 +125,13 @@ function CollapsibleSection({
 /* ── Main Component ──────────────────────────────────────── */
 
 export function MatchingSnapshotV2View({ snapshot }: MatchingSnapshotV2Props) {
-  const { scoreBreakdown } = snapshot;
+  const scoreBreakdown = snapshot.scoreBreakdown ?? {
+    skillScore: 0,
+    constraintScore: 0,
+    experienceBonus: 0,
+    projectBonus: 0,
+    final: 0,
+  };
   const candidateSummary = snapshot.candidateSummary ?? {
     headline: '',
     totalExperienceMonths: 0,
@@ -134,10 +140,18 @@ export function MatchingSnapshotV2View({ snapshot }: MatchingSnapshotV2Props) {
     location: null,
     projectRelevance: { totalProjects: 0, relevantProjects: 0, relevanceScore: 0, highlights: [] },
   };
+
+  // Safe array defaults — incoming data may omit these fields entirely
+  const requirements = snapshot.requirements ?? [];
+  const strengths = snapshot.strengths ?? [];
+  const gaps = snapshot.gaps ?? [];
+  const warnings = snapshot.warnings ?? [];
+  const constraintsFailed = snapshot.constraintsFailed ?? [];
+
   const fit = getFitInfo(scoreBreakdown.final);
 
   // Sort requirements: met first, then partial, then missing — by importance within each group
-  const sortedRequirements = [...snapshot.requirements]
+  const sortedRequirements = [...requirements]
     .filter((r) => r.status !== 'not_applicable')
     .sort((a, b) => {
       const statusDiff =
@@ -151,13 +165,13 @@ export function MatchingSnapshotV2View({ snapshot }: MatchingSnapshotV2Props) {
     .slice(0, 10);
 
   // Find best evidence from highest-importance met requirement
-  const bestEvidence = snapshot.requirements
-    .filter((r) => r.status === 'met' && r.evidence.length > 0)
+  const bestEvidence = requirements
+    .filter((r) => r.status === 'met' && (r.evidence?.length ?? 0) > 0)
     .sort(
       (a, b) =>
         (IMPORTANCE_ORDER[a.importance ?? 'medium'] ?? 2) -
         (IMPORTANCE_ORDER[b.importance ?? 'medium'] ?? 2),
-    )[0]?.evidence[0];
+    )[0]?.evidence?.[0];
 
   return (
     <div className="mt-3 space-y-3">
@@ -173,11 +187,11 @@ export function MatchingSnapshotV2View({ snapshot }: MatchingSnapshotV2Props) {
         {candidateSummary.headline && (
           <p className="mt-2 text-sm text-zinc-700">
             {candidateSummary.headline}
-            {snapshot.strengths.length > 0 && (
+            {strengths.length > 0 && (
               <>
                 .{' '}
                 <span className="font-medium">
-                  Strengths: {snapshot.strengths.slice(0, 3).join(', ')}
+                  Strengths: {strengths.slice(0, 3).join(', ')}
                 </span>
               </>
             )}
@@ -193,10 +207,10 @@ export function MatchingSnapshotV2View({ snapshot }: MatchingSnapshotV2Props) {
           </p>
         )}
 
-        {snapshot.gaps.length > 0 && (
+        {gaps.length > 0 && (
           <p className="mt-2 text-sm text-zinc-500">
             <span className="font-semibold">Still unclear:</span>{' '}
-            {snapshot.gaps.slice(0, 3).join(', ')}
+            {gaps.slice(0, 3).join(', ')}
           </p>
         )}
       </div>
@@ -285,7 +299,7 @@ export function MatchingSnapshotV2View({ snapshot }: MatchingSnapshotV2Props) {
                   {label}
                 </p>
 
-                {req.evidence.length > 0 ? (
+                {req.evidence?.length > 0 ? (
                   <p className="mt-1 text-sm text-zinc-600">
                     <span className="font-medium text-zinc-700">
                       CV evidence:{' '}
@@ -312,14 +326,14 @@ export function MatchingSnapshotV2View({ snapshot }: MatchingSnapshotV2Props) {
       </CollapsibleSection>
 
       {/* ── Constraint Flags (unchanged) ───────────────────── */}
-      {snapshot.constraintsFailed?.length > 0 && (
-        <ConstraintFlags failed={snapshot.constraintsFailed} />
+      {constraintsFailed.length > 0 && (
+        <ConstraintFlags failed={constraintsFailed} />
       )}
 
       {/* ── Warnings ───────────────────────────────────────── */}
-      {snapshot.warnings?.length > 0 && (
+      {warnings.length > 0 && (
         <div className="flex flex-wrap gap-2">
-          {snapshot.warnings.map((w, i) => (
+          {warnings.map((w, i) => (
             <Badge key={i} variant="warning" className="text-[10px] uppercase">
               {w}
             </Badge>

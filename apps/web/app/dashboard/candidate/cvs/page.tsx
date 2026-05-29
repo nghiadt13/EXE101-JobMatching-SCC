@@ -80,16 +80,16 @@ export default async function CandidateCvsPage({ searchParams }: PageProps) {
   }
 
   const routeError = resolveRouteError(query, {
-    'missing-file': 'Please choose a file before uploading.',
-    'CV_FILE_TOO_LARGE': 'CV file is too large. Maximum size is 5MB.',
-    'DOCUMENT_UNSUPPORTED_TYPE': 'Only PDF and DOCX files are supported.',
-    'CV_PARSE_FAILED': 'AI parsing failed for this CV. Upload a readable PDF or DOCX and try again.',
-    'AI_SERVICE_UNAVAILABLE': 'AI service is temporarily unavailable. Please try uploading again later.',
-    'set-primary-failed': 'Setting this CV as primary failed. Please try again.',
-    'delete-failed': 'Deleting this CV failed. Please try again.',
-    'update-failed': 'Saving CV changes failed. Please try again.',
-    'upload-failed': 'Upload failed. Please try again.',
-    'load-failed': 'Could not load your CVs. Please try again.',
+    'missing-file': 'Vui lòng chọn file trước khi tải lên.',
+    'CV_FILE_TOO_LARGE': 'File CV quá lớn. Kích thước tối đa là 5MB.',
+    'DOCUMENT_UNSUPPORTED_TYPE': 'Chỉ hỗ trợ file PDF và DOCX.',
+    'CV_PARSE_FAILED': 'Phân tích AI thất bại cho CV này. Tải lên file PDF hoặc DOCX có thể đọc được và thử lại.',
+    'AI_SERVICE_UNAVAILABLE': 'Dịch vụ AI tạm thời không khả dụng. Vui lòng thử tải lên lại sau.',
+    'set-primary-failed': 'Đặt CV này làm chính thất bại. Vui lòng thử lại.',
+    'delete-failed': 'Xóa CV này thất bại. Vui lòng thử lại.',
+    'update-failed': 'Lưu thay đổi CV thất bại. Vui lòng thử lại.',
+    'upload-failed': 'Tải lên thất bại. Vui lòng thử lại.',
+    'load-failed': 'Không thể tải danh sách CV. Vui lòng thử lại.',
   });
 
   const userName = session.user.name?.trim() || session.user.email?.split('@')[0] || 'User';
@@ -104,13 +104,13 @@ export default async function CandidateCvsPage({ searchParams }: PageProps) {
       role="CANDIDATE"
       currentPath="/dashboard/candidate/cvs"
       breadcrumbs={[
-        { label: 'Dashboard', href: '/dashboard/candidate' },
-        { label: 'CVs' },
+        { label: 'Bảng điều khiển', href: '/dashboard/candidate' },
+        { label: 'CV' },
       ]}
       actions={
         returnTo ? (
           <Button asChild variant="outline" size="sm">
-            <Link href={returnTo}>Return to job</Link>
+            <Link href={returnTo}>Quay lại việc làm</Link>
           </Button>
         ) : undefined
       }

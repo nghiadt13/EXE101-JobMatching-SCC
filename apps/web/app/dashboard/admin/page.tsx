@@ -25,13 +25,13 @@ export default async function AdminDashboardPage() {
   try {
     stats = (await getDashboardStats(session.accessToken)) as AdminDashboardStats;
   } catch (error) {
-    errorMessage = error instanceof ApiError ? error.message : 'Failed to load dashboard stats';
+    errorMessage = error instanceof ApiError ? error.message : 'Không thể tải dữ liệu bảng điều khiển';
   }
 
   return (
     <DashboardShell
-      title="Admin Dashboard"
-      description="Manage system-level resources and monitor platform health."
+      title="Bảng điều khiển quản trị"
+      description="Quản lý tài nguyên cấp hệ thống và theo dõi sức khỏe nền tảng."
       email={session.user.email}
       userName={session.user.name}
       userAvatarUrl={session.user.image}
@@ -41,16 +41,16 @@ export default async function AdminDashboardPage() {
       {errorMessage ? <Alert className="mb-4">{errorMessage}</Alert> : null}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <DashboardStatCard label="Total users" value={stats.totalUsers} hint="Active users in the platform" href="/dashboard/admin/users" />
-        <DashboardStatCard label="Recruiters" value={stats.totalRecruiters} hint="Active recruiter accounts" />
-        <DashboardStatCard label="Candidates" value={stats.totalCandidates} hint="Active candidate accounts" />
-        <DashboardStatCard label="Jobs" value={stats.totalJobs} hint="All jobs across recruiters" />
-        <DashboardStatCard label="Applications" value={stats.totalApplications} hint="All job applications" />
+        <DashboardStatCard label="Tổng người dùng" value={stats.totalUsers} hint="Người dùng đang hoạt động trên nền tảng" href="/dashboard/admin/users" />
+        <DashboardStatCard label="Nhà tuyển dụng" value={stats.totalRecruiters} hint="Tài khoản nhà tuyển dụng đang hoạt động" />
+        <DashboardStatCard label="Ứng viên" value={stats.totalCandidates} hint="Tài khoản ứng viên đang hoạt động" />
+        <DashboardStatCard label="Việc làm" value={stats.totalJobs} hint="Tất cả việc làm từ nhà tuyển dụng" />
+        <DashboardStatCard label="Đơn ứng tuyển" value={stats.totalApplications} hint="Tất cả đơn ứng tuyển việc làm" />
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
         <Button asChild>
-          <Link href="/dashboard/admin/users">Manage users</Link>
+          <Link href="/dashboard/admin/users">Quản lý người dùng</Link>
         </Button>
       </div>
     </DashboardShell>

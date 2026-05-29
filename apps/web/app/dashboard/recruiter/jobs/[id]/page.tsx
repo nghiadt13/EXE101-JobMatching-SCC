@@ -27,9 +27,9 @@ function parseOptionalNumber(value: string): number | undefined {
 }
 
 function getParseMessage(parseStatus: string, inputMode: 'manual' | 'file_upload') {
-  if (inputMode === 'manual') return 'This job was normalized from the current form fields. Review before publishing.';
-  if (parseStatus === 'parsed_ok') return 'The uploaded JD was parsed successfully. Review the draft fields before publishing.';
-  return 'This draft needs manual review before publish. Verify fields carefully.';
+  if (inputMode === 'manual') return 'Việc làm này được chuẩn hóa từ các trường form hiện tại. Duyệt trước khi đăng tuyển.';
+  if (parseStatus === 'parsed_ok') return 'JD tải lên đã được phân tích thành công. Duyệt các trường bản nháp trước khi đăng tuyển.';
+  return 'Bản nháp này cần duyệt thủ công trước khi đăng tuyển. Xác minh kỹ các trường.';
 }
 
 function splitRequirementGroups(schema: RequirementsSchema | null) {
@@ -105,9 +105,9 @@ export default async function RecruiterJobDetailPage({ params, searchParams }: P
   }
 
   const routeError = resolveRouteError(query, {
-    'JD_PARSE_FAILED': 'AI parsing failed while saving this job. Review the fields and try again.',
-    'AI_SERVICE_UNAVAILABLE': 'AI service is temporarily unavailable. Please try saving again later.',
-    'save-failed': 'Saving this job failed. Please try again.',
+    'JD_PARSE_FAILED': 'Phân tích AI thất bại khi lưu việc làm này. Duyệt các trường và thử lại.',
+    'AI_SERVICE_UNAVAILABLE': 'Dịch vụ AI tạm thời không khả dụng. Vui lòng thử lưu lại sau.',
+    'save-failed': 'Lưu việc làm này thất bại. Vui lòng thử lại.',
   });
 
   const parseBadgeVariant = job.parseStatus === 'parsed_ok' ? 'success' as const : 'warning' as const;
@@ -115,27 +115,27 @@ export default async function RecruiterJobDetailPage({ params, searchParams }: P
 
   return (
     <DashboardShell
-      title="Edit Job"
+      title="Chỉnh sửa việc làm"
       email={session.user.email}
       userName={session.user.name}
       userAvatarUrl={session.user.image}
       role="RECRUITER"
       currentPath={`/dashboard/recruiter/jobs/${id}`}
       breadcrumbs={[
-        { label: 'Dashboard', href: '/dashboard/recruiter' },
-        { label: 'Jobs', href: '/dashboard/recruiter/jobs' },
+        { label: 'Bảng điều khiển', href: '/dashboard/recruiter' },
+        { label: 'Việc làm', href: '/dashboard/recruiter/jobs' },
         { label: job.title },
       ]}
-      actions={<Badge variant={parseBadgeVariant}>{job.parseStatus === 'parsed_ok' ? 'Parsed OK' : 'Needs Review'}</Badge>}
+      actions={<Badge variant={parseBadgeVariant}>{job.parseStatus === 'parsed_ok' ? 'Phân tích OK' : 'Cần duyệt'}</Badge>}
     >
       {routeError ? (
         <Alert className="mb-6" requestId={routeError.requestId}>{routeError.message}</Alert>
       ) : null}
 
-      <RecruiterJobForm submitLabel="Save changes" action={updateAction} initialValues={initialValues} />
+      <RecruiterJobForm submitLabel="Lưu thay đổi" action={updateAction} initialValues={initialValues} />
 
       <section className={`mt-6 rounded-2xl border px-4 py-3 text-sm ${job.parseStatus === 'parsed_ok' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-zinc-300 bg-zinc-100 text-zinc-800'}`}>
-        <p className="font-semibold uppercase tracking-[0.08em]">Parse status: {job.parseStatus}</p>
+        <p className="font-semibold uppercase tracking-[0.08em]">Trạng thái phân tích: {job.parseStatus}</p>
         <p className="mt-2">{getParseMessage(job.parseStatus, job.inputMode)}</p>
         {job.parseTelemetry ? (
           <p className="mt-2 text-xs opacity-80">Provider: {job.parseTelemetry.provider} · Model: {job.parseTelemetry.model}</p>
@@ -143,8 +143,8 @@ export default async function RecruiterJobDetailPage({ params, searchParams }: P
       </section>
 
       <section className="mt-6 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-        <h2 className="text-sm font-semibold uppercase tracking-[0.08em] text-zinc-600">AI Parsed Preview</h2>
-        <p className="mt-3 text-sm text-zinc-700">{job.normalizedProfile?.summary || 'No parsed summary available yet.'}</p>
+        <h2 className="text-sm font-semibold uppercase tracking-[0.08em] text-zinc-600">Xem trước phân tích AI</h2>
+        <p className="mt-3 text-sm text-zinc-700">{job.normalizedProfile?.summary || 'Chưa có tóm tắt phân tích.'}</p>
         {job.normalizedProfile?.skills?.length ? (
           <div className="mt-3 flex flex-wrap gap-2">
             {job.normalizedProfile.skills.slice(0, 12).map((skill) => (
@@ -154,7 +154,7 @@ export default async function RecruiterJobDetailPage({ params, searchParams }: P
         ) : null}
         {job.normalizedProfile?.jobMeta?.requirements?.length ? (
           <div className="mt-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">Requirements</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">Yêu cầu</p>
             <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-zinc-700">
               {job.normalizedProfile.jobMeta.requirements.slice(0, 8).map((item) => (
                 <li key={`${job.id}-req-${item}`}>{item}</li>
@@ -164,7 +164,7 @@ export default async function RecruiterJobDetailPage({ params, searchParams }: P
         ) : null}
         {job.normalizedProfile?.jobMeta?.benefits?.length ? (
           <div className="mt-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">Benefits</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">Quyền lợi</p>
             <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-zinc-700">
               {job.normalizedProfile.jobMeta.benefits.slice(0, 8).map((item) => (
                 <li key={`${job.id}-benefit-${item}`}>{item}</li>
@@ -175,7 +175,7 @@ export default async function RecruiterJobDetailPage({ params, searchParams }: P
         {job.requirementsSchema ? (
           <div className="mt-5 grid gap-4 border-t border-zinc-200 pt-4 md:grid-cols-2">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">Must Have</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">Bắt buộc có</p>
               <ul className="mt-2 space-y-1 text-sm text-zinc-700">
                 {requirementGroups.mustHaves.slice(0, 8).map((item) => (
                   <li key={item.id}>• {item.label}</li>
@@ -183,7 +183,7 @@ export default async function RecruiterJobDetailPage({ params, searchParams }: P
               </ul>
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">Nice To Have</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">Ưu tiên có</p>
               <ul className="mt-2 space-y-1 text-sm text-zinc-700">
                 {requirementGroups.niceToHaves.slice(0, 8).map((item) => (
                   <li key={item.id}>• {item.label}</li>
@@ -191,7 +191,7 @@ export default async function RecruiterJobDetailPage({ params, searchParams }: P
               </ul>
               {requirementGroups.locationPreference ? (
                 <p className="mt-3 text-xs text-zinc-500">
-                  Location: {[
+                  Địa điểm: {[
                     requirementGroups.locationPreference.city,
                     requirementGroups.locationPreference.country,
                     requirementGroups.locationPreference.remote ? 'Remote' : '',

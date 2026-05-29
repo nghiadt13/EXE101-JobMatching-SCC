@@ -12,19 +12,19 @@ export function SiteFooter() {
         </div>
         <div className="flex flex-wrap gap-4">
           <Link href="#" className="text-sm text-md-on-surface-variant hover:text-md-primary transition-colors">
-            About Us
+            Về chúng tôi
           </Link>
           <Link href="#" className="text-sm text-md-on-surface-variant hover:text-md-primary transition-colors">
-            Terms of Service
+            Điều khoản dịch vụ
           </Link>
           <Link href="#" className="text-sm text-md-on-surface-variant hover:text-md-primary transition-colors">
-            Privacy Policy
+            Chính sách bảo mật
           </Link>
           <Link href="#" className="text-sm text-md-on-surface-variant hover:text-md-primary transition-colors">
-            Contact Support
+            Liên hệ hỗ trợ
           </Link>
           <Link href="#" className="text-sm text-md-on-surface-variant hover:text-md-primary transition-colors">
-            For Employers
+            Dành cho nhà tuyển dụng
           </Link>
         </div>
       </div>

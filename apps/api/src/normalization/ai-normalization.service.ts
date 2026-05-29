@@ -5,6 +5,7 @@ import { LlmClient } from './llm-client.interface';
 import { classifyLlmError } from './llm-error-classifier';
 import { AiNormalizationError } from './normalization.errors';
 import { KimiClientService } from './kimi-client.service';
+import { DeepseekClientService } from './deepseek-client.service';
 import {
   NORMALIZED_SCHEMA_VERSION,
   NormalizationResult,
@@ -28,6 +29,7 @@ export class AiNormalizationService {
     private readonly logger: AppLogger,
     private readonly geminiClient: GeminiClientService,
     private readonly kimiClient: KimiClientService,
+    private readonly deepseekClient: DeepseekClientService,
   ) {}
 
   async normalizeCv(rawText: string): Promise<NormalizationResult> {
@@ -44,25 +46,14 @@ export class AiNormalizationService {
   ): Promise<JdContextualEvaluation> {
     const start = Date.now();
     const deadline = start + this.readNormalizationTimeoutMs();
-    const client = this.resolveClient();
     const prompt = this.buildJdEvalPrompt(cvRawText, requirementsSchema);
 
     try {
-      const first = await client.generateText(
+      const { client, parsed } = await this.generateParsedJsonWithFallback(
         prompt,
-        this.readRemainingTimeMs(deadline),
+        deadline,
+        'jd_cv_evaluation',
       );
-      const directJson = this.extractJson(first);
-      const parsed =
-        directJson ?? (await this.tryRepairJson(client, first, deadline));
-
-      if (!parsed) {
-        throw new AiNormalizationError(
-          'parse_failed',
-          'JD evaluation returned invalid JSON',
-        );
-      }
-
       const evaluation = this.normalizeJdEvaluation(parsed, requirementsSchema);
       this.logger.info('jd_cv_evaluation_completed', {
         provider: client.provider,
@@ -73,13 +64,14 @@ export class AiNormalizationService {
       });
       return evaluation;
     } catch (error) {
+      const failedClient = this.tryResolveClientForLogging();
       const failure =
         error instanceof AiNormalizationError && error.details
           ? error.details
           : classifyLlmError(error);
       this.logger.warn('jd_cv_evaluation_failed', {
-        provider: client.provider,
-        model: client.getModelName(),
+        provider: failedClient?.provider ?? this.readConfiguredProvider(),
+        model: failedClient?.getModelName() ?? 'unknown',
         latencyMs: Date.now() - start,
         failureCategory: failure.category,
         reason: failure.reason,
@@ -99,25 +91,15 @@ export class AiNormalizationService {
   ): Promise<NormalizationResult> {
     const start = Date.now();
     const deadline = start + this.readNormalizationTimeoutMs();
-    const client = this.resolveClient();
     const prompt = this.buildPrompt(domain, rawText);
 
     try {
-      const first = await client.generateText(
+      const { client, parsed } = await this.generateParsedJsonWithFallback(
         prompt,
-        this.readRemainingTimeMs(deadline),
+        deadline,
+        'ai_normalization',
+        domain,
       );
-      const directJson = this.extractJson(first);
-      const parsed =
-        directJson ?? (await this.tryRepairJson(client, first, deadline));
-
-      if (!parsed) {
-        throw new AiNormalizationError(
-          'parse_failed',
-          'AI normalization returned invalid JSON',
-        );
-      }
-
       const profile = this.normalizeProfile(parsed, domain, rawText);
       return {
         schemaVersion: NORMALIZED_SCHEMA_VERSION,
@@ -130,14 +112,15 @@ export class AiNormalizationService {
         },
       };
     } catch (error) {
+      const failedClient = this.tryResolveClientForLogging();
       const failure =
         error instanceof AiNormalizationError && error.details
           ? error.details
           : classifyLlmError(error);
       this.logger.warn('ai_normalization_failed', {
         domain,
-        provider: client.provider,
-        model: client.getModelName(),
+        provider: failedClient?.provider ?? this.readConfiguredProvider(),
+        model: failedClient?.getModelName() ?? 'unknown',
         latencyMs: Date.now() - start,
         failureCategory: failure.category,
         upstreamStatusCode: failure.statusCode ?? undefined,
@@ -158,19 +141,103 @@ export class AiNormalizationService {
   }
 
   private resolveClient(): LlmClient {
-    const provider = (process.env['LLM_PROVIDER'] ?? 'gemini')
-      .trim()
-      .toLowerCase();
+    const provider = this.readConfiguredProvider();
     if (provider === 'gemini') {
       return this.geminiClient;
     }
     if (provider === 'kimi') {
       return this.kimiClient;
     }
+    if (provider === 'deepseek') {
+      return this.deepseekClient;
+    }
     throw new AiNormalizationError(
       'service_unavailable',
       `Unsupported LLM provider: ${provider}`,
     );
+  }
+
+  private tryResolveClientForLogging(): LlmClient | null {
+    try {
+      return this.resolveClient();
+    } catch {
+      return null;
+    }
+  }
+
+  private readConfiguredProvider(): string {
+    return (process.env['LLM_PROVIDER'] ?? 'gemini').trim().toLowerCase();
+  }
+
+  private resolveFallbackClient(primary: LlmClient): LlmClient | null {
+    const fallbackProvider = (process.env['LLM_FALLBACK_PROVIDER'] ?? '')
+      .trim()
+      .toLowerCase();
+    if (!fallbackProvider) {
+      return null;
+    }
+    const fallback =
+      fallbackProvider === 'gemini'
+        ? this.geminiClient
+        : fallbackProvider === 'kimi'
+          ? this.kimiClient
+          : fallbackProvider === 'deepseek'
+            ? this.deepseekClient
+            : null;
+    return fallback && fallback.provider !== primary.provider ? fallback : null;
+  }
+
+  private async generateParsedJsonWithFallback(
+    prompt: string,
+    deadline: number,
+    operation: 'ai_normalization' | 'jd_cv_evaluation',
+    domain?: Domain,
+  ): Promise<{ client: LlmClient; parsed: unknown }> {
+    const primary = this.resolveClient();
+    const fallback = this.resolveFallbackClient(primary);
+    const clients = fallback ? [primary, fallback] : [primary];
+    let lastError: unknown = null;
+
+    for (const client of clients) {
+      try {
+        const first = await client.generateText(
+          prompt,
+          this.readRemainingTimeMs(deadline),
+        );
+        const directJson = this.extractJson(first);
+        const parsed =
+          directJson ?? (await this.tryRepairJson(client, first, deadline));
+
+        if (!parsed) {
+          throw new AiNormalizationError(
+            'parse_failed',
+            operation === 'jd_cv_evaluation'
+              ? 'JD evaluation returned invalid JSON'
+              : 'AI normalization returned invalid JSON',
+          );
+        }
+
+        return { client, parsed };
+      } catch (error) {
+        lastError = error;
+        const failure =
+          error instanceof AiNormalizationError && error.details
+            ? error.details
+            : classifyLlmError(error);
+        this.logger.warn(`${operation}_attempt_failed`, {
+          ...(domain ? { domain } : {}),
+          provider: client.provider,
+          model: client.getModelName(),
+          failureCategory: failure.category,
+          upstreamStatusCode: failure.statusCode ?? undefined,
+          upstreamCode: failure.providerCode ?? undefined,
+          retryable: failure.retryable,
+          reason: failure.reason,
+        });
+      }
+    }
+
+    throw lastError instanceof Error ? lastError : new Error(String(lastError));
   }
 
   private buildJdEvalPrompt(

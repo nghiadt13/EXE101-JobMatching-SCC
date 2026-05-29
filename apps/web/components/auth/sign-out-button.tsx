@@ -11,7 +11,7 @@ export function SignOutButton() {
       size="sm"
       onClick={() => void signOut({ callbackUrl: '/login' })}
     >
-      Sign out
+      Đăng xuất
     </Button>
   );
 }

@@ -58,16 +58,16 @@ export default async function RecruiterApplicationsPage() {
 
   return (
     <DashboardShell
-      title="Applications Review"
-      description="Review and update the status of candidate applications."
+      title="Duyệt đơn ứng tuyển"
+      description="Duyệt và cập nhật trạng thái đơn ứng tuyển của ứng viên."
       email={session.user.email}
       userName={session.user.name}
       userAvatarUrl={session.user.image}
       role="RECRUITER"
       currentPath="/dashboard/recruiter/applications"
       breadcrumbs={[
-        { label: 'Dashboard', href: '/dashboard/recruiter' },
-        { label: 'Applications' },
+        { label: 'Bảng điều khiển', href: '/dashboard/recruiter' },
+        { label: 'Đơn ứng tuyển' },
       ]}
     >
       <RecruiterApplicationsTable items={applications.items} action={updateStatusAction} />

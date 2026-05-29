@@ -47,16 +47,16 @@ export default async function ProfilePage() {
 
   return (
     <DashboardShell
-      title="My Account"
-      description="Update your profile information."
+      title="Tài khoản của tôi"
+      description="Cập nhật thông tin hồ sơ của bạn."
       email={session.user.email}
       userName={session.user.name}
       userAvatarUrl={session.user.image}
       role={session.user.role}
       currentPath="/dashboard/profile"
       breadcrumbs={[
-        { label: 'Dashboard', href: getRoleDashboardPath(session.user.role) },
-        { label: 'Profile' },
+        { label: 'Bảng điều khiển', href: getRoleDashboardPath(session.user.role) },
+        { label: 'Hồ sơ' },
       ]}
     >
       <ProfileForm profile={profile} updateAction={updateAction} />

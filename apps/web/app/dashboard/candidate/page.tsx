@@ -39,7 +39,7 @@ export default async function CandidateDashboardPage() {
     ]);
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) redirect('/api/auth/logout');
-    errorMessage = error instanceof ApiError ? error.message : 'Failed to load dashboard data';
+    errorMessage = error instanceof ApiError ? error.message : 'Không thể tải dữ liệu bảng điều khiển';
   }
 
   // Parse Applications data

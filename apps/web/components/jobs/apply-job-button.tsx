@@ -128,7 +128,7 @@ export function ApplyJobButton({
           />
 
           {/* Modal Content */}
-          <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 animate-[slideUp_250ms_ease-out] overflow-hidden">
+          <div className="relative w-full max-w-[28rem] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 animate-[slideUp_250ms_ease-out] overflow-hidden">
             {/* Header */}
             <div className="flex items-center justify-between px-6 pt-6 pb-4">
               <div className="flex items-center gap-3">

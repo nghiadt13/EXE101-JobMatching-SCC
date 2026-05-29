@@ -23,15 +23,15 @@ export default async function RecruiterDashboardPage() {
   try {
     stats = (await getDashboardStats(session.accessToken)) as RecruiterDashboardStats;
   } catch (error) {
-    errorMessage = error instanceof ApiError ? error.message : 'Failed to load dashboard stats';
+    errorMessage = error instanceof ApiError ? error.message : 'Không thể tải dữ liệu bảng điều khiển';
   }
 
-  const firstName = session.user.name?.split(' ')[0] || 'Recruiter';
+  const firstName = session.user.name?.split(' ')[0] || 'Nhà tuyển dụng';
 
   return (
     <DashboardShell
-      title="Recruiter Dashboard"
-      description="Manage jobs, review candidates, and track application progress."
+      title="Bảng điều khiển nhà tuyển dụng"
+      description="Quản lý việc làm, duyệt ứng viên và theo dõi tiến trình ứng tuyển."
       email={session.user.email}
       userName={session.user.name}
       userAvatarUrl={session.user.image}
@@ -49,10 +49,10 @@ export default async function RecruiterDashboardPage() {
           <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-xl font-bold sm:text-2xl">
-                Welcome back, {firstName}!
+                Chào mừng trở lại, {firstName}!
               </h2>
               <p className="mt-1 text-sm text-primary-200/90">
-                Here&apos;s an overview of your recruitment pipeline today.
+                Đây là tổng quan quy trình tuyển dụng của bạn hôm nay.
               </p>
             </div>
             <div className="mt-3 flex flex-wrap gap-2 sm:mt-0">
@@ -60,13 +60,13 @@ export default async function RecruiterDashboardPage() {
                 href="/dashboard/recruiter/jobs"
                 className="inline-flex items-center gap-1.5 rounded-lg bg-white/20 px-3 py-2 text-xs font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/30"
               >
-                <i className="fa-solid fa-plus text-[10px]" /> Post a Job
+                <i className="fa-solid fa-plus text-[10px]" /> Đăng tuyển việc làm
               </Link>
               <Link
                 href="/dashboard/recruiter/applications"
                 className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-2 text-xs font-semibold text-white/90 backdrop-blur-sm transition-colors hover:bg-white/20"
               >
-                <i className="fa-solid fa-clipboard-check text-[10px]" /> Review Applications
+                <i className="fa-solid fa-clipboard-check text-[10px]" /> Duyệt đơn ứng tuyển
               </Link>
             </div>
           </div>
@@ -82,9 +82,9 @@ export default async function RecruiterDashboardPage() {
           <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50 text-primary-600 transition-colors group-hover:bg-primary-100">
             <i className="fa-solid fa-briefcase" />
           </div>
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary-600">Total jobs</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary-600">Tổng việc làm</p>
           <p className="mt-2 text-3xl font-semibold text-slate-900">{stats.totalJobs}</p>
-          <p className="mt-1 text-sm text-slate-500">All jobs you created</p>
+          <p className="mt-1 text-sm text-slate-500">Tất cả việc làm bạn đã tạo</p>
         </Link>
 
         <Link
@@ -94,9 +94,9 @@ export default async function RecruiterDashboardPage() {
           <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 transition-colors group-hover:bg-indigo-100">
             <i className="fa-solid fa-rocket" />
           </div>
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-indigo-600">Published jobs</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-indigo-600">Việc làm đã đăng</p>
           <p className="mt-2 text-3xl font-semibold text-slate-900">{stats.activeJobs}</p>
-          <p className="mt-1 text-sm text-slate-500">Currently visible to candidates</p>
+          <p className="mt-1 text-sm text-slate-500">Đang hiển thị cho ứng viên</p>
         </Link>
 
         <Link
@@ -106,9 +106,9 @@ export default async function RecruiterDashboardPage() {
           <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600 transition-colors group-hover:bg-blue-100">
             <i className="fa-solid fa-users" />
           </div>
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-blue-600">Applications</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-blue-600">Đơn ứng tuyển</p>
           <p className="mt-2 text-3xl font-semibold text-slate-900">{stats.totalApplications}</p>
-          <p className="mt-1 text-sm text-slate-500">Received for your jobs</p>
+          <p className="mt-1 text-sm text-slate-500">Nhận được cho việc làm của bạn</p>
         </Link>
 
         <Link
@@ -118,9 +118,9 @@ export default async function RecruiterDashboardPage() {
           <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600 transition-colors group-hover:bg-amber-100">
             <i className="fa-solid fa-clock" />
           </div>
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-amber-600">Pending review</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-amber-600">Chờ duyệt</p>
           <p className="mt-2 text-3xl font-semibold text-slate-900">{stats.pendingReview}</p>
-          <p className="mt-1 text-sm text-slate-500">Waiting for your action</p>
+          <p className="mt-1 text-sm text-slate-500">Đang chờ bạn xử lý</p>
         </Link>
       </div>
 
@@ -128,12 +128,12 @@ export default async function RecruiterDashboardPage() {
       <div className="mt-6 flex flex-wrap gap-3">
         <Button asChild>
           <Link href="/dashboard/recruiter/jobs">
-            <i className="fa-solid fa-briefcase mr-1.5 text-xs" /> Manage jobs
+            <i className="fa-solid fa-briefcase mr-1.5 text-xs" /> Quản lý việc làm
           </Link>
         </Button>
         <Button asChild variant="outline">
           <Link href="/dashboard/recruiter/applications">
-            <i className="fa-solid fa-clipboard-list mr-1.5 text-xs" /> Review applications
+            <i className="fa-solid fa-clipboard-list mr-1.5 text-xs" /> Duyệt đơn ứng tuyển
           </Link>
         </Button>
       </div>

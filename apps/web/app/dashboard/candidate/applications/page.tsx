@@ -26,21 +26,21 @@ export default async function CandidateApplicationsPage({ searchParams }: PagePr
 
   return (
     <DashboardShell
-      title="My Applications"
-      description="Track the status of jobs you have applied to."
+      title="Đơn ứng tuyển của tôi"
+      description="Theo dõi trạng thái các việc làm bạn đã ứng tuyển."
       email={session.user.email}
       userName={session.user.name}
       userAvatarUrl={session.user.image}
       role="CANDIDATE"
       currentPath="/dashboard/candidate/applications"
       breadcrumbs={[
-        { label: 'Dashboard', href: '/dashboard/candidate' },
-        { label: 'Applications' },
+        { label: 'Bảng điều khiển', href: '/dashboard/candidate' },
+        { label: 'Đơn ứng tuyển' },
       ]}
     >
       {query.applied === '1' && (
         <Alert variant="success" className="mb-4" role="status" aria-live="polite">
-          Application submitted! Your CV is being analyzed — results will appear shortly.
+          Đã nộp đơn ứng tuyển! CV của bạn đang được phân tích — kết quả sẽ hiển thị shortly.
         </Alert>
       )}
       <CandidateApplicationsTable items={applications.items} />

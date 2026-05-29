@@ -30,25 +30,25 @@ export type NavItem = {
 };
 
 export const candidateNav: NavItem[] = [
-  { label: 'Dashboard', href: '/dashboard/candidate', iconName: 'home' },
-  { label: 'My CVs', href: '/dashboard/candidate/cvs', iconName: 'file-text' },
-  { label: 'Applications', href: '/dashboard/candidate/applications', iconName: 'clipboard-list' },
-  { label: 'Smart Job Match', href: '/dashboard/candidate/recommendations', iconName: 'sparkles' },
-  { label: 'Browse Jobs', href: PUBLIC_JOBS_LISTING_ROUTE, iconName: 'briefcase' },
-  { label: 'Profile', href: '/dashboard/profile', iconName: 'user-circle' },
+  { label: 'Tổng quan', href: '/dashboard/candidate', iconName: 'home' },
+  { label: 'CV của tôi', href: '/dashboard/candidate/cvs', iconName: 'file-text' },
+  { label: 'Đơn ứng tuyển', href: '/dashboard/candidate/applications', iconName: 'clipboard-list' },
+  { label: 'Ghép việc thông minh', href: '/dashboard/candidate/recommendations', iconName: 'sparkles' },
+  { label: 'Tìm việc làm', href: PUBLIC_JOBS_LISTING_ROUTE, iconName: 'briefcase' },
+  { label: 'Hồ sơ', href: '/dashboard/profile', iconName: 'user-circle' },
 ];
 
 export const recruiterNav: NavItem[] = [
-  { label: 'Dashboard', href: '/dashboard/recruiter', iconName: 'home' },
-  { label: 'Jobs', href: '/dashboard/recruiter/jobs', iconName: 'briefcase' },
-  { label: 'Applications', href: '/dashboard/recruiter/applications', iconName: 'clipboard-list' },
-  { label: 'Profile', href: '/dashboard/profile', iconName: 'user-circle' },
+  { label: 'Tổng quan', href: '/dashboard/recruiter', iconName: 'home' },
+  { label: 'Việc làm', href: '/dashboard/recruiter/jobs', iconName: 'briefcase' },
+  { label: 'Đơn ứng tuyển', href: '/dashboard/recruiter/applications', iconName: 'clipboard-list' },
+  { label: 'Hồ sơ', href: '/dashboard/profile', iconName: 'user-circle' },
 ];
 
 export const adminNav: NavItem[] = [
-  { label: 'Dashboard', href: '/dashboard/admin', iconName: 'home' },
-  { label: 'Users', href: '/dashboard/admin/users', iconName: 'users' },
-  { label: 'Profile', href: '/dashboard/profile', iconName: 'user-circle' },
+  { label: 'Tổng quan', href: '/dashboard/admin', iconName: 'home' },
+  { label: 'Người dùng', href: '/dashboard/admin/users', iconName: 'users' },
+  { label: 'Hồ sơ', href: '/dashboard/profile', iconName: 'user-circle' },
 ];
 
 const navIcons: Record<NavIconName, LucideIcon> = {

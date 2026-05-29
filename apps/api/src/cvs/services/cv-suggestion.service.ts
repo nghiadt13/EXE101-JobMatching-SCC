@@ -6,6 +6,7 @@ import {
 import { AppLogger } from '../../common/logging/app-logger.service';
 import { GeminiClientService } from '../../normalization/gemini-client.service';
 import { KimiClientService } from '../../normalization/kimi-client.service';
+import { DeepseekClientService } from '../../normalization/deepseek-client.service';
 import { LlmClient } from '../../normalization/llm-client.interface';
 import { classifyLlmError } from '../../normalization/llm-error-classifier';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -24,6 +25,7 @@ export class CvSuggestionService {
     private readonly prisma: PrismaService,
     private readonly geminiClient: GeminiClientService,
     private readonly kimiClient: KimiClientService,
+    private readonly deepseekClient: DeepseekClientService,
   ) {}
 
   async suggest(
@@ -129,6 +131,7 @@ export class CvSuggestionService {
       .trim()
       .toLowerCase();
     if (provider === 'kimi') return this.kimiClient;
+    if (provider === 'deepseek') return this.deepseekClient;
     return this.geminiClient;
   }
 

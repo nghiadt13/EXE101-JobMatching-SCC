@@ -37,7 +37,7 @@ export function DashboardShell({
   const resolvedUserName =
     userName?.trim() ||
     (email?.includes('@') ? email.split('@')[0] : email?.trim()) ||
-    'User';
+    'Người dùng';
 
   return (
     <div className="min-h-screen bg-md-background text-md-on-background">
@@ -48,7 +48,7 @@ export function DashboardShell({
           name: resolvedUserName,
           email,
           avatarUrl: userAvatarUrl,
-          planName: isRecruiter ? 'Recruiter' : 'Member',
+          planName: isRecruiter ? 'Nhà tuyển dụng' : 'Thành viên',
         }}
       />
       <div className="flex">
@@ -73,7 +73,7 @@ export function DashboardShell({
                 <div className="min-w-0">
                   <div className="truncate text-sm font-semibold text-md-on-surface">{resolvedUserName}</div>
                   <div className="truncate text-xs text-md-on-surface-variant">
-                    {role === 'CANDIDATE' ? 'Candidate' : role === 'RECRUITER' ? 'Recruiter' : 'Admin'}
+                    {role === 'CANDIDATE' ? 'Ứng viên' : role === 'RECRUITER' ? 'Nhà tuyển dụng' : 'Quản trị viên'}
                   </div>
                 </div>
               </div>
@@ -82,7 +82,7 @@ export function DashboardShell({
               {isRecruiter ? (
                 <div className="mb-3 flex items-center gap-2 px-3">
                   <span className="recruiter-sidebar-badge">
-                    <i className="fa-solid fa-building-columns text-[8px]" /> HR Portal
+                    <i className="fa-solid fa-building-columns text-[8px]" /> Cổng nhân sự
                   </span>
                 </div>
               ) : null}
@@ -108,7 +108,7 @@ export function DashboardShell({
                 })}
               </nav>
               <div className="mt-auto border-t border-md-outline-variant/30 pt-4">
-                <p className="mb-3 truncate px-3 text-xs text-md-on-surface-variant">{email ?? 'User'}</p>
+                <p className="mb-3 truncate px-3 text-xs text-md-on-surface-variant">{email ?? 'Người dùng'}</p>
                 <SignOutButton />
               </div>
             </div>

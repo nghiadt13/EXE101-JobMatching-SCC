@@ -32,9 +32,9 @@ export function SiteHeader({
   const isRecruiter = role === 'RECRUITER';
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
-  const userDisplayName = user?.name?.trim() || (isAuthenticated ? 'User' : 'Guest');
-  const userPlan = user?.planName?.trim() || 'Free Plan';
-  const userEmail = user?.email?.trim() || (isAuthenticated ? 'Signed in account' : 'Guest account');
+  const userDisplayName = user?.name?.trim() || (isAuthenticated ? 'Người dùng' : 'Khách');
+  const userPlan = user?.planName?.trim() || 'Gói miễn phí';
+  const userEmail = user?.email?.trim() || (isAuthenticated ? 'Tài khoản đã đăng nhập' : 'Tài khoản khách');
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -63,19 +63,19 @@ export function SiteHeader({
                 className="transition-standard flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-primary-600"
                 href="/dashboard/recruiter/jobs"
               >
-                <i className="fa-solid fa-briefcase text-xs" /> My Jobs
+                <i className="fa-solid fa-briefcase text-xs" /> Việc làm của tôi
               </Link>
               <Link
                 className="transition-standard flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-primary-600"
                 href="/dashboard/recruiter/applications"
               >
-                <i className="fa-solid fa-clipboard-list text-xs" /> Applications
+                <i className="fa-solid fa-clipboard-list text-xs" /> Đơn ứng tuyển
               </Link>
               <Link
                 className="transition-standard flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-primary-600"
                 href="/dashboard/recruiter/jobs"
               >
-                <i className="fa-solid fa-plus-circle text-xs" /> Post Job
+                <i className="fa-solid fa-plus-circle text-xs" /> Đăng tuyển
               </Link>
             </>
           ) : (
@@ -84,25 +84,25 @@ export function SiteHeader({
                 className="transition-standard flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-primary-600"
                 href="/jobs"
               >
-                Find Jobs <i className="fa-solid fa-chevron-down text-[10px]" />
+                Tìm việc làm <i className="fa-solid fa-chevron-down text-[10px]" />
               </Link>
               <a
                 className="transition-standard flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-primary-600"
                 href="#"
               >
-                Companies <i className="fa-solid fa-chevron-down text-[10px]" />
+                Công ty <i className="fa-solid fa-chevron-down text-[10px]" />
               </a>
               <Link
                 className="transition-standard flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-primary-600"
                 href="/dashboard/candidate/cvs"
               >
-                CreateCV <i className="fa-solid fa-chevron-down text-[10px]" />
+                Tạo CV <i className="fa-solid fa-chevron-down text-[10px]" />
               </Link>
               <a
                 className="transition-standard flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-primary-600"
                 href="#"
               >
-                Tools <i className="fa-solid fa-chevron-down text-[10px]" />
+                Công cụ <i className="fa-solid fa-chevron-down text-[10px]" />
               </a>
             </>
           )}
@@ -118,7 +118,7 @@ export function SiteHeader({
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary-400 opacity-75" />
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary-600" />
             </span>
-            <span className="sr-only">{unreadCount} unread notifications</span>
+            <span className="sr-only">{unreadCount} thông báo chưa đọc</span>
           </button>
 
           <button
@@ -177,25 +177,25 @@ export function SiteHeader({
                       className="transition-standard flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-primary-50 hover:text-primary-600"
                       href="/dashboard/recruiter"
                     >
-                      <i className="fa-solid fa-gauge-high w-4 text-center" /> Dashboard
+                      <i className="fa-solid fa-gauge-high w-4 text-center" /> Bảng điều khiển
                     </Link>
                     <Link
                       className="transition-standard flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-primary-50 hover:text-primary-600"
                       href="/dashboard/recruiter/jobs"
                     >
-                      <i className="fa-solid fa-briefcase w-4 text-center" /> My Jobs
+                      <i className="fa-solid fa-briefcase w-4 text-center" /> Việc làm của tôi
                     </Link>
                     <Link
                       className="transition-standard flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-primary-50 hover:text-primary-600"
                       href="/dashboard/recruiter/applications"
                     >
-                      <i className="fa-solid fa-clipboard-check w-4 text-center" /> Review Applications
+                      <i className="fa-solid fa-clipboard-check w-4 text-center" /> Duyệt đơn ứng tuyển
                     </Link>
                     <Link
                       className="transition-standard flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-primary-50 hover:text-primary-600"
                       href="/dashboard/profile"
                     >
-                      <i className="fa-solid fa-user-gear w-4 text-center" /> Settings
+                      <i className="fa-solid fa-user-gear w-4 text-center" /> Cài đặt
                     </Link>
                   </>
                 ) : (
@@ -204,19 +204,19 @@ export function SiteHeader({
                       className="transition-standard flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-primary-50 hover:text-primary-600"
                       href="/dashboard/profile"
                     >
-                      <i className="fa-solid fa-user-gear w-4 text-center" /> Settings
+                      <i className="fa-solid fa-user-gear w-4 text-center" /> Cài đặt
                     </Link>
                     <Link
                       className="transition-standard flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-primary-50 hover:text-primary-600"
                       href="/dashboard/candidate/applications"
                     >
-                      <i className="fa-solid fa-briefcase w-4 text-center" /> My Applications
+                      <i className="fa-solid fa-briefcase w-4 text-center" /> Đơn ứng tuyển của tôi
                     </Link>
                     <Link
                       className="transition-standard flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-primary-50 hover:text-primary-600"
                       href="/dashboard/candidate/cvs"
                     >
-                      <i className="fa-solid fa-file-invoice w-4 text-center" /> My CVs
+                      <i className="fa-solid fa-file-invoice w-4 text-center" /> CV của tôi
                     </Link>
                   </>
                 )}
@@ -229,14 +229,14 @@ export function SiteHeader({
                       void signOut({ callbackUrl: '/login' });
                     }}
                   >
-                    <i className="fa-solid fa-arrow-right-from-bracket w-4 text-center" /> Log out
+                    <i className="fa-solid fa-arrow-right-from-bracket w-4 text-center" /> Đăng xuất
                   </button>
                 ) : (
                   <Link
                     className="transition-standard flex items-center gap-3 px-4 py-2.5 text-sm text-primary-600 hover:bg-primary-50"
                     href="/login"
                   >
-                    <i className="fa-solid fa-right-to-bracket w-4 text-center" /> Log in
+                    <i className="fa-solid fa-right-to-bracket w-4 text-center" /> Đăng nhập
                   </Link>
                 )}
               </div>
