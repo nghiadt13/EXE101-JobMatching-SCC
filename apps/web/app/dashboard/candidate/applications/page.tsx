@@ -40,7 +40,7 @@ export default async function CandidateApplicationsPage({ searchParams }: PagePr
     >
       {query.applied === '1' && (
         <Alert variant="success" className="mb-4" role="status" aria-live="polite">
-          Đã nộp đơn ứng tuyển! CV của bạn đang được phân tích — kết quả sẽ hiển thị shortly.
+          Đã nộp đơn ứng tuyển! CV của bạn đang được phân tích — kết quả sẽ hiển thị trong giây lát.
         </Alert>
       )}
       <CandidateApplicationsTable items={applications.items} />

@@ -33,7 +33,7 @@ export const candidateNav: NavItem[] = [
   { label: 'Tổng quan', href: '/dashboard/candidate', iconName: 'home' },
   { label: 'CV của tôi', href: '/dashboard/candidate/cvs', iconName: 'file-text' },
   { label: 'Đơn ứng tuyển', href: '/dashboard/candidate/applications', iconName: 'clipboard-list' },
-  { label: 'Ghép việc thông minh', href: '/dashboard/candidate/recommendations', iconName: 'sparkles' },
+  { label: 'Tìm việc thông minh', href: '/dashboard/candidate/recommendations', iconName: 'sparkles' },
   { label: 'Tìm việc làm', href: PUBLIC_JOBS_LISTING_ROUTE, iconName: 'briefcase' },
   { label: 'Hồ sơ', href: '/dashboard/profile', iconName: 'user-circle' },
 ];

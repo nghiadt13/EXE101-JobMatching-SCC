@@ -45,7 +45,12 @@ type ApplicationRecord = {
   notes: string | null;
   appliedAt: Date;
   updatedAt: Date;
-  job: { id: string; title: string; slug: string; company?: { name: string } | null };
+  job: {
+    id: string;
+    title: string;
+    slug: string;
+    company?: { name: string; logoUrl: string | null; iconKey: string | null } | null;
+  };
   candidate: { id: string; user: { name: string; email: string } };
   cv: { id: string; fileName: string };
 };
@@ -292,6 +297,8 @@ export class ApplicationsService {
         title: item.job.title,
         slug: item.job.slug,
         companyName: item.job.company?.name ?? 'Confidential Company',
+        companyLogoUrl: item.job.company?.logoUrl ?? null,
+        companyIconKey: item.job.company?.iconKey ?? null,
       },
       candidate: {
         id: item.candidate.id,
@@ -341,6 +348,8 @@ export class ApplicationsService {
           company: {
             select: {
               name: true,
+              logoUrl: true,
+              iconKey: true,
             },
           },
         },

@@ -114,6 +114,8 @@ export type ApplicationItem = {
     title: string;
     slug: string;
     companyName?: string | null;
+    companyLogoUrl?: string | null;
+    companyIconKey?: string | null;
   };
   candidate: {
     id: string;

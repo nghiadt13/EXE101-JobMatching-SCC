@@ -14,3 +14,5 @@ check-users.sql
 .kiro/
 tmp/
 Error/
+scripts/
+crawled-data/

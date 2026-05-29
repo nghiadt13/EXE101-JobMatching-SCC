@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useState } from 'react';
 import {
   ApplicationItem,
@@ -21,8 +22,6 @@ import {
   Trophy,
   CalendarCheck,
   TrendingUp,
-  Search,
-  Filter,
   Loader2,
   Building2,
   Calendar,
@@ -42,7 +41,6 @@ type StatusConfig = {
   label: string;
   icon: React.ReactNode;
   badgeVariant: 'default' | 'success' | 'warning' | 'info' | 'danger';
-  cardAccent: string;
 };
 
 const STATUS_CONFIG: Record<string, StatusConfig> = {
@@ -50,53 +48,38 @@ const STATUS_CONFIG: Record<string, StatusConfig> = {
     label: 'Đang phân tích…',
     icon: <Loader2 className="h-3.5 w-3.5 animate-spin" />,
     badgeVariant: 'warning',
-    cardAccent: 'border-l-amber-400',
   },
   APPLIED: {
     label: 'Đã nộp',
     icon: <Briefcase className="h-3.5 w-3.5" />,
     badgeVariant: 'default',
-    cardAccent: 'border-l-slate-300',
   },
   REVIEWING: {
     label: 'Đang xem xét',
     icon: <Clock className="h-3.5 w-3.5" />,
     badgeVariant: 'info',
-    cardAccent: 'border-l-blue-400',
   },
   INTERVIEW: {
     label: 'Phỏng vấn',
     icon: <CalendarCheck className="h-3.5 w-3.5" />,
     badgeVariant: 'success',
-    cardAccent: 'border-l-purple-400',
   },
   OFFER: {
     label: 'Nhận offer',
     icon: <Trophy className="h-3.5 w-3.5" />,
     badgeVariant: 'success',
-    cardAccent: 'border-l-emerald-400',
   },
   REJECTED: {
     label: 'Không phù hợp',
     icon: <XCircle className="h-3.5 w-3.5" />,
     badgeVariant: 'danger',
-    cardAccent: 'border-l-red-300',
   },
   WITHDRAWN: {
     label: 'Đã rút',
     icon: <XCircle className="h-3.5 w-3.5" />,
     badgeVariant: 'danger',
-    cardAccent: 'border-l-zinc-300',
   },
 };
-
-const ALL_FILTER_TABS = [
-  { key: 'ALL', label: 'Tất cả' },
-  { key: 'REVIEWING', label: 'Đang xem xét' },
-  { key: 'INTERVIEW', label: 'Phỏng vấn' },
-  { key: 'OFFER', label: 'Offer' },
-  { key: 'REJECTED', label: 'Từ chối' },
-];
 
 /* ── Match Score Ring ──────────────────────────────────── */
 
@@ -134,7 +117,7 @@ function MatchScoreRing({ score, pending }: { score: number; pending?: boolean }
             <span className="text-xs font-bold leading-none" style={{ color }}>
               {Math.round(score)}%
             </span>
-            <span className="text-[9px] text-zinc-400 leading-none mt-0.5">match</span>
+            <span className="text-[9px] text-zinc-400 leading-none mt-0.5">phù hợp</span>
           </>
         )}
       </div>
@@ -155,8 +138,61 @@ const AVATAR_COLORS = [
   'from-pink-500 to-pink-700',
 ];
 
-function CompanyAvatar({ name, index }: { name: string; index: number }) {
+function normalizeIconClass(iconKey: string | null | undefined): string {
+  if (!iconKey || iconKey.trim().length === 0) {
+    return 'fa-solid fa-building';
+  }
+  if (
+    iconKey.includes('fa-solid') ||
+    iconKey.includes('fa-regular') ||
+    iconKey.includes('fa-brands')
+  ) {
+    return iconKey;
+  }
+  return iconKey.startsWith('fa-') ? `fa-solid ${iconKey}` : `fa-solid fa-${iconKey}`;
+}
+
+function CompanyAvatar({
+  name,
+  index,
+  logoUrl,
+  iconKey,
+}: {
+  name: string;
+  index: number;
+  logoUrl?: string | null;
+  iconKey?: string | null;
+}) {
   const gradient = AVATAR_COLORS[index % AVATAR_COLORS.length];
+
+  // 1. Real company logo image
+  if (logoUrl && logoUrl.trim().length > 0) {
+    return (
+      <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-zinc-200 bg-white p-1.5">
+        <Image
+          src={logoUrl}
+          alt={name}
+          width={48}
+          height={48}
+          className="h-full w-full object-contain"
+          unoptimized
+        />
+      </div>
+    );
+  }
+
+  // 2. FontAwesome brand icon
+  if (iconKey && iconKey.trim().length > 0) {
+    return (
+      <div
+        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${gradient} text-white shadow-sm`}
+      >
+        <i className={`${normalizeIconClass(iconKey)} text-lg`} />
+      </div>
+    );
+  }
+
+  // 3. Fallback: initials
   const initials = name
     .split(' ')
     .slice(0, 2)
@@ -189,56 +225,50 @@ function StatsSummary({ items }: { items: ApplicationItem[] }) {
     {
       label: 'Tổng đơn',
       value: total,
-      icon: <Briefcase className="h-5 w-5" />,
+      icon: <Briefcase className="h-4 w-4" />,
       color: 'text-blue-600',
       bg: 'bg-blue-50',
-      border: 'border-blue-100',
     },
     {
       label: 'Đang xem xét',
       value: reviewing,
-      icon: <Clock className="h-5 w-5" />,
+      icon: <Clock className="h-4 w-4" />,
       color: 'text-amber-600',
       bg: 'bg-amber-50',
-      border: 'border-amber-100',
     },
     {
       label: 'Phỏng vấn',
       value: interviews,
-      icon: <CalendarCheck className="h-5 w-5" />,
+      icon: <CalendarCheck className="h-4 w-4" />,
       color: 'text-purple-600',
       bg: 'bg-purple-50',
-      border: 'border-purple-100',
     },
     {
       label: 'Offer nhận được',
       value: offers,
-      icon: <Trophy className="h-5 w-5" />,
+      icon: <Trophy className="h-4 w-4" />,
       color: 'text-emerald-600',
       bg: 'bg-emerald-50',
-      border: 'border-emerald-100',
     },
     {
       label: 'Điểm phù hợp TB',
       value: `${avgScore}%`,
-      icon: <TrendingUp className="h-5 w-5" />,
+      icon: <TrendingUp className="h-4 w-4" />,
       color: 'text-indigo-600',
       bg: 'bg-indigo-50',
-      border: 'border-indigo-100',
     },
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+    <div className="grid grid-cols-2 divide-zinc-100 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm sm:grid-cols-3 lg:grid-cols-5 lg:divide-x">
       {stats.map((stat) => (
-        <div
-          key={stat.label}
-          className={`flex items-center gap-3 rounded-2xl border ${stat.border} ${stat.bg} p-4`}
-        >
-          <div className={`${stat.color} shrink-0`}>{stat.icon}</div>
-          <div>
-            <p className="text-[11px] font-medium text-zinc-500 leading-none">{stat.label}</p>
-            <p className={`mt-1 text-xl font-bold leading-none ${stat.color}`}>{stat.value}</p>
+        <div key={stat.label} className="flex items-center gap-3 p-4">
+          <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${stat.bg} ${stat.color}`}>
+            {stat.icon}
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-[11px] font-medium text-zinc-500 leading-none">{stat.label}</p>
+            <p className="mt-1.5 text-xl font-bold leading-none text-zinc-800">{stat.value}</p>
           </div>
         </div>
       ))}
@@ -260,13 +290,16 @@ function ApplicationCard({ item, index }: { item: ApplicationItem; index: number
   const previewGaps = hasSnapshot ? (item.matchingSnapshot?.gaps ?? []).slice(0, 1) : [];
 
   return (
-    <div
-      className={`overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm transition-all duration-200 hover:shadow-md hover:border-zinc-300 border-l-4 ${config.cardAccent}`}
-    >
+    <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm transition-all duration-200 hover:border-zinc-300 hover:shadow-md">
       {/* ── Main card row ── */}
       <div className="p-5">
         <div className="flex items-start gap-4">
-          <CompanyAvatar name={companyName} index={index} />
+          <CompanyAvatar
+            name={companyName}
+            index={index}
+            logoUrl={item.job.companyLogoUrl}
+            iconKey={item.job.companyIconKey}
+          />
 
           <div className="min-w-0 flex-1">
             {/* Title + score ring */}
@@ -354,7 +387,7 @@ function ApplicationCard({ item, index }: { item: ApplicationItem; index: number
             className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-xl border border-zinc-100 bg-zinc-50 py-2 text-xs font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700"
           >
             <Target className="h-3.5 w-3.5" />
-            {expanded ? 'Ẩn phân tích matching' : 'Xem phân tích matching chi tiết'}
+            {expanded ? 'Ẩn phân tích phù hợp' : 'Xem phân tích phù hợp chi tiết'}
             {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
           </button>
         )}
@@ -424,9 +457,6 @@ function ApplicationCard({ item, index }: { item: ApplicationItem; index: number
 /* ── Main Component ────────────────────────────────────── */
 
 export function CandidateApplicationsTable({ items }: CandidateApplicationsTableProps) {
-  const [search, setSearch] = useState('');
-  const [activeFilter, setActiveFilter] = useState('ALL');
-
   if (!items.length) {
     return (
       <EmptyState
@@ -441,92 +471,17 @@ export function CandidateApplicationsTable({ items }: CandidateApplicationsTable
     );
   }
 
-  const filtered = items.filter((item) => {
-    const matchesFilter = activeFilter === 'ALL' || item.status === activeFilter;
-    const q = search.toLowerCase();
-    const matchesSearch =
-      !q ||
-      item.job.title.toLowerCase().includes(q) ||
-      (item.job.companyName ?? '').toLowerCase().includes(q);
-    return matchesFilter && matchesSearch;
-  });
-
   return (
     <div className="space-y-6">
       {/* Stats summary */}
       <StatsSummary items={items} />
 
-      {/* Search + Filter bar */}
-      <div className="flex flex-col gap-3 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative max-w-sm flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Tìm theo tên việc làm hoặc công ty…"
-            className="w-full rounded-xl border border-zinc-200 bg-zinc-50 py-2 pl-9 pr-4 text-sm text-zinc-800 placeholder:text-zinc-400 focus:border-primary-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-100 transition-all"
-          />
-        </div>
-
-        <div className="flex items-center gap-1.5 overflow-x-auto">
-          <Filter className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
-          {ALL_FILTER_TABS.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveFilter(tab.key)}
-              className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
-                activeFilter === tab.key
-                  ? 'bg-primary-600 text-white shadow-sm'
-                  : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Results count */}
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-zinc-500">
-          Hiển thị{' '}
-          <span className="font-semibold text-zinc-800">{filtered.length}</span>
-          {' '}/{' '}
-          <span className="font-semibold text-zinc-800">{items.length}</span> đơn ứng tuyển
-        </p>
-        {filtered.length !== items.length && (
-          <button
-            onClick={() => { setSearch(''); setActiveFilter('ALL'); }}
-            className="text-xs font-medium text-primary-600 hover:underline"
-          >
-            Xóa bộ lọc
-          </button>
-        )}
-      </div>
-
       {/* Application cards */}
-      {filtered.length === 0 ? (
-        <EmptyState
-          title="Không tìm thấy kết quả"
-          description="Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc trạng thái."
-          action={
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => { setSearch(''); setActiveFilter('ALL'); }}
-            >
-              Xóa bộ lọc
-            </Button>
-          }
-        />
-      ) : (
-        <div className="space-y-3">
-          {filtered.map((item, index) => (
-            <ApplicationCard key={item.id} item={item} index={index} />
-          ))}
-        </div>
-      )}
+      <div className="space-y-3">
+        {items.map((item, index) => (
+          <ApplicationCard key={item.id} item={item} index={index} />
+        ))}
+      </div>
     </div>
   );
 }

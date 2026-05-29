@@ -1,4 +1,5 @@
 import { type ReactNode } from 'react';
+import Image from 'next/image';
 import { HeroIllustration } from '@/components/auth/hero-illustration';
 
 type AuthLayoutProps = {
@@ -20,12 +21,17 @@ function AuthLayout({ children, showHero = true }: AuthLayoutProps) {
           <div className="lg:col-span-5 form-gradient rounded-[2.5rem] p-8 md:p-10 flex flex-col justify-between relative overflow-hidden shadow-inner transition-all duration-500">
             {/* Logo pill */}
             <div className="flex justify-between items-center mb-10">
-              <div className="border border-blue-200/60 px-5 py-2.5 rounded-full bg-white/45 backdrop-blur-sm flex items-center justify-center shadow-sm">
-                <span className="text-neutral-800 font-bold tracking-tight text-sm flex items-center gap-1.5">
-                  <svg className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 2L2 22h20L12 2zm0 4l6.5 13h-13L12 6z" />
-                  </svg>
-                  JobMatch
+              <div className="border border-blue-200/60 px-4 py-2 rounded-full bg-white/45 backdrop-blur-sm flex items-center justify-center shadow-sm gap-2">
+                <Image
+                  src="/logo.jpg"
+                  alt="SCC Logo"
+                  width={44}
+                  height={44}
+                  className="rounded-md object-contain"
+                  priority
+                />
+                <span className="text-neutral-800 font-bold tracking-tight text-sm">
+                  SCC
                 </span>
               </div>
             </div>
