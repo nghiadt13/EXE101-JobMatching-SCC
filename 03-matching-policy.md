@@ -10,12 +10,14 @@ Provide a practical and explainable match score between CV and JD to help HR pri
 - Preferred criteria group
 - Additional signal group
 
-For MVP, policy has two score components:
-- `skill_score` from matched skill requirements
-- `constraint_score` from hard constraints (education, minimum years, etc.)
+For V2 pipeline, policy has four score components:
+- `skill_score` from matched skill requirements (weighted by importance)
+- `constraint_score` from hard constraints (education, location, etc.)
+- `experience_bonus` from relevant experience vs minimum required months
+- `project_bonus` from AI-assessed project relevance
 
-Final score is blended (example):
-- `final_score = 0.85 * skill_score + 0.15 * constraint_score`
+Final score is blended deterministically:
+- `final_score = 0.70 * skill_score + 0.10 * constraint_score + 0.10 * experience_bonus + 0.10 * project_bonus`
 
 Hard constraints do not auto-drop the candidate.
 If constraints fail, candidate is still ranked but flagged for HR review.

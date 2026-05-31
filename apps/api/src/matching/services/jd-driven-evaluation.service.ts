@@ -14,6 +14,7 @@ import {
   RequirementEvaluation,
   ConstraintEvaluation,
   CandidateSummary,
+  JdContextualEvaluation,
 } from '../types/schema-matching.types';
 
 @Injectable()
@@ -57,6 +58,8 @@ export class JdDrivenEvaluationService {
       }
       throw error;
     }
+
+    evaluation = this.ensureCompleteEvaluation(evaluation, requirementsSchema);
 
     const {
       skillScore,
@@ -162,6 +165,61 @@ export class JdDrivenEvaluationService {
       experienceBonus: Math.round(experienceBonus),
       projectBonus: Math.round(projectBonus),
       finalScore,
+    };
+  }
+
+  private ensureCompleteEvaluation(
+    evaluation: JdContextualEvaluation,
+    schema: RequirementsSchemaV2,
+  ): JdContextualEvaluation {
+    const warnings = new Set(evaluation.warnings);
+    const requirementIds = new Set(schema.requirements.map((r) => r.id));
+    const constraintIds = new Set(schema.constraints.map((c) => c.id));
+
+    const requirementEvaluations = evaluation.requirementEvaluations.filter(
+      (item) => requirementIds.has(item.requirementId),
+    );
+    const evaluatedRequirementIds = new Set(
+      requirementEvaluations.map((item) => item.requirementId),
+    );
+
+    for (const requirement of schema.requirements) {
+      if (evaluatedRequirementIds.has(requirement.id)) continue;
+      requirementEvaluations.push({
+        requirementId: requirement.id,
+        label: requirement.label,
+        importance: requirement.importance,
+        category: requirement.category,
+        status: 'missing',
+        evidence: [],
+        confidence: 'low',
+      });
+      warnings.add('AI response omitted some requirement evaluations.');
+    }
+
+    const constraintEvaluations = evaluation.constraintEvaluations.filter(
+      (item) => constraintIds.has(item.constraintId),
+    );
+    const evaluatedConstraintIds = new Set(
+      constraintEvaluations.map((item) => item.constraintId),
+    );
+
+    for (const constraint of schema.constraints) {
+      if (evaluatedConstraintIds.has(constraint.id)) continue;
+      constraintEvaluations.push({
+        constraintId: constraint.id,
+        label: constraint.label,
+        met: false,
+        evidence: '',
+      });
+      warnings.add('AI response omitted some constraint evaluations.');
+    }
+
+    return {
+      ...evaluation,
+      requirementEvaluations,
+      constraintEvaluations,
+      warnings: Array.from(warnings),
     };
   }
 

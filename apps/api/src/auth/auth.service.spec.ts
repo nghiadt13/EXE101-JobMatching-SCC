@@ -87,12 +87,12 @@ describe('AuthService', () => {
       {
         data: {
           role: UserRole;
-          candidate?: { create: Record<string, never> };
+          candidates?: { create: Record<string, never> };
         };
       },
     ];
     expect(firstCreateCall[0].data.role).toBe(UserRole.CANDIDATE);
-    expect(firstCreateCall[0].data.candidate).toEqual({ create: {} });
+    expect(firstCreateCall[0].data.candidates).toEqual({ create: {} });
     expect(result).toMatchObject({
       user: {
         id: 'u-1',
@@ -227,7 +227,7 @@ describe('AuthService', () => {
               role: UserRole;
               password: string;
               avatar?: string;
-              candidate?: { create: Record<string, never> };
+              candidates?: { create: Record<string, never> };
             };
           },
         ],
@@ -236,7 +236,7 @@ describe('AuthService', () => {
       expect(createCall[0].data.name).toBe(baseGoogleDto.name);
       expect(createCall[0].data.role).toBe(UserRole.CANDIDATE);
       expect(createCall[0].data.avatar).toBe(baseGoogleDto.avatar);
-      expect(createCall[0].data.candidate).toEqual({ create: {} });
+      expect(createCall[0].data.candidates).toEqual({ create: {} });
       expect(typeof createCall[0].data.password).toBe('string');
       expect(createCall[0].data.password).not.toBe('');
       // Password must be a bcrypt hash, not plain text
@@ -276,13 +276,13 @@ describe('AuthService', () => {
           {
             data: {
               role: UserRole;
-              candidate?: { create: Record<string, never> };
+              candidates?: { create: Record<string, never> };
             };
           },
         ],
       ];
       expect(createCall[0].data.role).toBe(UserRole.RECRUITER);
-      expect(createCall[0].data.candidate).toBeUndefined();
+      expect(createCall[0].data.candidates).toBeUndefined();
 
       expect(result.user.role).toBe(UserRole.RECRUITER);
     });

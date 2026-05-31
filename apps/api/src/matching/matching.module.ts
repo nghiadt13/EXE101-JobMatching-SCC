@@ -17,6 +17,7 @@ import { AiNormalizationService } from '../normalization/ai-normalization.servic
 import { DeepseekClientService } from '../normalization/deepseek-client.service';
 import { GeminiClientService } from '../normalization/gemini-client.service';
 import { KimiClientService } from '../normalization/kimi-client.service';
+import { RagRetrieverService } from './rag/rag-retriever.service';
 
 @Module({
   controllers: [MatchingController, RecommendationController],
@@ -37,6 +38,7 @@ import { KimiClientService } from '../normalization/kimi-client.service';
     DeepseekClientService,
     RecommendationService,
     RecommendationPrefilterService,
+    RagRetrieverService,
   ],
   exports: [
     MatchingService,
@@ -46,6 +48,7 @@ import { KimiClientService } from '../normalization/kimi-client.service';
     SchemaMatchingEvaluatorService,
     JdDrivenEvaluationService,
     RecommendationService,
+    RagRetrieverService,
   ],
 })
 export class MatchingModule {}

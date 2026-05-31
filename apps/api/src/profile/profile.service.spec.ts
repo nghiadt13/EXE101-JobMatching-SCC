@@ -47,11 +47,13 @@ describe('ProfileService', () => {
       name: 'Candidate',
       role: UserRole.CANDIDATE,
       avatar: null,
-      candidate: {
-        phone: '0909',
-        location: { city: 'HCM' },
-        bio: 'bio',
-      },
+      candidates: [
+        {
+          phone: '0909',
+          location: { city: 'HCM' },
+          bio: 'bio',
+        },
+      ],
     });
 
     const profile = await profileService.getProfile('candidate-1');

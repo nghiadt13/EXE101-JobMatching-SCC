@@ -2,7 +2,7 @@ node_modules
 .next
 apps/api/uploads/
 apps/demo-video/out/
-
+venv
 .env
 .env.*
 !.env.example
