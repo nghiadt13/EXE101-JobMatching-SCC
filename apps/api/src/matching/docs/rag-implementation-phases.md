@@ -1,287 +1,288 @@
-# RAG Implementation Plan for 2 Agents
+# Fast-Track RAG Implementation Plan
 
-This plan splits the first RAG phase into two parallel workstreams. The goal is
-to add retrieval in a controlled way without destabilizing the existing V2
-matching pipeline.
+Tai lieu nay thay the roadmap RAG dai hon. Muc tieu hien tai la dua RAG vao
+luong matching that nhanh nhat co the, khong them database/vector search trong
+giai doan nay.
 
-## Guiding Principles
+## Current Baseline
 
-- Start with a small POC before changing final scoring.
-- Prefer deterministic retrieval tests over live provider calls.
-- Do not let retrieved context override CV/JD evidence.
-- Keep RAG explainable: every retrieved item should have a source and reason.
-- Compare before/after behavior with the mini eval plan before deeper
-  integration.
+Da co:
 
-## Recommended RAG Scope
+- `RagRetrieverService` local deterministic retrieval.
+- RAG seed knowledge va RAG types.
+- Unit tests cho retriever.
+- `AiNormalizationService.evaluateCvAgainstJd(..., ragContext?)`.
+- Prompt guardrails: RAG context chi la advisory knowledge.
+- Evidence validation cho quote ngan va paraphrase.
+- Full API test/build da xanh truoc khi bat dau phase tiep theo.
 
-Start with **skill taxonomy and role knowledge retrieval** rather than a broad
-document chatbot.
+Before fast-track:
 
-Useful retrieval targets:
+- `RagRetrieverService` chua duoc goi trong matching flow that.
+- `JdDrivenEvaluationService` chua nhan/truyen `ragContext`.
+- `MatchingService` chua build RAG retrieval input tu CV/JD.
 
-- Canonical skill aliases: `ReactJS -> React`, `Node -> Node.js`,
-  `PostgreSQL -> Postgres`.
-- Skill groups: frontend, backend, cloud, database, data, mobile.
-- Related skills: `NestJS -> Node.js`, `Next.js -> React`, `Prisma -> ORM`.
-- Role-level expectations: intern, junior, mid, senior.
-- Certification/domain hints: AWS, Azure, language requirements, healthcare,
-  finance, logistics.
+## Current Progress
 
-Avoid in the first RAG phase:
+Done:
 
-- Letting RAG produce the final match score.
-- Large vector DB infrastructure unless needed.
-- Live LLM calls in unit tests.
-- Unbounded retrieved text injected into the matching prompt.
+- Agent 1 contract is complete.
+  - `JdDrivenEvaluationService.evaluate` accepts optional `ragContext`.
+  - It preserves the 2-arg AI call when `ragContext` is absent.
+  - It passes the 3rd arg when `ragContext` exists.
+  - Focused test and API build passed after Agent 1 work.
+- Agent 2 has started basic orchestration.
+  - `RagRetrieverService` is injected into `MatchingService`.
+  - Schema V2 path calls the retriever.
+  - Schema V2 path passes a `ragContext` value into
+    `JdDrivenEvaluationService.evaluate`.
+
+Still required before done:
+
+- Agent 2 must complete retrieval input coverage, failure handling, context
+  formatting, and acceptance tests.
+- Do not create final reports until all acceptance criteria below are met.
+
+## Decision: Skip Heavy RAG Infrastructure for Now
+
+Tam bo qua:
+
+- Prisma migration cho RAG knowledge.
+- Postgres/pgvector/vector DB.
+- Snapshot metadata RAG.
+- Offline eval runner.
+- Knowledge admin UI.
+
+Ly do:
+
+- RAG local seed da du de kiem chung gia tri ban dau.
+- Them DB/vector luc nay lam cham tien do va tang surface area.
+- Buoc co ROI cao nhat hien tai la wire retriever vao matching V2.
+
+Quay lai DB/vector chi khi:
+
+- Local seed/tag retrieval khong con du.
+- Mini eval/manual demo cho thay RAG co gia tri that.
+- Can CRUD knowledge base thay vi sua seed trong code.
+
+## Non-Negotiable Rules
+
+- RAG context is optional. Non-RAG path must keep working.
+- RAG context must be capped before entering the LLM prompt.
+- RAG must not change scoring weights.
+- LLM evidence must still come from candidate CV text.
+- No live LLM/network calls in unit tests.
+- If retrieval fails, matching should continue without RAG.
+
+## Phase 2 Only - Wire Local RAG into Matching V2
+
+Goal: Khi matching V2 chay, system lay local RAG context va truyen vao prompt
+LLM nhu advisory context.
+
+This is the only implementation phase to do now.
 
 ## Agent Split
 
-### Agent 1: Retrieval Foundation
+### Agent 1: JdDrivenEvaluationService Contract - Done
 
-Agent 1 owns the RAG data model, indexing, retrieval API, and deterministic
-tests.
+Owner files:
 
-Primary goal:
+- `apps/api/src/matching/services/jd-driven-evaluation.service.ts`
+- `apps/api/src/matching/services/jd-driven-evaluation.service.spec.ts`
 
-- Build a small retrieval foundation that can return relevant skill/role
-  context for a JD/CV pair.
+Tasks:
 
-Suggested write scope:
+1. Extend `JdDrivenEvaluationService.evaluate` input:
 
-- `apps/api/src/matching/rag/**`
-- `apps/api/src/matching/matching.module.ts`
-- `apps/api/src/matching/docs/rag-implementation-phases.md`
-- Test files under `apps/api/src/matching/rag/**`
-
-Avoid editing:
-
-- `JdDrivenEvaluationService` scoring weights.
-- `AiNormalizationService` prompt integration, unless only adding types needed
-  by Agent 2.
-- Frontend.
-
-#### Task 1.1: Define RAG Types
-
-Create minimal types for retrieved matching context.
-
-Suggested concepts:
-
-- `RagKnowledgeItem`
-  - `id`
-  - `kind`: `skill_alias`, `skill_group`, `related_skill`, `role_expectation`,
-    `domain_hint`
-  - `title`
-  - `content`
-  - `tags`
-  - `source`
-
-- `RetrievedRagContext`
-  - `items`
-  - `queryTerms`
-  - `warnings`
-
-Acceptance criteria:
-
-- Types are small and stable.
-- Retrieved items carry source metadata.
-
-#### Task 1.2: Add Seed Knowledge Source
-
-Start with an in-code or JSON seed knowledge base. Keep it small.
-
-Minimum dataset:
-
-- 20-40 skill aliases.
-- 10-15 related skill pairs.
-- 5-8 role expectation items.
-- 5-8 domain/certification hints.
-
-Acceptance criteria:
-
-- No network dependency.
-- Easy to extend later.
-- Tests can import it deterministically.
-
-#### Task 1.3: Implement Deterministic Retriever
-
-Implement a simple first retriever before vector search.
-
-Suggested behavior:
-
-- Extract terms from JD requirements, JD skills, CV skills, and raw text.
-- Match against tags/title/content.
-- Rank by overlap score.
-- Return top N items with score/reason.
-
-Acceptance criteria:
-
-- No LLM call.
-- No vector DB required.
-- Deterministic tests pass.
-- Handles empty input safely.
-
-#### Task 1.4: Unit Tests
-
-Add tests for:
-
-- Skill alias retrieval.
-- Related skill retrieval.
-- Role expectation retrieval.
-- Domain/certification hint retrieval.
-- Empty query input.
-- Ranking order.
-
-Suggested prompt for Agent 1:
-
-```text
-You are Agent 1: Retrieval Foundation for RAG.
-
-Build a deterministic, local RAG foundation for AI matching. Define small RAG
-types, add a seed knowledge source for skill aliases/related skills/role
-expectations/domain hints, and implement a retriever that returns ranked context
-without any LLM or network calls. Add unit tests for retrieval quality and edge
-cases.
-
-Do not change scoring weights, do not integrate retrieved context into the LLM
-prompt yet, and do not add vector DB infrastructure in this first pass.
-Report changed files and verification commands.
+```ts
+{
+  cvRawText: string;
+  requirementsSchema: RequirementsSchemaV2;
+  ragContext?: string;
+}
 ```
 
-### Agent 2: Integration + Eval Guardrails
+2. Pass `ragContext` into:
 
-Agent 2 owns how retrieved context is allowed to influence matching, plus eval
-and documentation.
-
-Primary goal:
-
-- Prepare safe integration points and before/after evaluation without making
-  RAG control final scoring.
-
-Suggested write scope:
-
-- `apps/api/src/matching/services/**`
-- `apps/api/src/normalization/ai-normalization.service.ts`
-- `apps/api/src/matching/docs/**`
-- Tests for integration/prompt/eval fixtures.
-
-Avoid editing:
-
-- Agent 1's retriever implementation internals unless coordinating on types.
-- Prisma setup.
-- Package/dependency setup.
-
-#### Task 2.1: Define Integration Contract
-
-Decide how matching receives retrieved context.
-
-Suggested integration:
-
-- `MatchingService` or a dedicated orchestration service calls retriever.
-- Retrieved context is passed into `AiNormalizationService.evaluateCvAgainstJd`
-  as optional context.
-- Prompt includes a compact "Retrieved Context" section.
-- Prompt states retrieved context is advisory and must not override CV evidence.
-
-Acceptance criteria:
-
-- Existing call path still works without RAG context.
-- Unit tests do not call LLM.
-- Retrieved context is capped in size.
-
-#### Task 2.2: Prompt Guardrails for RAG Context
-
-Add prompt rules:
-
-- Treat retrieved context as background knowledge, not candidate evidence.
-- Do not mark a requirement as met only because retrieved context says skills
-  are related.
-- Candidate evidence must still come from CV text.
-- Use retrieved context only to interpret aliases, related technologies, or role
-  expectations.
-
-Acceptance criteria:
-
-- Prompt remains strict JSON.
-- Tests verify the guardrail text is present.
-
-#### Task 2.3: Mini Eval Extension
-
-Extend `mini-eval-plan.md` with RAG-specific cases:
-
-- Skill alias case: `ReactJS` vs `React`.
-- Related skill case: `NestJS` implies Node.js ecosystem familiarity but not
-  necessarily all Node.js requirements.
-- Certification case: AWS project experience does not equal AWS certification.
-- Keyword stuffing case remains not high even with related skill retrieval.
-
-Acceptance criteria:
-
-- Eval plan includes before/after expectations.
-- Cases distinguish "interpretation help" from "evidence".
-
-#### Task 2.4: Integration Tests with Mock Retriever
-
-Add tests showing:
-
-- Matching still works when retriever returns no context.
-- RAG context is passed to the prompt builder/evaluation layer when available.
-- RAG context does not bypass evidence validation.
-
-Suggested prompt for Agent 2:
-
-```text
-You are Agent 2: RAG Integration + Eval Guardrails.
-
-Design and implement the safe integration contract for retrieved context in the
-AI matching pipeline. Retrieved context must be optional, capped, source-aware,
-and advisory only. Add prompt guardrails saying RAG context cannot replace CV
-evidence. Extend the mini eval plan with RAG-specific before/after cases and add
-tests using mocks where needed.
-
-Do not implement the retriever internals, do not change Prisma/package setup,
-and do not let RAG directly control final scoring.
-Report changed files, key decisions, and verification commands.
+```ts
+this.aiNormalizationService.evaluateCvAgainstJd(
+  cvRawText,
+  requirementsSchema,
+  ragContext,
+);
 ```
 
-## Parallel Workflow
+3. Keep existing behavior when `ragContext` is absent.
+4. Add unit tests:
+   - no RAG context path still works.
+   - with RAG context path passes third arg to AI service.
+   - existing scoring/error behavior still works.
 
-1. Agent 1 starts retrieval foundation.
-2. Agent 2 starts by updating docs/eval and defining integration expectations.
-3. Agent 1 exposes types and retriever service.
-4. Agent 2 integrates using Agent 1's public contract.
-5. Run full API tests and build after merging both.
+Do not:
 
-Recommended merge order:
+- Change scoring weights.
+- Change snapshot schema.
+- Edit `MatchingService`.
+- Edit Prisma/package setup.
+- Edit retriever internals.
 
-1. Merge Agent 1 first if it introduces shared types/service names.
-2. Rebase Agent 2 on Agent 1.
-3. Merge Agent 2.
-4. Run integration verification.
+Acceptance criteria:
 
-## Final Integration Checklist
+- Focused test passes:
 
-Before considering RAG phase 1 complete:
+```bash
+npm run test -w api -- jd-driven-evaluation.service.spec.ts --runInBand
+```
 
-- `npm run test -w api -- --runInBand`
-- `npm run build -w api`
-- Retrieval tests are deterministic.
-- No unit test calls a live LLM or network service.
-- Retrieved context is capped.
-- Retrieved context has source metadata.
-- Prompt says retrieved context cannot replace CV evidence.
-- Mini eval plan has RAG-specific cases.
-- Existing non-RAG matching still works.
+Suggested prompt:
 
-## When to Consider Vector Search
+```text
+You are Agent 1 for Fast-Track RAG Phase 2.
 
-Only consider vector search after the deterministic POC proves useful.
+Only update JdDrivenEvaluationService so it accepts optional ragContext and
+passes it to AiNormalizationService.evaluateCvAgainstJd. Add unit tests for
+with-RAG and without-RAG paths. Do not change scoring, snapshot schema,
+MatchingService, Prisma, package files, or retriever internals. Run the focused
+service test and report changed files.
+```
 
-Signals that vector search is worth adding:
+### Agent 2: MatchingService Orchestration - Remaining Work
 
-- The knowledge base grows beyond simple tags/aliases.
-- Exact/token overlap misses important related concepts.
-- Mini eval before/after shows retrieval improves matching quality.
-- There is a clear storage choice and operational plan.
+Owner files:
 
-Until then, keep phase 1 local and deterministic.
+- `apps/api/src/matching/matching.service.ts`
+- `apps/api/src/matching/matching.service.spec.ts`
+- `apps/api/src/matching/matching.module.ts` only if DI setup needs adjustment
+
+Current partial state:
+
+- `MatchingService` currently calls `ragRetrieverService.retrieve`.
+- Current retrieval input only uses `jdText` and `cvText`.
+- Current formatted context only includes title/content.
+- Current tests pass, but do not cover all required RAG behavior.
+
+Remaining tasks:
+
+1. Keep `RagRetrieverService` injected into `MatchingService`.
+2. In schema V2 branch only, build complete `RagRetrievalInput` from:
+   - `job.skills`.
+   - requirement labels and keywords from `requirementsSchema`.
+   - `cv.skills`.
+   - `job.title + job.description`.
+   - `cvRawText`.
+3. Call `ragRetriever.retrieve(input)`.
+4. Wrap retrieval in a local fallback:
+   - if retrieval throws, continue matching without RAG.
+   - do not fail the matching request because RAG failed.
+5. Format retrieved items into a compact string.
+
+Recommended format:
+
+```text
+- [skill_alias] ReactJS / React: ReactJS is an alias of React. Source: local_seed. Reason: Matched react.
+- [related_skill] NestJS / Node.js: NestJS is a Node.js framework. Source: local_seed. Reason: Matched nestjs.
+```
+
+Each line should include:
+
+- `item.kind`
+- `item.title`
+- `item.content`
+- `item.source`
+- retrieval `reason`
+
+6. Pass the compact string as `ragContext` into
+   `jdDrivenEvaluationService.evaluate`.
+7. If no retrieved items, pass `undefined`.
+8. Add or update unit tests:
+   - V2 calls retriever.
+   - V2 passes formatted RAG context to `JdDrivenEvaluationService`.
+   - V2 still works when retriever returns no items.
+   - V2 still works when retriever throws.
+   - V1 path does not call retriever.
+   - retrieval input includes job skills, requirement labels/keywords, CV
+     skills, JD text, and CV raw text.
+
+Do not:
+
+- Change scoring weights.
+- Change prompt text in `AiNormalizationService`.
+- Add Prisma migration.
+- Add vector DB.
+- Add eval runner.
+- Edit retriever internals unless strictly required by TypeScript.
+
+Acceptance criteria:
+
+- Focused test passes:
+
+```bash
+npm run test -w api -- matching.service.spec.ts --runInBand
+```
+
+Suggested prompt:
+
+```text
+You are Agent 2 for Fast-Track RAG Phase 2 completion.
+
+Complete the remaining MatchingService RAG work. The current code already
+injects RagRetrieverService and calls it in schema_v2, but it is incomplete.
+
+Fix MatchingService so schema_v2 builds RagRetrievalInput from job skills,
+requirement labels/keywords, CV skills, job title + description, and CV raw
+text. Format retrieved items as compact advisory lines that include kind, title,
+content, source, and reason. Pass the formatted string as ragContext to
+JdDrivenEvaluationService.evaluate. If retrieval returns no items, pass
+undefined. If retrieval throws, continue matching without RAG.
+
+Add tests in matching.service.spec.ts for: V2 calls retriever, V2 passes
+formatted RAG context, empty retrieval works, retriever failure works, V1 does
+not call retriever, and retrieval input contains job skills, requirement
+labels/keywords, CV skills, JD text, and CV raw text.
+
+Do not change scoring, AiNormalizationService prompt text, Prisma, package
+files, vector DB, snapshot schema, or retriever internals. Do not create report
+docs. Run matching.service.spec.ts and report changed files.
+```
+
+## Human Review After Both Agents Finish
+
+Review these points:
+
+- Is the formatted RAG context short and clearly advisory?
+- Does V1 remain untouched?
+- Does V2 work when RAG returns no items?
+- Does V2 work when RAG throws?
+- Did either agent change scoring weights, Prisma, package files, or prompt
+  rules unexpectedly?
+
+Required verification:
+
+```bash
+npm run test -w api -- jd-driven-evaluation.service.spec.ts --runInBand
+npm run test -w api -- matching.service.spec.ts --runInBand
+npm run test -w api -- --runInBand
+npm run build -w api
+```
+
+## Definition of Done for This Fast Track
+
+RAG fast-track is done when:
+
+- V2 matching automatically retrieves local RAG context.
+- Retrieved context reaches the LLM prompt through `ragContext`.
+- Existing matching works without RAG.
+- Existing matching works if retriever fails.
+- V1 matching does not call RAG.
+- Full API tests pass.
+- API build passes.
+
+## Deferred Work
+
+Do not start these until the fast-track version is merged and manually checked:
+
+- Persist RAG knowledge with Prisma.
+- Add pgvector/vector DB.
+- Add `matchingSnapshot.rag` metadata.
+- Add offline eval fixtures/runner.
+- Build UI/admin tools for knowledge management.

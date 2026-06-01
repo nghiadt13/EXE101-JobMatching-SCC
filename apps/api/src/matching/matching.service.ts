@@ -19,6 +19,7 @@ import { SchemaMatchingEvaluatorService } from './services/schema-matching-evalu
 import { JdDrivenEvaluationService } from './services/jd-driven-evaluation.service';
 import { DocumentStorageService } from '../documents/services/document-storage.service';
 import { DocumentTextExtractorService } from '../documents/services/document-text-extractor.service';
+import { RagRetrieverService } from './rag/rag-retriever.service';
 import { readFile } from 'node:fs/promises';
 import { extname } from 'node:path';
 import { CV_MAX_TEXT_CHARS } from '../cvs/cvs.constants';
@@ -61,6 +62,7 @@ export class MatchingService {
     private readonly jdDrivenEvaluationService: JdDrivenEvaluationService,
     private readonly documentStorageService: DocumentStorageService,
     private readonly documentTextExtractorService: DocumentTextExtractorService,
+    private readonly ragRetrieverService: RagRetrieverService,
   ) {}
 
   async calculateForCvAndJob(
@@ -78,9 +80,42 @@ export class MatchingService {
 
     if (isV2) {
       const cvRawText = await this.getCvRawText(cv);
+      
+      let ragContextStr: string | undefined = undefined;
+      try {
+        const jdSkills = Array.isArray(job.skills)
+          ? job.skills.map(String)
+          : [];
+        
+        const reqSchema = requirementsSchema as RequirementsSchemaV2;
+        const reqLabelsAndKeywords = reqSchema.requirements.flatMap(r => [r.label, ...(r.keywords || [])]);
+        
+        const cvSkills = Array.isArray(cv.skills)
+          ? cv.skills.map(String)
+          : [];
+          
+        const jdText = [job.title, job.description].filter(Boolean).join('\n');
+
+        const ragContextResult = this.ragRetrieverService.retrieve({
+          jdSkills: [...jdSkills, ...reqLabelsAndKeywords],
+          cvSkills,
+          jdText,
+          cvText: cvRawText,
+        });
+
+        if (ragContextResult.items.length > 0) {
+          ragContextStr = ragContextResult.items
+            .map((i) => `- [${i.item.kind}] ${i.item.title}: ${i.item.content}. Source: ${i.item.source}. Reason: ${i.reason}`)
+            .join('\n');
+        }
+      } catch (error) {
+        // Fallback: continue matching without RAG
+      }
+
       const evaluation = await this.jdDrivenEvaluationService.evaluate({
         cvRawText,
         requirementsSchema: requirementsSchema,
+        ragContext: ragContextStr,
       });
 
       const warnings = Array.from(

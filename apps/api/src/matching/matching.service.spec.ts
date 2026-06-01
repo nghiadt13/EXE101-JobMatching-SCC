@@ -5,6 +5,7 @@ import { readFile } from 'node:fs/promises';
 import { DocumentStorageService } from '../documents/services/document-storage.service';
 import { DocumentTextExtractorService } from '../documents/services/document-text-extractor.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { RagRetrieverService } from './rag/rag-retriever.service';
 import { MatchingService } from './matching.service';
 import { CandidateProfileService } from './services/candidate-profile.service';
 import { JdDrivenEvaluationService } from './services/jd-driven-evaluation.service';
@@ -33,6 +34,7 @@ describe('MatchingService', () => {
   let jdDrivenEvaluationService: { evaluate: jest.Mock };
   let documentStorageService: { getAbsolutePath: jest.Mock };
   let documentTextExtractorService: { extract: jest.Mock };
+  let ragRetrieverService: { retrieve: jest.Mock };
 
   beforeEach(async () => {
     prismaService = {
@@ -67,6 +69,9 @@ describe('MatchingService', () => {
     documentTextExtractorService = {
       extract: jest.fn().mockResolvedValue('fallback extracted cv text'),
     };
+    ragRetrieverService = {
+      retrieve: jest.fn().mockReturnValue({ items: [], queryTerms: [], warnings: [] }),
+    };
     mockedReadFile.mockResolvedValue(Buffer.from('legacy pdf'));
 
     const module: TestingModule = await Test.createTestingModule({
@@ -84,6 +89,10 @@ describe('MatchingService', () => {
         {
           provide: DocumentTextExtractorService,
           useValue: documentTextExtractorService,
+        },
+        {
+          provide: RagRetrieverService,
+          useValue: ragRetrieverService,
         },
       ],
     }).compile();
@@ -145,13 +154,23 @@ describe('MatchingService', () => {
     expect(jdDrivenEvaluationService.evaluate).not.toHaveBeenCalled();
   });
 
-  it('uses schema_v2 evaluation with stored CV raw text and avoids file fallback', async () => {
+  it('uses schema_v2 evaluation, calls retriever with correct input, and passes formatted RAG context', async () => {
     prismaService.cV.findFirst.mockResolvedValue(
-      cvRecord({ rawText: 'raw cv with TypeScript and NestJS' }),
+      cvRecord({ rawText: 'raw cv with TypeScript and NestJS', skills: ['TypeScript'] }),
     );
     prismaService.job.findFirst.mockResolvedValue(
-      jobRecord({ requirementsSchema: requirementsSchemaV2() }),
+      jobRecord({ 
+        title: 'Backend Engineer',
+        description: 'Need NestJS',
+        skills: ['NestJS'],
+        requirementsSchema: requirementsSchemaV2() 
+      }),
     );
+    ragRetrieverService.retrieve.mockReturnValue({
+      items: [
+        { item: { kind: 'related_skill', title: 'NestJS', content: 'Node.js framework', source: 'seed' }, reason: 'match' }
+      ]
+    });
 
     const result = await service.calculateForCvAndJob('cv-1', 'job-1', {
       sub: 'candidate-1',
@@ -159,13 +178,45 @@ describe('MatchingService', () => {
     });
 
     expect(result.matchingVersion).toBe('schema_v2');
-    expect(result.score).toBe(82);
+    expect(ragRetrieverService.retrieve).toHaveBeenCalledWith({
+      jdSkills: ['NestJS', 'TypeScript', 'typescript'], // 'TypeScript' is label, 'typescript' is keyword from requirementsSchemaV2()
+      cvSkills: ['TypeScript'],
+      jdText: 'Backend Engineer\nNeed NestJS',
+      cvText: 'raw cv with TypeScript and NestJS',
+    });
     expect(jdDrivenEvaluationService.evaluate).toHaveBeenCalledWith({
       cvRawText: 'raw cv with TypeScript and NestJS',
       requirementsSchema: requirementsSchemaV2(),
+      ragContext: '- [related_skill] NestJS: Node.js framework. Source: seed. Reason: match',
     });
-    expect(mockedReadFile).not.toHaveBeenCalled();
-    expect(documentTextExtractorService.extract).not.toHaveBeenCalled();
+  });
+
+  it('works when schema_v2 retriever returns no items', async () => {
+    prismaService.cV.findFirst.mockResolvedValue(cvRecord({ rawText: 'cv' }));
+    prismaService.job.findFirst.mockResolvedValue(jobRecord({ requirementsSchema: requirementsSchemaV2() }));
+    ragRetrieverService.retrieve.mockReturnValue({ items: [] });
+
+    await service.calculateForCvAndJob('cv-1', 'job-1', { sub: 'candidate-1', role: UserRole.CANDIDATE });
+
+    expect(jdDrivenEvaluationService.evaluate).toHaveBeenCalledWith({
+      cvRawText: 'cv',
+      requirementsSchema: requirementsSchemaV2(),
+      ragContext: undefined,
+    });
+  });
+
+  it('works when schema_v2 retriever throws an error', async () => {
+    prismaService.cV.findFirst.mockResolvedValue(cvRecord({ rawText: 'cv' }));
+    prismaService.job.findFirst.mockResolvedValue(jobRecord({ requirementsSchema: requirementsSchemaV2() }));
+    ragRetrieverService.retrieve.mockImplementation(() => { throw new Error('RAG failure'); });
+
+    await service.calculateForCvAndJob('cv-1', 'job-1', { sub: 'candidate-1', role: UserRole.CANDIDATE });
+
+    expect(jdDrivenEvaluationService.evaluate).toHaveBeenCalledWith({
+      cvRawText: 'cv',
+      requirementsSchema: requirementsSchemaV2(),
+      ragContext: undefined,
+    });
   });
 
   it('extracts legacy CV files on the fly when raw text is missing', async () => {

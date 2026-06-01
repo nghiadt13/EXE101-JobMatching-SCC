@@ -124,6 +124,40 @@ describe('JdDrivenEvaluationService', () => {
     expect(result.snapshot.scoreBreakdown.projectBonus).toBe(30);
   });
 
+  it('calls AI evaluation without RAG context by default', async () => {
+    const requirementsSchema = schema();
+    aiNormalizationService.evaluateCvAgainstJd.mockResolvedValue(evaluation());
+
+    await service.evaluate({
+      cvRawText: 'TypeScript API CV',
+      requirementsSchema,
+    });
+
+    expect(aiNormalizationService.evaluateCvAgainstJd).toHaveBeenCalledWith(
+      'TypeScript API CV',
+      requirementsSchema,
+    );
+  });
+
+  it('passes optional RAG context to AI evaluation', async () => {
+    const requirementsSchema = schema();
+    const ragContext =
+      '- [skill_alias] ReactJS / React: ReactJS is an alias of React.';
+    aiNormalizationService.evaluateCvAgainstJd.mockResolvedValue(evaluation());
+
+    await service.evaluate({
+      cvRawText: 'TypeScript API CV',
+      requirementsSchema,
+      ragContext,
+    });
+
+    expect(aiNormalizationService.evaluateCvAgainstJd).toHaveBeenCalledWith(
+      'TypeScript API CV',
+      requirementsSchema,
+      ragContext,
+    );
+  });
+
   it('fills missing LLM requirement and constraint evaluations conservatively', async () => {
     aiNormalizationService.evaluateCvAgainstJd.mockResolvedValue(
       evaluation({

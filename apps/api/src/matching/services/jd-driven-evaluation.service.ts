@@ -27,15 +27,22 @@ export class JdDrivenEvaluationService {
   async evaluate(input: {
     cvRawText: string;
     requirementsSchema: RequirementsSchemaV2;
+    ragContext?: string;
   }): Promise<{ finalScorePercent: number; snapshot: MatchingSnapshotV2 }> {
-    const { cvRawText, requirementsSchema } = input;
+    const { cvRawText, requirementsSchema, ragContext } = input;
 
     let evaluation;
     try {
-      evaluation = await this.aiNormalizationService.evaluateCvAgainstJd(
-        cvRawText,
-        requirementsSchema,
-      );
+      evaluation = ragContext
+        ? await this.aiNormalizationService.evaluateCvAgainstJd(
+            cvRawText,
+            requirementsSchema,
+            ragContext,
+          )
+        : await this.aiNormalizationService.evaluateCvAgainstJd(
+            cvRawText,
+            requirementsSchema,
+          );
     } catch (error) {
       if (error instanceof AiNormalizationError) {
         this.logger.warn('jd_driven_evaluation_failed', {
