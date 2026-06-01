@@ -49,6 +49,7 @@ import {
 } from './job-filter.constants';
 import { JobsListResponse, JobView, SaveJobResponse } from './jobs.types';
 import { JobSlugService } from './services/job-slug.service';
+import { VectorSyncService } from '../matching/rag/vector-sync.service';
 
 type Viewer = {
   sub: string;

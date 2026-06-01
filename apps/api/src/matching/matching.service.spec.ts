@@ -166,7 +166,7 @@ describe('MatchingService', () => {
         requirementsSchema: requirementsSchemaV2() 
       }),
     );
-    ragRetrieverService.retrieve.mockReturnValue({
+    ragRetrieverService.retrieve.mockResolvedValue({
       items: [
         { item: { kind: 'related_skill', title: 'NestJS', content: 'Node.js framework', source: 'seed' }, reason: 'match' }
       ]
@@ -194,7 +194,7 @@ describe('MatchingService', () => {
   it('works when schema_v2 retriever returns no items', async () => {
     prismaService.cV.findFirst.mockResolvedValue(cvRecord({ rawText: 'cv' }));
     prismaService.job.findFirst.mockResolvedValue(jobRecord({ requirementsSchema: requirementsSchemaV2() }));
-    ragRetrieverService.retrieve.mockReturnValue({ items: [] });
+    ragRetrieverService.retrieve.mockResolvedValue({ items: [], queryTerms: [], warnings: [] });
 
     await service.calculateForCvAndJob('cv-1', 'job-1', { sub: 'candidate-1', role: UserRole.CANDIDATE });
 
@@ -208,7 +208,7 @@ describe('MatchingService', () => {
   it('works when schema_v2 retriever throws an error', async () => {
     prismaService.cV.findFirst.mockResolvedValue(cvRecord({ rawText: 'cv' }));
     prismaService.job.findFirst.mockResolvedValue(jobRecord({ requirementsSchema: requirementsSchemaV2() }));
-    ragRetrieverService.retrieve.mockImplementation(() => { throw new Error('RAG failure'); });
+    ragRetrieverService.retrieve.mockRejectedValue(new Error('RAG failure'));
 
     await service.calculateForCvAndJob('cv-1', 'job-1', { sub: 'candidate-1', role: UserRole.CANDIDATE });
 

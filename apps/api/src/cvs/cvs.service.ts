@@ -29,6 +29,7 @@ import {
 } from '../normalization/normalization.types';
 import { CvStorageService } from './services/cv-storage.service';
 import { CvTextExtractorService } from './services/cv-text-extractor.service';
+import { VectorSyncService } from '../matching/rag/vector-sync.service';
 
 @Injectable()
 export class CvsService {

@@ -1,128 +1,75 @@
+import { Test, TestingModule } from '@nestjs/testing';
 import { RagRetrieverService } from './rag-retriever.service';
+import { PrismaService } from '../../prisma/prisma.service';
+import { GeminiClientService } from '../../normalization/gemini-client.service';
 
 describe('RagRetrieverService', () => {
   let service: RagRetrieverService;
+  let prisma: PrismaService;
+  let gemini: GeminiClientService;
 
-  beforeEach(() => {
-    service = new RagRetrieverService();
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        RagRetrieverService,
+        {
+          provide: PrismaService,
+          useValue: {
+            $queryRawUnsafe: jest.fn(),
+          },
+        },
+        {
+          provide: GeminiClientService,
+          useValue: {
+            generateEmbedding: jest.fn(),
+          },
+        },
+      ],
+    }).compile();
+
+    service = module.get<RagRetrieverService>(RagRetrieverService);
+    prisma = module.get<PrismaService>(PrismaService);
+    gemini = module.get<GeminiClientService>(GeminiClientService);
   });
 
-  it('retrieves canonical skill aliases from JD and CV skills', () => {
-    const result = service.retrieve({
-      jdSkills: ['ReactJS', 'Postgres'],
-      cvSkills: ['React', 'PostgreSQL'],
-      maxItems: 6,
-    });
-
-    expect(result.items).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          item: expect.objectContaining({
-            kind: 'skill_alias',
-            title: 'React',
-          }),
-        }),
-        expect.objectContaining({
-          item: expect.objectContaining({
-            kind: 'skill_alias',
-            title: 'PostgreSQL',
-          }),
-        }),
-      ]),
-    );
-    expect(result.queryTerms).toEqual(
-      expect.arrayContaining(['reactjs', 'react', 'postgresql']),
-    );
+  it('should be defined', () => {
+    expect(service).toBeDefined();
   });
 
-  it('retrieves related skills for framework ecosystem context', () => {
-    const result = service.retrieve({
-      jdSkills: ['Node.js'],
-      cvSkills: ['NestJS', 'Prisma'],
-      maxItems: 8,
-    });
-
-    expect(result.items).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          item: expect.objectContaining({
-            kind: 'related_skill',
-            title: 'NestJS and Node.js',
-          }),
-        }),
-        expect.objectContaining({
-          item: expect.objectContaining({
-            kind: 'related_skill',
-            title: 'Prisma and ORM',
-          }),
-        }),
-      ]),
-    );
-  });
-
-  it('retrieves role expectation context from JD text', () => {
-    const result = service.retrieve({
-      jdText:
-        'We are hiring a Senior backend engineer to lead architecture and mentor junior developers.',
-      maxItems: 5,
-    });
-
-    expect(result.items[0]).toEqual(
-      expect.objectContaining({
-        item: expect.objectContaining({
-          kind: 'role_expectation',
-          title: 'Senior engineer expectations',
-        }),
-      }),
-    );
-  });
-
-  it('retrieves domain and certification hints without treating them as evidence', () => {
-    const result = service.retrieve({
-      jdText:
-        'Cloud engineer role requiring AWS certification and healthcare data compliance experience.',
-      cvText: 'Built services on Amazon Web Services for hospital analytics.',
-      maxItems: 8,
-    });
-
-    expect(result.items).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          item: expect.objectContaining({
-            kind: 'domain_hint',
-            title: 'AWS certification',
-          }),
-        }),
-        expect.objectContaining({
-          item: expect.objectContaining({
-            kind: 'domain_hint',
-            title: 'Healthcare domain',
-          }),
-        }),
-      ]),
-    );
-  });
-
-  it('handles empty input safely', () => {
-    const result = service.retrieve({});
-
+  it('should return empty when no query text is provided', async () => {
+    const result = await service.retrieve({});
     expect(result.items).toEqual([]);
-    expect(result.queryTerms).toEqual([]);
-    expect(result.warnings).toContain('No query terms available for RAG retrieval.');
+    expect(result.warnings.length).toBeGreaterThan(0);
   });
 
-  it('ranks stronger overlapping items before weaker matches', () => {
-    const result = service.retrieve({
-      jdSkills: ['React', 'Next.js', 'TypeScript'],
-      jdText: 'Frontend role requiring React, Next.js, and TypeScript.',
-      maxItems: 5,
-    });
+  it('should retrieve items using Hybrid Search', async () => {
+    (gemini.generateEmbedding as jest.Mock).mockResolvedValue(new Array(768).fill(0.1));
+    (prisma.$queryRawUnsafe as jest.Mock).mockResolvedValue([
+      {
+        id: '1',
+        kind: 'related_skill',
+        title: 'NestJS',
+        content: 'Node.js framework',
+        source: 'seed',
+        tags: ['node'],
+        rrf_score: 0.95,
+      },
+    ]);
 
-    expect(result.items[0].item.kind).toBe('skill_alias');
-    expect(['React', 'Next.js', 'TypeScript']).toContain(result.items[0].item.title);
-    expect(result.items[0].score).toBeGreaterThanOrEqual(
-      result.items[result.items.length - 1].score,
-    );
-    expect(result.items[0].reason).toContain('Matched');
+    const result = await service.retrieve({ jdSkills: ['NestJS'] });
+    
+    expect(gemini.generateEmbedding).toHaveBeenCalled();
+    expect(prisma.$queryRawUnsafe).toHaveBeenCalled();
+    expect(result.items.length).toBe(1);
+    expect(result.items[0].item.title).toBe('NestJS');
+    expect(result.items[0].score).toBe(0.95);
+  });
+
+  it('should handle errors gracefully and return warnings', async () => {
+    (gemini.generateEmbedding as jest.Mock).mockRejectedValue(new Error('API Down'));
+
+    const result = await service.retrieve({ jdSkills: ['NestJS'] });
+    expect(result.items).toEqual([]);
+    expect(result.warnings[0]).toContain('API Down');
   });
 });

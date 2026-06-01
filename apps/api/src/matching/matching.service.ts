@@ -96,7 +96,7 @@ export class MatchingService {
           
         const jdText = [job.title, job.description].filter(Boolean).join('\n');
 
-        const ragContextResult = this.ragRetrieverService.retrieve({
+        const ragContextResult = await this.ragRetrieverService.retrieve({
           jdSkills: [...jdSkills, ...reqLabelsAndKeywords],
           cvSkills,
           jdText,

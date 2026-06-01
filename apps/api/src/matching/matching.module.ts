@@ -18,6 +18,8 @@ import { DeepseekClientService } from '../normalization/deepseek-client.service'
 import { GeminiClientService } from '../normalization/gemini-client.service';
 import { KimiClientService } from '../normalization/kimi-client.service';
 import { RagRetrieverService } from './rag/rag-retriever.service';
+import { VectorSyncService } from './rag/vector-sync.service';
+import { SemanticSearchService } from './rag/semantic-search.service';
 
 @Module({
   controllers: [MatchingController, RecommendationController],
@@ -39,6 +41,8 @@ import { RagRetrieverService } from './rag/rag-retriever.service';
     RecommendationService,
     RecommendationPrefilterService,
     RagRetrieverService,
+    VectorSyncService,
+    SemanticSearchService,
   ],
   exports: [
     MatchingService,
@@ -49,6 +53,8 @@ import { RagRetrieverService } from './rag/rag-retriever.service';
     JdDrivenEvaluationService,
     RecommendationService,
     RagRetrieverService,
+    VectorSyncService,
+    SemanticSearchService,
   ],
 })
 export class MatchingModule {}

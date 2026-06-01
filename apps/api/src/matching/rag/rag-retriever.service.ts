@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { RAG_KNOWLEDGE_BASE } from './rag-knowledge.seed';
+import { PrismaService } from '../../prisma/prisma.service';
+import { GeminiClientService } from '../../normalization/gemini-client.service';
 import {
-  RagKnowledgeItem,
   RagRetrievalInput,
   RetrievedRagContext,
   RetrievedRagItem,
@@ -12,211 +12,103 @@ const MAX_TEXT_CHARS = 4000;
 
 @Injectable()
 export class RagRetrieverService {
-  retrieve(input: RagRetrievalInput): RetrievedRagContext {
-    const queryTerms = this.extractQueryTerms(input);
-    const warnings: string[] = [];
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly gemini: GeminiClientService,
+  ) {}
 
-    if (queryTerms.length === 0) {
+  async retrieve(input: RagRetrievalInput): Promise<RetrievedRagContext> {
+    const warnings: string[] = [];
+    const maxItems = Math.max(1, Math.min(input.maxItems ?? DEFAULT_MAX_ITEMS, 20));
+
+    // Combine all inputs into a single text block to generate an embedding
+    const queryText = [
+      ...(input.jdSkills ?? []),
+      ...(input.cvSkills ?? []),
+      (input.jdText ?? '').slice(0, MAX_TEXT_CHARS),
+      (input.cvText ?? '').slice(0, MAX_TEXT_CHARS),
+    ].filter(Boolean).join(' ');
+
+    if (!queryText.trim()) {
       return {
         items: [],
-        queryTerms,
+        queryTerms: [],
         warnings: ['No query terms available for RAG retrieval.'],
       };
     }
 
-    const maxItems = this.normalizeMaxItems(input.maxItems);
-    const scored = RAG_KNOWLEDGE_BASE.map((item) =>
-      this.scoreItem(item, queryTerms),
-    )
-      .filter((item): item is RetrievedRagItem => item !== null)
-      .sort(
-        (a, b) =>
-          b.score - a.score ||
-          b.matchedTerms.length - a.matchedTerms.length ||
-          this.firstMatchIndex(a.matchedTerms, queryTerms) -
-            this.firstMatchIndex(b.matchedTerms, queryTerms) ||
-          a.item.id.localeCompare(b.item.id),
-      )
-      .slice(0, maxItems);
+    try {
+      // 1. Get embedding for the query
+      const queryEmbedding = await this.gemini.generateEmbedding(queryText);
+      const vectorString = `[${queryEmbedding.join(',')}]`;
 
-    return {
-      items: scored,
-      queryTerms,
-      warnings,
-    };
-  }
+      // 2. Perform Hybrid Search using RRF (Reciprocal Rank Fusion)
+      // Combines vector similarity (<=>) with Full-Text Search (websearch_to_tsquery)
+      const ftsQuery = (input.jdSkills || []).concat(input.cvSkills || []).join(' ');
 
-  private extractQueryTerms(input: RagRetrievalInput): string[] {
-    const terms = [
-      ...this.normalizeSkillTerms(input.jdSkills ?? []),
-      ...this.normalizeSkillTerms(input.cvSkills ?? []),
-      ...this.extractTextTerms(input.jdText ?? ''),
-      ...this.extractTextTerms(input.cvText ?? ''),
-    ];
-    return Array.from(new Set(terms));
-  }
+      const results = await this.prisma.$queryRawUnsafe<any[]>(
+        `
+        WITH vector_search AS (
+          SELECT id,
+                 1 - (embedding <=> $1::vector) AS vector_score,
+                 ROW_NUMBER() OVER (ORDER BY embedding <=> $1::vector) as vector_rank
+          FROM "RagKnowledge"
+          WHERE embedding IS NOT NULL
+          LIMIT 50
+        ),
+        keyword_search AS (
+          SELECT id,
+                 ts_rank_cd(to_tsvector('english', title || ' ' || content || ' ' || array_to_string(tags, ' ')), websearch_to_tsquery('english', $2)) AS text_score,
+                 ROW_NUMBER() OVER (ORDER BY ts_rank_cd(to_tsvector('english', title || ' ' || content || ' ' || array_to_string(tags, ' ')), websearch_to_tsquery('english', $2)) DESC) as text_rank
+          FROM "RagKnowledge"
+          WHERE to_tsvector('english', title || ' ' || content || ' ' || array_to_string(tags, ' ')) @@ websearch_to_tsquery('english', $2)
+          LIMIT 50
+        ),
+        rrf AS (
+          SELECT
+            COALESCE(v.id, k.id) AS id,
+            COALESCE(1.0 / (60 + v.vector_rank), 0.0) + COALESCE(1.0 / (60 + k.text_rank), 0.0) AS rrf_score
+          FROM vector_search v
+          FULL OUTER JOIN keyword_search k ON v.id = k.id
+        )
+        SELECT r.id, r.kind, r.title, r.content, r.source, r.tags, rrf.rrf_score
+        FROM rrf
+        JOIN "RagKnowledge" r ON r.id = rrf.id
+        ORDER BY rrf.rrf_score DESC
+        LIMIT $3;
+        `,
+        vectorString,
+        ftsQuery || queryText.slice(0, 500),
+        maxItems
+      );
 
-  private normalizeSkillTerms(skills: string[]): string[] {
-    return skills.flatMap((skill) => this.expandTerm(skill));
-  }
+      const items: RetrievedRagItem[] = results.map(row => ({
+        item: {
+          id: row.id,
+          kind: row.kind,
+          title: row.title,
+          content: row.content,
+          source: row.source,
+          tags: row.tags,
+        },
+        score: row.rrf_score,
+        matchedTerms: [], // With vector search, matched terms are abstract
+        reason: `Hybrid search match (Score: ${row.rrf_score.toFixed(4)})`,
+      }));
 
-  private extractTextTerms(text: string): string[] {
-    const limited = text.slice(0, MAX_TEXT_CHARS);
-    const phraseTerms = this.knownPhrases
-      .filter((phrase) => this.normalizeText(limited).includes(phrase))
-      .flatMap((phrase) => this.expandTerm(phrase));
-    const tokenTerms = this.normalizeText(limited)
-      .split(' ')
-      .filter((token) => token.length >= 2)
-      .filter((token) => !this.stopWords.has(token))
-      .flatMap((token) => this.expandTerm(token));
-    return [...phraseTerms, ...tokenTerms];
-  }
+      return {
+        items,
+        queryTerms: [],
+        warnings,
+      };
 
-  private scoreItem(
-    item: RagKnowledgeItem,
-    queryTerms: string[],
-  ): RetrievedRagItem | null {
-    const searchableTerms = new Set(
-      [
-        ...item.tags,
-        item.title,
-        item.content,
-        item.kind.replace('_', ' '),
-      ].flatMap((value) => this.expandTerm(value)),
-    );
-    const matchedTerms = queryTerms.filter((term) => searchableTerms.has(term));
-    if (matchedTerms.length === 0) {
-      return null;
+    } catch (error) {
+      warnings.push(`RAG Search Failed: ${error instanceof Error ? error.message : String(error)}`);
+      return {
+        items: [],
+        queryTerms: [],
+        warnings,
+      };
     }
-
-    const exactTitleMatch = this.expandTerm(item.title).some((term) =>
-      matchedTerms.includes(term),
-    );
-    const kindBoost = item.kind === 'skill_alias' && exactTitleMatch ? 5 : 0;
-    const score =
-      new Set(matchedTerms.map((term) => this.canonicalScoreTerm(term))).size +
-      kindBoost;
-
-    return {
-      item,
-      score,
-      matchedTerms,
-      reason: `Matched ${matchedTerms.length} term(s): ${matchedTerms.join(', ')}`,
-    };
   }
-
-  private expandTerm(value: string): string[] {
-    const normalized = this.normalizeText(value);
-    if (!normalized) {
-      return [];
-    }
-    const aliases = this.aliases.get(normalized) ?? [];
-    return [normalized, ...aliases];
-  }
-
-  private firstMatchIndex(matchedTerms: string[], queryTerms: string[]): number {
-    const indexes = matchedTerms.map((term) => queryTerms.indexOf(term));
-    const validIndexes = indexes.filter((index) => index >= 0);
-    return validIndexes.length > 0 ? Math.min(...validIndexes) : Number.MAX_SAFE_INTEGER;
-  }
-
-  private canonicalScoreTerm(term: string): string {
-    for (const [alias, canonicalValues] of this.aliases.entries()) {
-      if (term === alias || canonicalValues.includes(term)) {
-        return canonicalValues[0];
-      }
-    }
-    return term;
-  }
-
-  private normalizeText(value: string): string {
-    return value
-      .toLowerCase()
-      .replace(/c\+\+/g, 'cpp')
-      .replace(/c#/g, 'csharp')
-      .replace(/\.net/g, 'dotnet')
-      .replace(/[^a-z0-9+#/.]+/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-  }
-
-  private normalizeMaxItems(value: number | undefined): number {
-    if (!Number.isFinite(value)) {
-      return DEFAULT_MAX_ITEMS;
-    }
-    return Math.min(20, Math.max(1, Math.round(value as number)));
-  }
-
-  private readonly aliases = new Map<string, string[]>([
-    ['reactjs', ['react']],
-    ['react.js', ['react']],
-    ['react js', ['react']],
-    ['node', ['nodejs']],
-    ['node.js', ['nodejs']],
-    ['node js', ['nodejs']],
-    ['postgres', ['postgresql']],
-    ['postgres sql', ['postgresql']],
-    ['amazon web services', ['aws']],
-    ['amazon cloud', ['aws']],
-    ['google cloud', ['gcp']],
-    ['google cloud platform', ['gcp']],
-    ['microsoft azure', ['azure']],
-    ['next.js', ['nextjs']],
-    ['next js', ['nextjs']],
-    ['nest.js', ['nestjs']],
-    ['nest js', ['nestjs']],
-    ['ts', ['typescript']],
-    ['js', ['javascript']],
-    ['k8s', ['kubernetes']],
-    ['mongo', ['mongodb']],
-    ['my sql', ['mysql']],
-    ['prisma orm', ['prisma', 'orm']],
-    ['restful', ['rest', 'rest api']],
-    ['machine learning', ['ml']],
-  ]);
-
-  private readonly knownPhrases = [
-    'amazon web services',
-    'google cloud platform',
-    'google cloud',
-    'microsoft azure',
-    'spring boot',
-    'machine learning',
-    'rest api',
-    'aws certification',
-    'aws certified',
-    'supply chain',
-    'tech lead',
-    'lead engineer',
-    'people management',
-  ];
-
-  private readonly stopWords = new Set([
-    'a',
-    'an',
-    'and',
-    'are',
-    'as',
-    'for',
-    'in',
-    'of',
-    'on',
-    'or',
-    'the',
-    'to',
-    'with',
-    'we',
-    'is',
-    'be',
-    'by',
-    'this',
-    'that',
-    'role',
-    'hiring',
-    'requiring',
-    'requires',
-    'required',
-    'experience',
-  ]);
 }
