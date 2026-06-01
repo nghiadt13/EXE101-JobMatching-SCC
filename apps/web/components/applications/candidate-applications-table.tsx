@@ -2,11 +2,13 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   ApplicationItem,
   isMatchingSnapshotV2,
 } from '@/lib/applications-client';
+
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -456,7 +458,30 @@ function ApplicationCard({ item, index }: { item: ApplicationItem; index: number
 
 /* ── Main Component ────────────────────────────────────── */
 
-export function CandidateApplicationsTable({ items }: CandidateApplicationsTableProps) {
+const POLL_INTERVAL_MS = 5_000;
+
+export function CandidateApplicationsTable({ items: initialItems }: CandidateApplicationsTableProps) {
+  const [items, setItems] = useState<ApplicationItem[]>(initialItems);
+  const router = useRouter();
+
+  // Sync with server-rendered props when they change (e.g., after router.refresh())
+  useEffect(() => {
+    setItems(initialItems);
+  }, [initialItems]);
+
+  const hasPending = items.some((i) => i.status === 'PENDING_MATCHING');
+
+  // Auto-refresh page data when there are pending items
+  useEffect(() => {
+    if (!hasPending) return;
+
+    const intervalId = setInterval(() => {
+      router.refresh(); // Re-runs the server component, which re-fetches data
+    }, POLL_INTERVAL_MS);
+
+    return () => clearInterval(intervalId);
+  }, [hasPending, router]);
+
   if (!items.length) {
     return (
       <EmptyState
@@ -485,3 +510,4 @@ export function CandidateApplicationsTable({ items }: CandidateApplicationsTable
     </div>
   );
 }
+

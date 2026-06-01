@@ -5,8 +5,6 @@ import {
   HttpCode,
   HttpStatus,
   Param,
-  ParseIntPipe,
-  ParseUUIDPipe,
   Post,
   Query,
   UseGuards,
@@ -47,7 +45,7 @@ export class RecommendationController {
   @Get(':scanId')
   getScanResult(
     @CurrentUser() user: JwtPayload,
-    @Param('scanId', ParseUUIDPipe) scanId: string,
+    @Param('scanId') scanId: string,
   ) {
     return this.recommendationService.getScanResult(scanId, user);
   }

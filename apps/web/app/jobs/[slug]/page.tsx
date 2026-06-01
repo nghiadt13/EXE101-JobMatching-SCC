@@ -65,33 +65,7 @@ export default async function JobDetailPage({ params, searchParams }: PageProps)
   try {
     job = await getJobDetail(slug);
   } catch {
-    // Fallback to mock data for UI testing if backend is unavailable or job not found
-    job = {
-      id: 'mock-id',
-      recruiterId: 'mock-recruiter',
-      companyName: 'TechCorp Inc.',
-      companyLogoUrl: null,
-      companyIconKey: 'fa-building',
-      title: slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'iOS Developer Fulltime',
-      slug: slug,
-      description: 'We are looking for a highly skilled iOS Developer to join our core engineering team in Cupertino. As an iOS Developer at TechCorp, you will be responsible for building high-quality, scalable mobile applications that provide an exceptional user experience for millions of users worldwide. You will work closely with product managers, designers, and other engineers to define, design, and ship new features.',
-      skills: ['Swift', 'SwiftUI', 'Combine framework', 'RESTful APIs', 'Git', 'Agile'],
-      inputMode: 'manual',
-      parseStatus: 'parsed_ok',
-      parseTelemetry: null,
-      normalizedProfile: null,
-      requirementsSchema: null,
-      requirementsSchemaVersion: null,
-      location: { city: 'Cupertino', country: 'CA' },
-      salaryMin: 140000,
-      salaryMax: 180000,
-      employmentType: 'Full-time',
-      status: 'PUBLISHED',
-      publishedAt: new Date().toISOString(),
-      closedAt: null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    } as JobItem;
+    redirect(PUBLIC_JOBS_LISTING_ROUTE);
   }
 
   const canApply = session?.user?.role === 'CANDIDATE' && Boolean(session.accessToken);

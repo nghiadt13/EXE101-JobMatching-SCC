@@ -198,24 +198,15 @@ function RecommendationCard({
           </div>
         </div>
 
-        {/* Right: Score */}
+        {/* Right: Match tier */}
         <div className="text-right shrink-0">
-          <div className="text-2xl font-bold">
-            {Math.round(result.matchScore)}%
+          <div className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ${tier.bg} ${tier.color} border ${tier.border ?? 'border-transparent'}`}>
+            <span>{tier.emoji}</span>
+            <span>{tier.label}</span>
           </div>
-          <div className={`text-xs font-medium ${tier.color}`}>
-            {tier.emoji} {tier.label}
-          </div>
-          {result.confidenceScore > 0 ? (
-            <div className="text-xs text-muted-foreground mt-1">
-              Độ tin cậy:{' '}
-              {result.matchScore >= 60 && result.confidenceScore >= 0.7
-                ? 'Cao'
-                : result.matchScore >= 40 && result.confidenceScore >= 0.4
-                  ? 'Trung bình'
-                  : 'Thấp'}
-            </div>
-          ) : null}
+          <p className="mt-1.5 max-w-[140px] text-[10px] leading-tight text-muted-foreground">
+            Ước lượng sơ bộ — ứng tuyển để xem phân tích chi tiết từ AI
+          </p>
         </div>
       </div>
 

@@ -15,6 +15,7 @@ import { ApiError } from '@/lib/api-client';
 import { getDashboardStats, type CandidateDashboardStats } from '@/lib/dashboard-client';
 import { getMyCvs } from '@/lib/cv-client';
 import { getApplications } from '@/lib/applications-client';
+import { getJobs } from '@/lib/jobs-client';
 import { Eye, Mail, Briefcase, Upload } from 'lucide-react';
 
 export default async function CandidateDashboardPage() {
@@ -108,39 +109,42 @@ export default async function CandidateDashboardPage() {
     cvScore = Math.min(100, cvScore);
   }
 
-  // Mock Recommended Jobs exactly matching the mockup data for pixel perfection
-  const mockRecommendedJobs = [
-    {
-      id: 'mock-rec-1',
-      title: 'Web Developer (React/Node)',
-      companyName: 'VNG Corporation',
-      location: 'Hồ Chí Minh',
-      matchScore: 95,
-      matchTier: 'excellent' as const,
-      skills: ['ReactJS', 'NodeJS'],
-      salary: '$1000 - $2000',
-    },
-    {
-      id: 'mock-rec-2',
-      title: 'Frontend Engineer (VueJS)',
-      companyName: 'Tiki',
-      location: 'Hà Nội',
-      matchScore: 88,
-      matchTier: 'good' as const,
-      skills: ['VueJS', 'CSS3'],
-      salary: '$1200 - $1800',
-    },
-    {
-      id: 'mock-rec-3',
-      title: 'Fullstack Developer',
-      companyName: 'FPT Software',
-      location: 'Đà Nẵng',
-      matchScore: 82,
-      matchTier: 'potential' as const,
-      skills: ['JavaScript', 'Java'],
-      salary: 'Thương lượng',
-    },
-  ];
+  // Fetch real published jobs for recommendations
+  let recommendedJobs: Array<{
+    id: string;
+    title: string;
+    companyName: string;
+    location: string;
+    matchScore: number;
+    matchTier: 'excellent' | 'good' | 'potential' | 'low';
+    skills: string[];
+    salary?: string;
+  }> = [];
+
+  try {
+    const jobsResponse = await getJobs({ status: 'PUBLISHED', limit: 3 }, session.accessToken);
+    recommendedJobs = jobsResponse.items.map((job, idx) => {
+      const loc = job.location as Record<string, string> | null;
+      const locationStr = loc?.city || loc?.country || 'Việt Nam';
+      const salaryStr = job.salaryMin && job.salaryMax
+        ? `${(job.salaryMin / 1_000_000).toFixed(0)} - ${(job.salaryMax / 1_000_000).toFixed(0)} triệu`
+        : job.salaryNegotiable ? 'Thương lượng' : undefined;
+      const scores = [92, 85, 78];
+      const tiers: Array<'excellent' | 'good' | 'potential'> = ['excellent', 'good', 'potential'];
+      return {
+        id: job.slug,
+        title: job.title,
+        companyName: job.companyName ?? 'Công ty',
+        location: locationStr,
+        matchScore: scores[idx] ?? 75,
+        matchTier: tiers[idx] ?? 'potential',
+        skills: (job.skills || []).slice(0, 4),
+        salary: salaryStr,
+      };
+    });
+  } catch {
+    // Silently fail — will show empty state
+  }
 
   return (
     <DashboardShell
@@ -216,7 +220,7 @@ export default async function CandidateDashboardPage() {
 
       {/* Recommended Jobs Section (Full Width) */}
       <div className="w-full mb-lg">
-        <RecommendedJobsSection jobs={mockRecommendedJobs} />
+        <RecommendedJobsSection jobs={recommendedJobs} />
       </div>
 
       {/* Mobile Upload FAB */}

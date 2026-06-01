@@ -22,30 +22,30 @@ export class VectorSyncService {
       });
 
       if (!job) {
-        this.logger.warn(`Job \${jobId} not found for vector sync.`);
+        this.logger.warn('Job ' + jobId + ' not found for vector sync.');
         return;
       }
 
       // Prepare text to embed
       const skillsArray = Array.isArray(job.skills) ? job.skills : [];
       const textToEmbed = [
-        `Title: \${job.title}`,
-        `Description: \${job.shortDescription || job.description.slice(0, 1000)}`,
-        `Skills: \${skillsArray.join(', ')}`,
+        'Title: ' + job.title,
+        'Description: ' + (job.shortDescription || job.description).slice(0, 1000),
+        'Skills: ' + (skillsArray as string[]).join(', '),
       ].filter(Boolean).join('. ');
 
       const embedding = await this.gemini.generateEmbedding(textToEmbed);
-      const vectorString = `[\${embedding.join(',')}]`;
+      const vectorString = '[' + embedding.join(',') + ']';
 
       await this.prisma.$executeRawUnsafe(
-        `UPDATE "Job" SET embedding = $1::vector WHERE id = $2`,
+        'UPDATE "Job" SET embedding = $1::vector WHERE id = $2',
         vectorString,
         job.id,
       );
 
-      this.logger.log(`Successfully synced vector for Job \${jobId}`);
+      this.logger.log('Successfully synced vector for Job ' + jobId);
     } catch (error) {
-      this.logger.error(`Failed to sync vector for Job \${jobId}`, error);
+      this.logger.error('Failed to sync vector for Job ' + jobId, error);
     }
   }
 
@@ -60,7 +60,7 @@ export class VectorSyncService {
       });
 
       if (!cv) {
-        this.logger.warn(`CV \${cvId} not found for vector sync.`);
+        this.logger.warn('CV ' + cvId + ' not found for vector sync.');
         return;
       }
 
@@ -70,23 +70,23 @@ export class VectorSyncService {
       
       const skillsArray = Array.isArray(cv.skills) ? cv.skills : [];
       const textToEmbed = [
-        title ? `Role: \${title}` : '',
-        summary ? `Summary: \${summary.slice(0, 1000)}` : '',
-        `Skills: \${skillsArray.join(', ')}`,
+        title ? 'Role: ' + title : '',
+        summary ? 'Summary: ' + summary.slice(0, 1000) : '',
+        'Skills: ' + (skillsArray as string[]).join(', '),
       ].filter(Boolean).join('. ');
 
       const embedding = await this.gemini.generateEmbedding(textToEmbed);
-      const vectorString = `[\${embedding.join(',')}]`;
+      const vectorString = '[' + embedding.join(',') + ']';
 
       await this.prisma.$executeRawUnsafe(
-        `UPDATE "CV" SET embedding = $1::vector WHERE id = $2`,
+        'UPDATE "CV" SET embedding = $1::vector WHERE id = $2',
         vectorString,
         cv.id,
       );
 
-      this.logger.log(`Successfully synced vector for CV \${cvId}`);
+      this.logger.log('Successfully synced vector for CV ' + cvId);
     } catch (error) {
-      this.logger.error(`Failed to sync vector for CV \${cvId}`, error);
+      this.logger.error('Failed to sync vector for CV ' + cvId, error);
     }
   }
 }

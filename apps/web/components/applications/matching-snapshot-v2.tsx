@@ -297,7 +297,7 @@ export function MatchingSnapshotV2View({ snapshot }: MatchingSnapshotV2Props) {
               <Quote className="mt-0.5 h-3.5 w-3.5 shrink-0 text-zinc-400" />
               <span>
                 <span className="font-semibold text-zinc-700">Bằng chứng nổi bật: </span>
-                {bestEvidence.length > 150 ? bestEvidence.slice(0, 150) + '…' : bestEvidence}
+                {bestEvidence}
               </span>
             </p>
           </div>
@@ -389,12 +389,17 @@ export function MatchingSnapshotV2View({ snapshot }: MatchingSnapshotV2Props) {
                 </p>
 
                 {req.evidence?.length > 0 ? (
-                  <p className="mt-1 text-sm text-zinc-600">
+                  <div className="mt-1 text-sm text-zinc-600">
                     <span className="font-medium text-zinc-700">Bằng chứng từ CV: </span>
-                    {req.evidence
-                      .map((e) => (e.length > 120 ? e.slice(0, 120) + '…' : e))
-                      .join(' · ')}
-                  </p>
+                    <ul className="mt-1 list-none space-y-1 pl-0">
+                      {req.evidence.map((e, ei) => (
+                        <li key={ei} className="flex items-start gap-1.5">
+                          <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-zinc-400" />
+                          <span>{e}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 ) : (
                   <p className="mt-1 text-sm italic text-zinc-400">
                     Chưa tìm thấy bằng chứng trong CV
