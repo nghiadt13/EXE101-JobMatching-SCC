@@ -83,15 +83,16 @@ export class GeminiClientService implements LlmClient {
     }
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=\${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'models/text-embedding-004',
+          model: 'models/gemini-embedding-2',
           content: {
             parts: [{ text }],
           },
+          outputDimensionality: 768,
         }),
       },
     );
@@ -99,7 +100,7 @@ export class GeminiClientService implements LlmClient {
     const payload = (await response.json()) as Record<string, unknown>;
     if (!response.ok) {
       const errorMsg = this.asRecord(payload['error'])?.['message'] || 'Embedding request failed';
-      throw new Error(`Gemini embedding failed: \${errorMsg}`);
+      throw new Error(`Gemini embedding failed: ${errorMsg}`);
     }
 
     const embedding = this.asRecord(payload['embedding']);
