@@ -6,7 +6,6 @@ venv
 .env
 .env.*
 !.env.example
-/docs/
 /plans/
 /UI/
 /Project_overview/
