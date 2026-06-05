@@ -74,42 +74,45 @@ export function CvPreviewModal({
   const isPdf = cv?.mimeType === 'application/pdf';
 
   // ─── Uploaded file (PDF/DOCX) blob loading ──────────────────────────────
-  const [fileUrl, setFileUrl] = useState<string | null>(null);
-  const [fileStatus, setFileStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+  const [fileState, setFileState] = useState<{
+    cvId: string | null;
+    url: string | null;
+    error: boolean;
+  }>({ cvId: null, url: null, error: false });
+  const shouldLoadUploadedFile = isOpen && !!cv && !isBuilderCv;
 
   useEffect(() => {
     // Only uploaded CVs have a real file to stream.
-    if (!isOpen || !cv || isBuilderCv) {
-      setFileStatus('idle');
-      return;
-    }
-    if (!accessToken) {
-      setFileStatus('error');
-      return;
-    }
+    if (!shouldLoadUploadedFile || !cv || !accessToken) return;
 
     let revoked = false;
     let objectUrl: string | null = null;
-    setFileStatus('loading');
-    setFileUrl(null);
 
     getCvFileBlob(accessToken, cv.id)
       .then((blob) => {
         if (revoked) return;
         objectUrl = URL.createObjectURL(blob);
-        setFileUrl(objectUrl);
-        setFileStatus('ready');
+        setFileState({ cvId: cv.id, url: objectUrl, error: false });
       })
       .catch(() => {
         if (revoked) return;
-        setFileStatus('error');
+        setFileState({ cvId: cv.id, url: null, error: true });
       });
 
     return () => {
       revoked = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [isOpen, cv, isBuilderCv, accessToken]);
+  }, [shouldLoadUploadedFile, cv, accessToken]);
+
+  const fileUrl = shouldLoadUploadedFile && cv && fileState.cvId === cv.id ? fileState.url : null;
+  const fileStatus: 'idle' | 'loading' | 'ready' | 'error' = !shouldLoadUploadedFile
+    ? 'idle'
+    : !accessToken || (cv && fileState.cvId === cv.id && fileState.error)
+      ? 'error'
+      : fileUrl
+        ? 'ready'
+        : 'loading';
 
   // ─── Builder structured data ────────────────────────────────────────────
   const builderData = useMemo<CvBuilderData | null>(() => {
@@ -222,7 +225,7 @@ export function CvPreviewModal({
               status={fileStatus}
               fileUrl={fileUrl}
               isPdf={isPdf}
-              fileName={cv.fileName}
+              cv={cv}
               onDownload={handleDownload}
             />
           )}
@@ -240,15 +243,20 @@ function UploadedFileView({
   status,
   fileUrl,
   isPdf,
-  fileName,
+  cv,
   onDownload,
 }: {
   status: 'idle' | 'loading' | 'ready' | 'error';
   fileUrl: string | null;
   isPdf: boolean;
-  fileName: string;
+  cv: CvItem;
   onDownload: () => void;
 }) {
+  const parsedPreview = !isPdf ? buildUploadedCvPreview(cv) : null;
+  if (parsedPreview) {
+    return <UploadedParsedCvView cv={parsedPreview} />;
+  }
+
   if (status === 'loading' || status === 'idle') {
     return (
       <div className="h-full flex flex-col items-center justify-center gap-3 text-slate-500">
@@ -284,17 +292,18 @@ function UploadedFileView({
     );
   }
 
-  // DOCX (and any non-PDF) → browsers can't render inline, offer download.
+  // DOCX (and any non-PDF) → browsers can't render inline, offer download
+  // when there is no parsed profile data available.
   return (
     <div className="h-full flex flex-col items-center justify-center gap-4 p-8 text-center">
       <div className="w-16 h-16 rounded-2xl bg-brand-50 dark:bg-brand-950 flex items-center justify-center text-brand-600 dark:text-brand-400">
         <FileText className="w-8 h-8" />
       </div>
-      <div className="space-y-1">
+      <div className="w-full max-w-sm space-y-1">
         <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-          {fileName}
+          {cv.fileName}
         </p>
-        <p className="text-xs text-slate-400 max-w-sm">
+        <p className="text-xs text-slate-400">
           Trình duyệt không hỗ trợ xem trước file Word (.docx) trực tiếp. Tải
           xuống để xem nội dung đầy đủ.
         </p>
@@ -307,6 +316,333 @@ function UploadedFileView({
       </button>
     </div>
   );
+}
+
+type UploadedPreviewModel = {
+  title: string;
+  headline: string;
+  summary: string;
+  skills: string[];
+  certifications: string[];
+  languages: string[];
+  location: string;
+  contact: {
+    email: string;
+    phone: string;
+    website: string;
+  };
+  experience: Array<{
+    role: string;
+    company: string;
+    startDate: string;
+    endDate: string;
+    description: string;
+    tech: string[];
+  }>;
+  education: Array<{
+    school: string;
+    degree: string;
+    field: string;
+    startDate: string;
+    endDate: string;
+  }>;
+  projects: Array<{
+    name: string;
+    description: string;
+    tech: string[];
+  }>;
+};
+
+function buildUploadedCvPreview(cv: CvItem): UploadedPreviewModel | null {
+  const parsedData = asRecord(cv.parsedData);
+  const normalizedProfile = asRecord(cv.normalizedProfile);
+  const candidateProfile = cv.candidateProfile;
+  const contact = asRecord(parsedData.contact);
+
+  const summary = firstString(
+    candidateProfile?.summary,
+    normalizedProfile.summary,
+    parsedData.summary,
+  );
+  const skills = preferStringArray(
+    candidateProfile?.skills ?? [],
+    preferStringArray(toStringArray(normalizedProfile.skills), preferStringArray(cv.skills, toStringArray(parsedData.skills))),
+  );
+  const certifications = preferStringArray(
+    candidateProfile?.certifications ?? [],
+    preferStringArray(toStringArray(normalizedProfile.certifications), toStringArray(parsedData.certifications)),
+  );
+  const languages = preferStringArray(
+    candidateProfile?.languages ?? [],
+    preferStringArray(toStringArray(normalizedProfile.languages), toStringArray(parsedData.languages)),
+  );
+  const experience = normalizeExperience(
+    preferRecordArray(
+      candidateProfile?.experience?.map((item) => ({
+        role: item.role,
+        company: item.company,
+        startDate: item.startDate,
+        endDate: item.endDate,
+        tech: item.tech,
+      })) ?? [],
+      preferRecordArray(toRecordArray(normalizedProfile.experience), toRecordArray(parsedData.experience)),
+    ),
+  );
+  const education = normalizeEducation(
+    preferRecordArray(
+      toRecordArray(candidateProfile?.education),
+      preferRecordArray(toRecordArray(normalizedProfile.education), toRecordArray(parsedData.education)),
+    ),
+  );
+  const projects = normalizeProjects(
+    preferRecordArray(
+      candidateProfile?.projects?.map((item) => ({
+        name: item.name,
+        description: item.description,
+        tech: item.tech,
+      })) ?? [],
+      preferRecordArray(toRecordArray(normalizedProfile.projects), toRecordArray(parsedData.projects)),
+    ),
+  );
+
+  const hasContent =
+    summary ||
+    skills.length ||
+    certifications.length ||
+    languages.length ||
+    experience.length ||
+    education.length ||
+    projects.length;
+
+  if (!hasContent) return null;
+
+  const candidateLocation = candidateProfile?.location;
+  const normalizedLocation = asRecord(normalizedProfile.location);
+  const parsedLocation = asRecord(parsedData.location);
+
+  return {
+    title: cv.fileName,
+    headline: firstString(candidateProfile?.headline, normalizedProfile.title, parsedData.title),
+    summary,
+    skills,
+    certifications,
+    languages,
+    location: [
+      firstString(candidateLocation?.city, normalizedLocation.city, parsedLocation.city),
+      firstString(candidateLocation?.country, normalizedLocation.country, parsedLocation.country),
+    ].filter(Boolean).join(', '),
+    contact: {
+      email: firstString(contact.email, contact.mail),
+      phone: firstString(contact.phone, contact.mobile),
+      website: firstString(contact.website, contact.linkedin, contact.github),
+    },
+    experience,
+    education,
+    projects,
+  };
+}
+
+function UploadedParsedCvView({ cv }: { cv: UploadedPreviewModel }) {
+  return (
+    <div className="p-8 flex justify-center w-full">
+      <div className="bg-white text-slate-900 w-full max-w-[210mm] shadow-lg border border-slate-200 p-8 sm:p-12 rounded-xl text-left font-sans text-xs relative select-text leading-relaxed h-fit">
+        <div className="border-b-2 border-slate-800 pb-5 flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4">
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-brand-600">Xem nhanh từ dữ liệu đã phân tích</p>
+            <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-slate-900 uppercase leading-tight break-words">
+              {cv.headline || cv.title}
+            </h1>
+            {cv.headline && (
+              <p className="mt-2 text-sm font-bold text-brand-600 normal-case break-words">{cv.title}</p>
+            )}
+          </div>
+          <div className="text-slate-500 space-y-1 sm:text-right text-[11px] font-medium min-w-fit">
+            {cv.contact.phone && (
+              <p className="flex items-center sm:justify-end gap-1"><Phone className="w-3 h-3 text-slate-400 shrink-0" /> {cv.contact.phone}</p>
+            )}
+            {cv.contact.email && (
+              <p className="flex items-center sm:justify-end gap-1"><Mail className="w-3 h-3 text-slate-400 shrink-0" /> {cv.contact.email}</p>
+            )}
+            {cv.contact.website && (
+              <p className="flex items-center sm:justify-end gap-1"><Globe className="w-3 h-3 text-slate-400 shrink-0" /> {cv.contact.website}</p>
+            )}
+            {cv.location && (
+              <p className="flex items-center sm:justify-end gap-1"><MapPin className="w-3 h-3 text-slate-400 shrink-0" /> {cv.location}</p>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-6">
+          <div className="md:col-span-2 space-y-6">
+            {cv.summary && (
+              <Section icon={<Target className="w-4 h-4 text-brand-500 shrink-0" />} title="Tóm tắt hồ sơ">
+                <p className="text-slate-600 text-[11px] leading-relaxed whitespace-pre-line">{cv.summary}</p>
+              </Section>
+            )}
+            {cv.experience.length > 0 && (
+              <Section icon={<Layers className="w-4 h-4 text-brand-500 shrink-0" />} title="Kinh nghiệm làm việc">
+                <Timeline rows={cv.experience} />
+              </Section>
+            )}
+            {cv.education.length > 0 && (
+              <Section icon={<GraduationCap className="w-4 h-4 text-brand-500 shrink-0" />} title="Học vấn">
+                <Timeline rows={cv.education.map((item) => ({
+                  role: item.degree || item.field,
+                  company: item.school,
+                  startDate: item.startDate,
+                  endDate: item.endDate,
+                  description: item.field,
+                  tech: [],
+                }))} />
+              </Section>
+            )}
+            {cv.projects.length > 0 && (
+              <Section icon={<Layers className="w-4 h-4 text-brand-500 shrink-0" />} title="Dự án nổi bật">
+                <div className="space-y-4">
+                  {cv.projects.map((project, index) => (
+                    <div key={`${project.name}-${index}`} className="space-y-1.5">
+                      <h3 className="font-bold text-slate-800 text-[11px]">{project.name}</h3>
+                      {project.description && <p className="text-slate-600 text-[11px] leading-relaxed">{project.description}</p>}
+                      <ChipList items={project.tech} />
+                    </div>
+                  ))}
+                </div>
+              </Section>
+            )}
+          </div>
+
+          <div className="space-y-6">
+            {cv.skills.length > 0 && (
+              <Section icon={<Cpu className="w-4 h-4 text-brand-500 shrink-0" />} title="Kỹ năng">
+                <ChipList items={cv.skills} />
+              </Section>
+            )}
+            {cv.certifications.length > 0 && (
+              <Section icon={<Award className="w-4 h-4 text-brand-500 shrink-0" />} title="Chứng chỉ">
+                <ul className="space-y-1.5 text-[11px] text-slate-700">
+                  {cv.certifications.map((item, index) => <li key={`${item}-${index}`} className="font-medium">{item}</li>)}
+                </ul>
+              </Section>
+            )}
+            {cv.languages.length > 0 && (
+              <Section icon={<LanguagesIcon className="w-4 h-4 text-brand-500 shrink-0" />} title="Ngôn ngữ">
+                <ul className="space-y-1 text-[11px] text-slate-700">
+                  {cv.languages.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}
+                </ul>
+              </Section>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Timeline({ rows }: { rows: UploadedPreviewModel['experience'] }) {
+  return (
+    <div className="space-y-4">
+      {rows.map((row, index) => (
+        <div key={`${row.role}-${row.company}-${index}`} className="relative pl-4 border-l-2 border-brand-500/30 space-y-1">
+          <div className="absolute -left-[5px] top-1.5 w-2 h-2 rounded-full bg-brand-500" />
+          <div className="flex justify-between items-start text-[11px] gap-2">
+            <h3 className="font-bold text-slate-800">
+              {[row.role, row.company].filter(Boolean).join(' @ ') || 'Thông tin'}
+            </h3>
+            {(row.startDate || row.endDate) && (
+              <span className="text-slate-400 shrink-0">{row.startDate || '?'} - {row.endDate || 'Hiện tại'}</span>
+            )}
+          </div>
+          {row.description && <p className="text-slate-600 text-[11px] leading-relaxed">{row.description}</p>}
+          <ChipList items={row.tech} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ChipList({ items }: { items: string[] }) {
+  if (!items.length) return null;
+  return (
+    <div className="flex flex-wrap gap-1">
+      {items.map((item) => (
+        <span key={item} className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-[10px] font-medium">
+          {item}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function normalizeExperience(rows: Array<Record<string, unknown>>): UploadedPreviewModel['experience'] {
+  return rows.map((row) => ({
+    role: firstString(row.role, row.title, row.position),
+    company: firstString(row.company, row.organization),
+    startDate: firstString(row.startDate, row.start, row.from),
+    endDate: firstString(row.endDate, row.end, row.to),
+    description: firstString(row.description, row.summary),
+    tech: toStringArray(row.tech).length ? toStringArray(row.tech) : toStringArray(row.technologies),
+  })).filter((row) => row.role || row.company || row.description);
+}
+
+function normalizeEducation(rows: Array<Record<string, unknown>>): UploadedPreviewModel['education'] {
+  return rows.map((row) => ({
+    school: firstString(row.school, row.university, row.institution),
+    degree: firstString(row.degree, row.qualification),
+    field: firstString(row.field, row.major),
+    startDate: firstString(row.startDate, row.start, row.from),
+    endDate: firstString(row.endDate, row.end, row.to),
+  })).filter((row) => row.school || row.degree || row.field);
+}
+
+function normalizeProjects(rows: Array<Record<string, unknown>>): UploadedPreviewModel['projects'] {
+  return rows.map((row) => ({
+    name: firstString(row.name, row.title),
+    description: firstString(row.description, row.summary),
+    tech: toStringArray(row.tech).length ? toStringArray(row.tech) : toStringArray(row.technologies),
+  })).filter((row) => row.name || row.description);
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return {};
+}
+
+function toRecordArray(value: unknown): Array<Record<string, unknown>> {
+  if (!Array.isArray(value)) return [];
+  return value.filter(
+    (item): item is Record<string, unknown> =>
+      !!item && typeof item === 'object' && !Array.isArray(item),
+  );
+}
+
+function toStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is string => typeof item === 'string')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function preferRecordArray(
+  primary: Array<Record<string, unknown>>,
+  fallback: Array<Record<string, unknown>>,
+): Array<Record<string, unknown>> {
+  return primary.length ? primary : fallback;
+}
+
+function preferStringArray(primary: string[], fallback: string[]): string[] {
+  return primary.length ? primary : fallback;
+}
+
+function firstString(...values: unknown[]): string {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim();
+    }
+  }
+  return '';
 }
 
 // ───────────────────────────────────────────────────────────────────────────
