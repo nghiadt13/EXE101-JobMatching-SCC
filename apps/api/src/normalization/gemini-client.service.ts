@@ -76,6 +76,42 @@ export class GeminiClientService implements LlmClient {
     }
   }
 
+  async generateEmbedding(text: string): Promise<number[]> {
+    const apiKey = process.env['GEMINI_API_KEY'];
+    if (!apiKey) {
+      throw new Error('GEMINI_API_KEY is required');
+    }
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'models/gemini-embedding-2',
+          content: {
+            parts: [{ text }],
+          },
+          outputDimensionality: 768,
+        }),
+      },
+    );
+
+    const payload = (await response.json()) as Record<string, unknown>;
+    if (!response.ok) {
+      const errorMsg = this.asRecord(payload['error'])?.['message'] || 'Embedding request failed';
+      throw new Error(`Gemini embedding failed: ${errorMsg}`);
+    }
+
+    const embedding = this.asRecord(payload['embedding']);
+    const values = embedding?.['values'];
+    if (!Array.isArray(values)) {
+      throw new Error('Failed to extract embedding values from Gemini response');
+    }
+
+    return values as number[];
+  }
+
   private extractText(payload: Record<string, unknown>): string {
     const candidates = Array.isArray(payload['candidates'])
       ? payload['candidates']

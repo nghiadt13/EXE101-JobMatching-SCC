@@ -7,7 +7,7 @@ export class DeepseekClientService implements LlmClient {
   readonly provider = 'deepseek' as const;
 
   getModelName(): string {
-    return process.env['DEEPSEEK_MODEL'] ?? 'deepseek-v4-flash';
+    return process.env['DEEPSEEK_MODEL'] ?? 'deepseek-chat';
   }
 
   private getBaseUrl(): string {
@@ -15,7 +15,7 @@ export class DeepseekClientService implements LlmClient {
   }
 
   async generateText(prompt: string, timeoutMs = 60000): Promise<string> {
-    const apiKey = process.env['DEEPSEEK_API_KEY'];
+    const apiKey = process.env['DEEPSEEK_API_KEY']?.trim();
     if (!apiKey) {
       throw new Error('DEEPSEEK_API_KEY is required');
     }

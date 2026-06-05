@@ -1,19 +1,16 @@
 import {
   BadRequestException,
   NotFoundException,
-  ServiceUnavailableException,
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
-import { AiNormalizationError } from '../normalization/normalization.errors';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CandidateProfileService } from '../matching/services/candidate-profile.service';
 import { SkillStorageAdapterService } from '../matching/services/skill-storage-adapter.service';
 import { AppLogger } from '../common/logging/app-logger.service';
 import { CvsService } from './cvs.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { AiNormalizationService } from '../normalization/ai-normalization.service';
 import { CvStorageService } from './services/cv-storage.service';
 import { CvTextExtractorService } from './services/cv-text-extractor.service';
 import { CreateCvDto } from './dto/create-cv.dto';
@@ -24,9 +21,6 @@ describe('CvsService', () => {
   let cvTextExtractorService: {
     assertSupported: jest.Mock;
     extract: jest.Mock;
-  };
-  let aiNormalizationService: {
-    normalizeCv: jest.Mock;
   };
   let skillStorageAdapterService: { toStoredSkills: jest.Mock };
   let prismaService: {
@@ -45,9 +39,6 @@ describe('CvsService', () => {
   beforeEach(async () => {
     cvStorageService = { save: jest.fn(), remove: jest.fn() };
     cvTextExtractorService = { assertSupported: jest.fn(), extract: jest.fn() };
-    aiNormalizationService = {
-      normalizeCv: jest.fn(),
-    };
     skillStorageAdapterService = {
       toStoredSkills: jest.fn((skills: string[]) => ({
         skills,
@@ -80,7 +71,6 @@ describe('CvsService', () => {
       providers: [
         CvsService,
         { provide: PrismaService, useValue: prismaService },
-        { provide: AiNormalizationService, useValue: aiNormalizationService },
         {
           provide: SkillStorageAdapterService,
           useValue: skillStorageAdapterService,
@@ -144,72 +134,62 @@ describe('CvsService', () => {
         (error as UnprocessableEntityException).getResponse(),
       ).toMatchObject({
         code: 'CV_PARSE_FAILED',
-        details: { stage: 'document_processing' },
+        details: { stage: 'text_extraction' },
       });
     }
 
     expect(cvStorageService.save).not.toHaveBeenCalled();
   });
 
-  it('fails upload when normalization fails after extraction succeeds', async () => {
+  it('stores uploaded CV raw text without calling AI normalization', async () => {
     prismaService.candidate.findFirst.mockResolvedValue({ id: 'candidate-1' });
     prismaService.cV.count.mockResolvedValue(0);
     cvTextExtractorService.extract.mockResolvedValue('Extracted CV text');
-    aiNormalizationService.normalizeCv.mockRejectedValue(
-      new Error('llm failed'),
-    );
+    cvStorageService.save.mockResolvedValue('candidate-1/cv.pdf');
+    prismaService.cV.create.mockResolvedValue({
+      id: 'cv-1',
+      fileName: 'cv.pdf',
+      fileSize: 100,
+      mimeType: 'application/pdf',
+      parsedData: {
+        parseStatus: 'pending_apply',
+        rawTextLength: 'Extracted CV text'.length,
+      },
+      skills: [],
+      candidateProfile: null,
+      candidateProfileVersion: null,
+      source: 'upload',
+      templateId: 'simple',
+      isPrimary: true,
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+    });
 
-    try {
-      await service.upload('candidate-user', {
+    const result = await service.upload('candidate-user', {
         originalname: 'cv.pdf',
         mimetype: 'application/pdf',
         size: 100,
         buffer: Buffer.from('content'),
-      } as Express.Multer.File);
-      fail('Expected CV upload to fail');
-    } catch (error) {
-      expect(error).toBeInstanceOf(UnprocessableEntityException);
-      expect(
-        (error as UnprocessableEntityException).getResponse(),
-      ).toMatchObject({
-        code: 'CV_PARSE_FAILED',
-        details: {
-          stage: 'document_processing',
-        },
-      });
-    }
+    } as Express.Multer.File);
 
-    expect(aiNormalizationService.normalizeCv).toHaveBeenCalledWith(
-      'Extracted CV text',
+    expect(result.parseStatus).toBe('pending_apply');
+    expect(cvStorageService.save).toHaveBeenCalledWith(
+      'candidate-1',
+      expect.objectContaining({ originalname: 'cv.pdf' }),
     );
-    expect(cvStorageService.save).not.toHaveBeenCalled();
-  });
-
-  it('returns service unavailable when AI provider is unavailable', async () => {
-    prismaService.candidate.findFirst.mockResolvedValue({ id: 'candidate-1' });
-    prismaService.cV.count.mockResolvedValue(0);
-    cvTextExtractorService.extract.mockResolvedValue('Extracted CV text');
-    aiNormalizationService.normalizeCv.mockRejectedValue(
-      new AiNormalizationError('service_unavailable', 'provider down'),
+    expect(prismaService.cV.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          parsedData: {
+            parseStatus: 'pending_apply',
+            rawTextLength: 'Extracted CV text'.length,
+          },
+          rawText: 'Extracted CV text',
+          skillAtoms: [],
+          candidateProfile: expect.anything(),
+        }),
+      }),
     );
-
-    try {
-      await service.upload('candidate-user', {
-        originalname: 'cv.pdf',
-        mimetype: 'application/pdf',
-        size: 100,
-        buffer: Buffer.from('content'),
-      } as Express.Multer.File);
-      fail('Expected CV upload to fail');
-    } catch (error) {
-      expect(error).toBeInstanceOf(ServiceUnavailableException);
-      expect(
-        (error as ServiceUnavailableException).getResponse(),
-      ).toMatchObject({
-        code: 'AI_SERVICE_UNAVAILABLE',
-        details: { stage: 'normalization' },
-      });
-    }
   });
 
   it('keeps parsed data, normalized profile, and canonical atoms in sync on manual skill edits', async () => {

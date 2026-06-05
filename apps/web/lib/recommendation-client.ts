@@ -6,31 +6,35 @@ export type MatchTier = 'excellent' | 'good' | 'potential' | 'low';
 
 export const MATCH_TIER_CONFIG: Record<
   MatchTier,
-  { label: string; emoji: string; color: string; bg: string }
+  { label: string; emoji: string; color: string; bg: string; border: string }
 > = {
   excellent: {
-    label: 'Excellent Match',
+    label: 'Rất phù hợp',
     emoji: '🟢',
     color: 'text-emerald-700',
     bg: 'bg-emerald-50 border-emerald-200',
+    border: 'border-emerald-200',
   },
   good: {
-    label: 'Good Match',
+    label: 'Phù hợp',
     emoji: '🟡',
     color: 'text-amber-700',
     bg: 'bg-amber-50 border-amber-200',
+    border: 'border-amber-200',
   },
   potential: {
-    label: 'Potential',
+    label: 'Có tiềm năng',
     emoji: '🟠',
     color: 'text-orange-700',
     bg: 'bg-orange-50 border-orange-200',
+    border: 'border-orange-200',
   },
   low: {
-    label: 'Low Match',
+    label: 'Ít phù hợp',
     emoji: '🔴',
     color: 'text-red-700',
     bg: 'bg-red-50 border-red-200',
+    border: 'border-red-200',
   },
 };
 

@@ -56,7 +56,7 @@ export class AuthService {
           password: hashedPassword,
           name: dto.name,
           role: dto.role,
-          candidate:
+          candidates:
             dto.role === UserRole.CANDIDATE ? { create: {} } : undefined,
         },
         select: {
@@ -172,7 +172,7 @@ export class AuthService {
           password: dummyPasswordHash,
           role,
           avatar: dto.avatar,
-          candidate:
+          candidates:
             role === UserRole.CANDIDATE ? { create: {} } : undefined,
         },
         select: {

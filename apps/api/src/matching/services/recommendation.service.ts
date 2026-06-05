@@ -11,12 +11,8 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AppLogger } from '../../common/logging/app-logger.service';
-import { MatchingService } from '../matching.service';
-import { SkillStorageAdapterService } from './skill-storage-adapter.service';
-import {
-  RecommendationPrefilterService,
-  PrefilterJobRecord,
-} from './recommendation-prefilter.service';
+import { SemanticSearchService } from '../rag/semantic-search.service';
+import { VectorSyncService } from '../rag/vector-sync.service';
 import {
   resolveMatchTier,
   RecommendationScanView,
@@ -25,28 +21,15 @@ import {
 } from '../recommendation.types';
 import type { JwtPayload } from '../../auth/auth.types';
 
-const AI_BATCH_SIZE = 2;
-const PRE_FILTER_LIMIT = 20;
 const MAX_RESULTS = 10;
-
-type EvaluationResult = {
-  jobId: string;
-  matchScore: number;
-  matchingVersion: string;
-  matchingSnapshot: unknown;
-  strengths: string[];
-  gaps: string[];
-  confidenceScore: number;
-};
 
 @Injectable()
 export class RecommendationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLogger,
-    private readonly matchingService: MatchingService,
-    private readonly skillStorageAdapter: SkillStorageAdapterService,
-    private readonly prefilterService: RecommendationPrefilterService,
+    private readonly semanticSearch: SemanticSearchService,
+    private readonly vectorSync: VectorSyncService,
   ) {}
 
   async startScan(
@@ -180,91 +163,86 @@ export class RecommendationService {
     scanId: string,
     cvId: string,
     candidateId: string,
-    actor: JwtPayload,
+    _actor: JwtPayload,
   ): Promise<void> {
     const startTime = Date.now();
 
     try {
-      // 1. Fetch CV data
-      const cv = await this.prisma.cV.findFirst({
-        where: { id: cvId, deletedAt: null },
-        select: { id: true, skills: true, skillAtoms: true, rawText: true },
+      // 1. Ensure CV has an embedding (generate if missing)
+      await this.vectorSync.syncCv(cvId);
+
+      // 2. Count total published jobs
+      const totalJobs = await this.prisma.job.count({
+        where: { status: JobStatus.PUBLISHED, deletedAt: null },
       });
-      if (!cv) {
-        throw new Error('CV not found during background processing');
+
+      // 3. Vector search: find top jobs by cosine similarity
+      const vectorResults = await this.semanticSearch.findTopJobsForCv(
+        cvId,
+        MAX_RESULTS,
+      );
+
+      if (vectorResults.length === 0) {
+        this.logger.warn('recommendation_no_vector_results', {
+          scanId,
+          cvId,
+          totalJobs,
+          hint: 'No jobs have embeddings yet. Run vector sync for existing jobs.',
+        });
       }
 
-      const cvAtoms = this.skillStorageAdapter.readSkillAtoms(cv.skillAtoms);
-      const cvCanonicals = new Set(cvAtoms.map((a) => a.canonical));
-
-      // 2. Fetch all published jobs
-      const allJobs = (await this.prisma.job.findMany({
-        where: { status: JobStatus.PUBLISHED, deletedAt: null },
-        select: {
-          id: true,
-          title: true,
-          description: true,
-          skills: true,
-          skillAtoms: true,
-          requirementsSchema: true,
-          location: true,
-          recruiterId: true,
-        },
-      })) as PrefilterJobRecord[];
-
-      const totalJobs = allJobs.length;
-
-      // 3. Pre-filter
-      const topJobs = this.prefilterService.rankJobs({
-        cvCanonicals,
-        cvRawText: cv.rawText,
-        jobs: allJobs,
-        limit: PRE_FILTER_LIMIT,
-      });
-
-      const preFiltered = topJobs.length;
-
-      this.logger.info('recommendation_prefilter_done', {
+      this.logger.info('recommendation_vector_search_done', {
         scanId,
         totalJobs,
-        preFiltered,
-        cvCanonicalCount: cvCanonicals.size,
+        vectorResultCount: vectorResults.length,
+        topScore: vectorResults[0]?.score ?? 0,
+        processingMs: Date.now() - startTime,
       });
 
-      // 4. AI Evaluate in sequential batches
-      const evaluations: EvaluationResult[] = [];
+      // 4. Fetch job metadata for the matched jobs
+      const jobIds = vectorResults.map((r) => r.id);
+      const jobs = jobIds.length > 0
+        ? await this.prisma.job.findMany({
+            where: { id: { in: jobIds } },
+            select: {
+              id: true,
+              title: true,
+              description: true,
+              skills: true,
+            },
+          })
+        : [];
+      const jobMap = new Map(jobs.map((j) => [j.id, j]));
 
-      for (let i = 0; i < topJobs.length; i += AI_BATCH_SIZE) {
-        const batch = topJobs.slice(i, i + AI_BATCH_SIZE);
-        const batchResults = await Promise.allSettled(
-          batch.map((job) => this.evaluateOneJob(cvId, job.id, actor)),
-        );
+      // 5. Build ranked results — convert cosine similarity (0-1) to percentage (0-100)
+      const rankedResults = vectorResults.map((result, index) => {
+        const job = jobMap.get(result.id);
+        const matchScore = Math.round(result.score * 100);
 
-        for (let idx = 0; idx < batchResults.length; idx++) {
-          const settled = batchResults[idx];
-          if (settled.status === 'fulfilled') {
-            evaluations.push({ jobId: batch[idx].id, ...settled.value });
-          } else {
-            this.logger.warn('recommendation_single_job_failed', {
-              scanId,
-              jobId: batch[idx].id,
-              error:
-                settled.reason instanceof Error
-                  ? settled.reason.message
-                  : 'unknown',
-            });
-          }
-        }
-      }
+        // Extract strengths from job skills that exist
+        const jobSkills = Array.isArray(job?.skills)
+          ? (job.skills as string[]).slice(0, 4)
+          : [];
+        const strengths = jobSkills.length > 0
+          ? [`Phù hợp kỹ năng: ${jobSkills.join(', ')}`]
+          : [];
 
-      // 5. Sort and take top results
-      const rankedResults = evaluations
-        .sort((a, b) => b.matchScore - a.matchScore)
-        .slice(0, MAX_RESULTS)
-        .map((result, index) => ({
-          ...result,
+        return {
+          jobId: result.id,
           rank: index + 1,
-        }));
+          matchScore,
+          matchTier: resolveMatchTier(matchScore),
+          matchingVersion: 'vector_cosine_v1',
+          matchingSnapshot: {
+            method: 'vector_cosine_similarity',
+            rawScore: result.score,
+            jobTitle: job?.title ?? 'Unknown',
+          } as Prisma.InputJsonValue,
+          strengths: strengths as unknown as Prisma.InputJsonValue,
+          gaps: [] as unknown as Prisma.InputJsonValue,
+          confidenceScore: result.score,
+        };
+      });
 
       // 6. Save results
       if (rankedResults.length > 0) {
@@ -274,11 +252,11 @@ export class RecommendationService {
             jobId: result.jobId,
             rank: result.rank,
             matchScore: result.matchScore,
-            matchTier: resolveMatchTier(result.matchScore),
+            matchTier: result.matchTier,
             matchingVersion: result.matchingVersion,
-            matchingSnapshot: result.matchingSnapshot as Prisma.InputJsonValue,
-            strengths: result.strengths as unknown as Prisma.InputJsonValue,
-            gaps: result.gaps as unknown as Prisma.InputJsonValue,
+            matchingSnapshot: result.matchingSnapshot,
+            strengths: result.strengths,
+            gaps: result.gaps,
             confidenceScore: result.confidenceScore,
           })),
         });
@@ -290,8 +268,8 @@ export class RecommendationService {
         data: {
           status: RecommendationScanStatus.COMPLETED,
           totalJobs,
-          preFiltered,
-          aiEvaluated: evaluations.length,
+          preFiltered: vectorResults.length,
+          aiEvaluated: 0, // No LLM calls in vector-only mode
           processingMs: Date.now() - startTime,
           completedAt: new Date(),
         },
@@ -307,10 +285,9 @@ export class RecommendationService {
       this.logger.info('recommendation_scan_completed', {
         scanId,
         totalJobs,
-        preFiltered,
-        aiEvaluated: evaluations.length,
         resultCount: rankedResults.length,
         processingMs: Date.now() - startTime,
+        method: 'vector_cosine_similarity',
       });
     } catch (error) {
       this.logger.error('recommendation_scan_failed', {
@@ -337,82 +314,6 @@ export class RecommendationService {
         /* best-effort */
       });
     }
-  }
-
-  private async evaluateOneJob(
-    cvId: string,
-    jobId: string,
-    actor: JwtPayload,
-  ): Promise<Omit<EvaluationResult, 'jobId'>> {
-    const result = await this.matchingService.calculateForCvAndJob(
-      cvId,
-      jobId,
-      actor,
-    );
-
-    const snapshot = result.matchingSnapshot;
-    const strengths = this.extractStrengths(snapshot);
-    const gaps = this.extractGaps(snapshot);
-    const confidenceScore = this.extractConfidenceScore(snapshot);
-
-    return {
-      matchScore: result.score,
-      matchingVersion: result.matchingVersion,
-      matchingSnapshot: snapshot,
-      strengths,
-      gaps,
-      confidenceScore,
-    };
-  }
-
-  private extractStrengths(snapshot: unknown): string[] {
-    if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) {
-      return [];
-    }
-    const record = snapshot as Record<string, unknown>;
-    return Array.isArray(record['strengths'])
-      ? (record['strengths'] as unknown[])
-          .filter((s): s is string => typeof s === 'string')
-          .slice(0, 4)
-      : [];
-  }
-
-  private extractGaps(snapshot: unknown): string[] {
-    if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) {
-      return [];
-    }
-    const record = snapshot as Record<string, unknown>;
-    return Array.isArray(record['gaps'])
-      ? (record['gaps'] as unknown[])
-          .filter((s): s is string => typeof s === 'string')
-          .slice(0, 3)
-      : [];
-  }
-
-  /**
-   * Confidence score (0-1) based on the proportion of requirement evaluations
-   * with high/medium confidence. V2 snapshots only.
-   */
-  private extractConfidenceScore(snapshot: unknown): number {
-    if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) {
-      return 0;
-    }
-    const record = snapshot as Record<string, unknown>;
-    if (!Array.isArray(record['requirements'])) return 0;
-
-    const reqs = record['requirements'] as Array<{
-      confidence?: string;
-      status?: string;
-    }>;
-    const applicable = reqs.filter((r) => r.status !== 'not_applicable');
-    if (applicable.length === 0) return 0;
-
-    const highCount = applicable.filter((r) => r.confidence === 'high').length;
-    const mediumCount = applicable.filter(
-      (r) => r.confidence === 'medium',
-    ).length;
-
-    return (highCount * 1.0 + mediumCount * 0.5) / applicable.length;
   }
 
   // ---- Notifications ----

@@ -4,6 +4,11 @@ import { AppLogger } from '../common/logging/app-logger.service';
 import { DeepseekClientService } from './deepseek-client.service';
 import { GeminiClientService } from './gemini-client.service';
 import { KimiClientService } from './kimi-client.service';
+import {
+  JD_CONTEXTUAL_EVAL_V1,
+  REQUIREMENTS_SCHEMA_V2,
+  RequirementsSchemaV2,
+} from '../matching/types/schema-matching.types';
 
 describe('AiNormalizationService', () => {
   let service: AiNormalizationService;
@@ -247,4 +252,157 @@ describe('AiNormalizationService', () => {
       }),
     });
   });
+
+  it('keeps confidence for exact short quote evidence and paraphrased supporting evidence', async () => {
+    geminiClient.generateText.mockResolvedValue(
+      JSON.stringify({
+        version: JD_CONTEXTUAL_EVAL_V1,
+        requirementEvaluations: [
+          {
+            requirementId: 'req-nest',
+            status: 'met',
+            evidence: ['NestJS'],
+            confidence: 'high',
+          },
+          {
+            requirementId: 'req-api',
+            status: 'met',
+            evidence: ['Built REST APIs with NestJS and PostgreSQL'],
+            confidence: 'high',
+          },
+        ],
+        constraintEvaluations: [],
+        candidateSummary: candidateSummary(),
+        warnings: [],
+      }),
+    );
+
+    const result = await service.evaluateCvAgainstJd(
+      [
+        'Backend Engineer',
+        'Built backend services using NestJS.',
+        'Designed PostgreSQL schemas and REST API modules.',
+      ].join('\n'),
+      jdSchema(),
+    );
+
+    expect(result.requirementEvaluations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          requirementId: 'req-nest',
+          confidence: 'high',
+        }),
+        expect.objectContaining({
+          requirementId: 'req-api',
+          confidence: 'high',
+        }),
+      ]),
+    );
+  });
+
+  it('lowers confidence when evidence is not supported by CV text', async () => {
+    geminiClient.generateText.mockResolvedValue(
+      JSON.stringify({
+        version: JD_CONTEXTUAL_EVAL_V1,
+        requirementEvaluations: [
+          {
+            requirementId: 'req-nest',
+            status: 'met',
+            evidence: ['Led Kubernetes migration'],
+            confidence: 'high',
+          },
+        ],
+        constraintEvaluations: [],
+        candidateSummary: candidateSummary(),
+        warnings: [],
+      }),
+    );
+
+    const result = await service.evaluateCvAgainstJd(
+      'Backend Engineer. Built services with NestJS and PostgreSQL.',
+      jdSchema({ requirements: [jdSchema().requirements[0]] }),
+    );
+
+    expect(result.requirementEvaluations[0]).toMatchObject({
+      requirementId: 'req-nest',
+      confidence: 'low',
+    });
+  });
+
+  it('adds advisory RAG guardrails when retrieved context is provided', async () => {
+    geminiClient.generateText.mockResolvedValue(
+      JSON.stringify({
+        version: JD_CONTEXTUAL_EVAL_V1,
+        requirementEvaluations: [],
+        constraintEvaluations: [],
+        candidateSummary: candidateSummary(),
+        warnings: [],
+      }),
+    );
+
+    await service.evaluateCvAgainstJd(
+      'Backend Engineer. Built services with React.',
+      jdSchema({ requirements: [jdSchema().requirements[0]] }),
+      'ReactJS is commonly used as an alias for React.',
+    );
+
+    const prompt = geminiClient.generateText.mock.calls[0][0] as string;
+
+    expect(prompt).toContain('## Retrieved Context (Advisory Knowledge)');
+    expect(prompt).toContain('ReactJS is commonly used as an alias for React.');
+    expect(prompt).toContain(
+      'Treat retrieved context as background knowledge, not candidate evidence.',
+    );
+    expect(prompt).toContain(
+      'Candidate evidence must still come from the Candidate CV Text section.',
+    );
+  });
 });
+
+function jdSchema(
+  overrides: Partial<RequirementsSchemaV2> = {},
+): RequirementsSchemaV2 {
+  return {
+    version: REQUIREMENTS_SCHEMA_V2,
+    roleTitle: 'Backend Engineer',
+    summary: 'Backend role',
+    requirements: [
+      {
+        id: 'req-nest',
+        label: 'NestJS',
+        category: 'skill',
+        importance: 'critical',
+        keywords: ['nestjs'],
+        minimumMonths: null,
+      },
+      {
+        id: 'req-api',
+        label: 'REST API development',
+        category: 'skill',
+        importance: 'high',
+        keywords: ['rest', 'api'],
+        minimumMonths: null,
+      },
+    ],
+    constraints: [],
+    locationPreference: null,
+    warnings: [],
+    ...overrides,
+  };
+}
+
+function candidateSummary() {
+  return {
+    headline: 'Backend Engineer',
+    totalExperienceMonths: 24,
+    relevantExperienceMonths: 24,
+    skills: ['NestJS', 'PostgreSQL'],
+    location: null,
+    projectRelevance: {
+      totalProjects: 1,
+      relevantProjects: 1,
+      relevanceScore: 80,
+      highlights: ['Backend API project'],
+    },
+  };
+}

@@ -20,12 +20,13 @@ export class ProfileService {
         name: true,
         role: true,
         avatar: true,
-        candidate: {
+        candidates: {
           select: {
             phone: true,
             location: true,
             bio: true,
           },
+          take: 1,
         },
       },
     });
@@ -43,11 +44,13 @@ export class ProfileService {
       candidate:
         user.role === UserRole.CANDIDATE
           ? {
-              phone: user.candidate?.phone ?? null,
+              phone: user.candidates[0]?.phone ?? null,
               location:
-                (user.candidate?.location as Record<string, unknown> | null) ??
-                null,
-              bio: user.candidate?.bio ?? null,
+                (user.candidates[0]?.location as Record<
+                  string,
+                  unknown
+                > | null) ?? null,
+              bio: user.candidates[0]?.bio ?? null,
             }
           : null,
     };
@@ -65,8 +68,9 @@ export class ProfileService {
       select: {
         id: true,
         role: true,
-        candidate: {
+        candidates: {
           select: { id: true },
+          take: 1,
         },
       },
     });
@@ -91,7 +95,7 @@ export class ProfileService {
         dto.location !== undefined ||
         dto.bio !== undefined)
     ) {
-      if (!existing.candidate) {
+      if (existing.candidates.length === 0) {
         throw new NotFoundException('Candidate profile not found');
       }
 

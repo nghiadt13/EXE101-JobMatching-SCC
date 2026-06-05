@@ -29,6 +29,7 @@ import {
 } from '../normalization/normalization.types';
 import { CvStorageService } from './services/cv-storage.service';
 import { CvTextExtractorService } from './services/cv-text-extractor.service';
+import { VectorSyncService } from '../matching/rag/vector-sync.service';
 
 @Injectable()
 export class CvsService {
@@ -39,6 +40,7 @@ export class CvsService {
     private readonly cvTextExtractorService: CvTextExtractorService,
     private readonly candidateProfileService: CandidateProfileService,
     private readonly skillStorageAdapter: SkillStorageAdapterService,
+    private readonly vectorSync: VectorSyncService,
   ) {}
 
   async upload(userId: string, file: Express.Multer.File): Promise<CvView> {
@@ -121,6 +123,7 @@ export class CvsService {
         fileName: file.originalname,
         rawTextLength: rawText.length,
       });
+      this.vectorSync.syncCv(created.id).catch(err => this.logger.error('cv_vector_sync_failed', err));
       return this.toView(created);
     } catch (error) {
       this.logger.error(
@@ -198,6 +201,7 @@ export class CvsService {
       templateId: dto.templateId ?? 'simple',
     });
 
+    this.vectorSync.syncCv(created.id).catch(err => this.logger.error('cv_vector_sync_failed', err));
     return this.toView(created);
   }
 
@@ -258,6 +262,7 @@ export class CvsService {
       templateId: dto.templateId ?? 'simple',
     });
 
+    this.vectorSync.syncCv(updated.id).catch(err => this.logger.error('cv_vector_sync_failed', err));
     return this.toView(updated);
   }
 
@@ -548,6 +553,7 @@ export class CvsService {
       select: this.cvViewSelect,
     });
 
+    this.vectorSync.syncCv(updated.id).catch(err => this.logger.error('cv_vector_sync_failed', err));
     return this.toView(updated);
   }
 

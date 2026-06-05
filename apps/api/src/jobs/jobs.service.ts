@@ -15,6 +15,7 @@ import { basename, extname } from 'node:path';
 import { buildErrorPayload } from '../common/errors/api-error-envelope';
 import { ERROR_CODES } from '../common/errors/error-codes';
 import { AppLogger } from '../common/logging/app-logger.service';
+import { VectorSyncService } from '../matching/rag/vector-sync.service';
 import {
   DOCUMENT_MAX_FILE_SIZE_BYTES,
   DOCUMENT_MAX_TEXT_CHARS,
@@ -78,6 +79,7 @@ export class JobsService {
     private readonly homepageCache: HomepageCacheService,
     private readonly jobRequirementsSchemaService: JobRequirementsSchemaService,
     private readonly skillStorageAdapter: SkillStorageAdapterService,
+    private readonly vectorSync: VectorSyncService,
   ) {}
 
   async create(recruiterId: string, dto: CreateJobDto): Promise<JobView> {
@@ -164,6 +166,7 @@ export class JobsService {
       return this.toView(created);
     });
     this.homepageCache.clearAll();
+    this.vectorSync.syncJob(result.id).catch(err => this.logger.error('job_vector_sync_failed', err));
     return result;
   }
 
@@ -271,6 +274,7 @@ export class JobsService {
 
       const response = this.toView(created);
       this.homepageCache.clearAll();
+      this.vectorSync.syncJob(created.id).catch(err => this.logger.error('job_vector_sync_failed', err));
       return response;
     } catch (error) {
       this.logger.error(
@@ -601,6 +605,7 @@ export class JobsService {
 
       const response = this.toView(updated);
       this.homepageCache.clearAll();
+      this.vectorSync.syncJob(updated.id).catch(err => this.logger.error('job_vector_sync_failed', err));
       return response;
     }
 
@@ -685,6 +690,7 @@ export class JobsService {
 
     const response = this.toView(updated);
     this.homepageCache.clearAll();
+    this.vectorSync.syncJob(updated.id).catch(err => this.logger.error('job_vector_sync_failed', err));
     return response;
   }
 

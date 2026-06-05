@@ -21,6 +21,13 @@ Hệ thống tuyển dụng MVP với AI matching giữa CV và Job Description.
 - Application flow (apply/review/status transitions)
 - Role-based dashboard stats
 
+## AI Matching Docs
+
+- [AI matching review notes](apps/api/src/matching/docs/ai-matching-review-notes.md)
+- [AI matching mini eval plan](apps/api/src/matching/docs/mini-eval-plan.md)
+- [RAG implementation phases](apps/api/src/matching/docs/rag-implementation-phases.md)
+- [Matching performance notes](apps/api/src/matching/docs/matching-performance-notes.md)
+
 ## Prerequisites
 
 - Node.js 20+
