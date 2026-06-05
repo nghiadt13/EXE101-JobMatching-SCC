@@ -201,17 +201,24 @@ export class RecommendationService {
 
       // 4. Fetch job metadata for the matched jobs
       const jobIds = vectorResults.map((r) => r.id);
-      const jobs = jobIds.length > 0
-        ? await this.prisma.job.findMany({
-            where: { id: { in: jobIds } },
-            select: {
-              id: true,
-              title: true,
-              description: true,
-              skills: true,
-            },
-          })
-        : [];
+      const jobs =
+        jobIds.length > 0
+          ? await this.prisma.job.findMany({
+              where: { id: { in: jobIds } },
+              select: {
+                id: true,
+                title: true,
+                description: true,
+                skills: true,
+                skillAtoms: true,
+                requirementsSchema: true,
+                location: true,
+                recruiterId: true,
+              },
+            })
+          : [];
+
+      // 5. Pre-filter / Re-rank using Canonical Skills
       const jobMap = new Map(jobs.map((j) => [j.id, j]));
 
       // 5. Build ranked results — convert cosine similarity (0-1) to percentage (0-100)
@@ -223,9 +230,10 @@ export class RecommendationService {
         const jobSkills = Array.isArray(job?.skills)
           ? (job.skills as string[]).slice(0, 4)
           : [];
-        const strengths = jobSkills.length > 0
-          ? [`Phù hợp kỹ năng: ${jobSkills.join(', ')}`]
-          : [];
+        const strengths =
+          jobSkills.length > 0
+            ? [`Phù hợp kỹ năng: ${jobSkills.join(', ')}`]
+            : [];
 
         return {
           jobId: result.id,

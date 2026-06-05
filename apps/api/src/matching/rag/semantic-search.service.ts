@@ -15,7 +15,10 @@ export class SemanticSearchService {
   /**
    * Finds the Top N CVs that best match a given Job using Vector Cosine Distance.
    */
-  async findTopCvsForJob(jobId: string, limit: number = 50): Promise<SemanticSearchResult[]> {
+  async findTopCvsForJob(
+    jobId: string,
+    limit: number = 50,
+  ): Promise<SemanticSearchResult[]> {
     try {
       const job = await this.prisma.job.findUnique({
         where: { id: jobId },
@@ -28,12 +31,14 @@ export class SemanticSearchService {
       // First check if the Job has an embedding
       const jobVectorResult = await this.prisma.$queryRawUnsafe<any[]>(
         `SELECT embedding::text FROM "Job" WHERE id = $1`,
-        job.id
+        job.id,
       );
 
       const embeddingStr = jobVectorResult[0]?.embedding;
       if (!embeddingStr) {
-        this.logger.warn(`Job \${jobId} has no embedding. Returning empty results.`);
+        this.logger.warn(
+          `Job \${jobId} has no embedding. Returning empty results.`,
+        );
         return [];
       }
 
@@ -43,14 +48,16 @@ export class SemanticSearchService {
         SELECT id, 1 - (embedding <=> $1::vector) AS score
         FROM "CV"
         WHERE embedding IS NOT NULL
+          AND "deletedAt" IS NULL
+          AND (1 - (embedding <=> $1::vector)) > 0.65
         ORDER BY embedding <=> $1::vector
         LIMIT $2
         `,
         embeddingStr,
-        limit
+        limit,
       );
 
-      return results.map(row => ({
+      return results.map((row) => ({
         id: row.id,
         score: row.score,
       }));
@@ -63,7 +70,10 @@ export class SemanticSearchService {
   /**
    * Finds the Top N Jobs that best match a given CV using Vector Cosine Distance.
    */
-  async findTopJobsForCv(cvId: string, limit: number = 50): Promise<SemanticSearchResult[]> {
+  async findTopJobsForCv(
+    cvId: string,
+    limit: number = 50,
+  ): Promise<SemanticSearchResult[]> {
     try {
       const cv = await this.prisma.cV.findUnique({
         where: { id: cvId },
@@ -75,12 +85,14 @@ export class SemanticSearchService {
 
       const cvVectorResult = await this.prisma.$queryRawUnsafe<any[]>(
         `SELECT embedding::text FROM "CV" WHERE id = $1`,
-        cv.id
+        cv.id,
       );
 
       const embeddingStr = cvVectorResult[0]?.embedding;
       if (!embeddingStr) {
-        this.logger.warn(`CV \${cvId} has no embedding. Returning empty results.`);
+        this.logger.warn(
+          `CV \${cvId} has no embedding. Returning empty results.`,
+        );
         return [];
       }
 
@@ -91,15 +103,17 @@ export class SemanticSearchService {
         SELECT id, 1 - (embedding <=> $1::vector) AS score
         FROM "Job"
         WHERE embedding IS NOT NULL
+          AND "deletedAt" IS NULL
           AND status = 'PUBLISHED'
+          AND (1 - (embedding <=> $1::vector)) > 0.65
         ORDER BY embedding <=> $1::vector
         LIMIT $2
         `,
         embeddingStr,
-        limit
+        limit,
       );
 
-      return results.map(row => ({
+      return results.map((row) => ({
         id: row.id,
         score: row.score,
       }));

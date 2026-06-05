@@ -78,10 +78,11 @@ JWT_SECRET=change-me
 JWT_EXPIRES_IN=1h
 
 LLM_PROVIDER=gemini
+CV_PARSE_LLM_PROVIDER=deepseek
 GEMINI_API_KEY=your-gemini-api-key
 GEMINI_MODEL=gemini-3.1-flash-lite-preview
-OPENAI_API_KEY=your-openai-api-key
-OPENAI_MODEL=gpt-4.1-mini
+DEEPSEEK_API_KEY=your-deepseek-api-key
+DEEPSEEK_FAST_MODEL=deepseek-v4-flash
 ```
 
 Create file `apps/web/.env` with:
@@ -136,18 +137,21 @@ Required variables:
 - `JWT_SECRET`
 - `WEB_URL` (default `http://localhost:3000`)
 - `PORT` (default `3001` recommended for local)
-- `LLM_PROVIDER` (`gemini` or `openai`, default `gemini`)
+- `LLM_PROVIDER` (`gemini`, `kimi`, or `deepseek`; default `gemini`) for general AI normalization and JD/CV evaluation
+- `CV_PARSE_LLM_PROVIDER` (`deepseek`, `gemini`, or `kimi`; default `deepseek`) for uploaded CV parsing
 - `GEMINI_API_KEY` (required when `LLM_PROVIDER=gemini`)
 - `GEMINI_MODEL` (default `gemini-3.1-flash-lite-preview`)
-- `OPENAI_API_KEY` (required when `LLM_PROVIDER=openai`)
-- `OPENAI_MODEL` (default `gpt-4.1-mini`)
+- `DEEPSEEK_API_KEY` (required when `CV_PARSE_LLM_PROVIDER=deepseek` or `LLM_PROVIDER=deepseek`)
+- `DEEPSEEK_FAST_MODEL` (default `deepseek-v4-flash`)
+- `KIMI_API_KEY` (required when using `kimi`)
 
 AI parse workflow (current):
 
 1. Extract text from source (`PDF/DOCX` for CV, form text for JD)
-2. Send extracted text to the configured LLM provider (`gemini` or `openai`)
-3. Normalize LLM JSON output to internal schema
-4. Persist normalized payload for matching
+2. For uploaded CVs, send extracted text to `CV_PARSE_LLM_PROVIDER` (default `deepseek-v4-flash`) in a background parse task
+3. For job normalization and JD/CV evaluation, use `LLM_PROVIDER`
+4. Normalize LLM JSON output to internal schema
+5. Persist normalized payload for matching
 
 If the LLM returns invalid JSON, or the extracted file content cannot be parsed, the API now fails explicitly with a parse error. If the configured provider is unavailable or misconfigured, the API returns a service-unavailable error instead of pretending the file was unreadable. The system no longer saves synthetic fallback parses.
 

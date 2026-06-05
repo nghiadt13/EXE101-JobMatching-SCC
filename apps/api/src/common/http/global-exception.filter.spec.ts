@@ -102,10 +102,10 @@ describe('GlobalExceptionFilter', () => {
     expect(mockJson).toHaveBeenCalledWith({
       statusCode: 500,
       code: 'INTERNAL_SERVER_ERROR',
-      message: 'Internal server error',
+      message: 'Unexpected server error. Please try again later.',
       path: '/test',
       timestamp: expect.any(String),
-      requestId: 'test-req-id',
+      requestId: 'req-123',
     });
     expect(logger.error).toHaveBeenCalled();
   });

@@ -100,8 +100,7 @@ export default async function RecruiterJobDetailPage({ params, searchParams }: P
       }
       redirect(`/dashboard/recruiter/jobs/${id}?error=save-failed`);
     }
-    revalidatePath(`/dashboard/recruiter/jobs/${id}`);
-    revalidatePath('/dashboard/recruiter/jobs');
+    revalidatePath('/', 'layout');
   }
 
   const routeError = resolveRouteError(query, {

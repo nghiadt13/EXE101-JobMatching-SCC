@@ -10,6 +10,7 @@ export interface NormalizedExperience {
   company: string;
   startDate: string | null;
   endDate: string | null;
+  description?: string;
   tech: string[];
 }
 
@@ -42,6 +43,7 @@ export interface JobMetaBlock {
 export interface NormalizedProfile {
   schemaVersion: typeof NORMALIZED_SCHEMA_VERSION;
   language: 'vi' | 'en' | 'mixed';
+  candidateName?: string;
   title: string;
   summary: string;
   skills: string[];

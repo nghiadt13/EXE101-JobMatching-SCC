@@ -47,7 +47,9 @@ import {
   type CSSProperties,
 } from 'react';
 import dynamic from 'next/dynamic';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { toast } from 'sonner';
 import {
   ArrowLeft,
   Check,
@@ -59,12 +61,13 @@ import {
   Save,
   X,
   Palette,
+  FileText,
 } from 'lucide-react';
 
 import { CvHtmlCanvas } from './cv-html-canvas';
 import { DesignSidebar } from './design-sidebar';
 import { SectionNav } from './section-nav';
-import { useAutoSave, type SaveStatus } from '@/hooks/use-auto-save';
+import { type SaveStatus } from '@/hooks/use-auto-save';
 import {
   DEFAULT_DESIGN_TOKENS,
   type CvBuilderData,
@@ -106,11 +109,15 @@ const PDFDownloadButton = dynamic(
  * this component before the row exists in the database — in that case
  * auto-save is disabled and only the manual save button persists.
  */
-export interface CvBuilderPageProps {
+export interface CvBuilderProps {
+  /** Serialized snapshot from the database. */
   initialData: CvBuilderData;
+  /** Required to enable auto-save (or manual save). Omit for preview/demo modes. */
   cvId?: string;
   accessToken?: string;
-  onSave: (data: CvBuilderData) => Promise<string | null>;
+  hasPdfFile?: boolean;
+  isNewUpload?: boolean;
+  onSave?: (data: CvBuilderData) => Promise<string | null>;
 }
 
 /**
@@ -302,21 +309,45 @@ export function CvBuilderPage({
   initialData,
   cvId,
   accessToken,
-  onSave,
-}: CvBuilderPageProps) {
+  hasPdfFile = false,
+  isNewUpload = false,
+  onSave = async () => null,
+}: CvBuilderProps) {
+  const router = useRouter();
   // ─── State ─────────────────────────────────────────────────────────────
-  const [cvData, setCvData] = useState<CvBuilderData>(initialData);
+  const [cvData, setCvData] = useState<CvBuilderData>(() => initialData);
   const [zoom, setZoom] = useState<number>(DEFAULT_ZOOM);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [manualSaveError, setManualSaveError] = useState<string | null>(null);
   const [manualSaveJustSucceeded, setManualSaveJustSucceeded] = useState(false);
   const [isManualSaving, startManualSave] = useTransition();
+  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
+  const [showPdf, setShowPdf] = useState(false);
 
-  // Auto-save is only meaningful once we have both an id and an auth token.
-  // Calling the hook unconditionally keeps hook ordering stable across
-  // renders; we simply skip its `debouncedSave` when the feature is off.
-  const canAutoSave = Boolean(cvId && accessToken);
-  const autoSave = useAutoSave(cvId ?? '', accessToken ?? '');
+  useEffect(() => {
+    if (!hasPdfFile || !accessToken || !cvId) return;
+    
+    let active = true;
+    let url: string | null = null;
+    
+    import('@/lib/cv-client').then(({ fetchCvFile }) => {
+      fetchCvFile(accessToken, cvId).then(blob => {
+        if (active) {
+          url = URL.createObjectURL(blob);
+          setPdfBlobUrl(url);
+          setShowPdf(true);
+        }
+      }).catch(console.error);
+    });
+
+    return () => {
+      active = false;
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [hasPdfFile, accessToken, cvId]);
+
+  // Removed useAutoSave hooks, replacing with local `isDirty` state
+  const [isDirty, setIsDirty] = useState(isNewUpload);
 
   // Keep the latest `cvData` in a ref so the "fit to width" computation can
   // be invoked from a `ResizeObserver` callback (which captures stale state)
@@ -325,6 +356,52 @@ export function CvBuilderPage({
   useEffect(() => {
     cvDataRef.current = cvData;
   }, [cvData]);
+
+  const hasSavedAtLeastOnce = useRef(false);
+  useEffect(() => {
+    if (manualSaveJustSucceeded) {
+      hasSavedAtLeastOnce.current = true;
+    }
+  }, [manualSaveJustSucceeded]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      const hasUnsavedChanges = isDirty || (hasPdfFile && !hasSavedAtLeastOnce.current);
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = 'Bạn có thay đổi chưa lưu. Bạn có chắc chắn muốn rời đi?';
+        return e.returnValue;
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasPdfFile, isDirty]);
+
+  const [navInterceptUrl, setNavInterceptUrl] = useState<string | null>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    const handleGlobalClick = (e: MouseEvent) => {
+      const hasUnsavedChanges = isDirty || (hasPdfFile && !hasSavedAtLeastOnce.current);
+      if (hasUnsavedChanges) {
+        const target = (e.target as HTMLElement).closest('a');
+        if (target && target.href && !target.hasAttribute('download') && target.target !== '_blank') {
+          try {
+            const url = new URL(target.href);
+            if (url.origin === window.location.origin && url.pathname !== window.location.pathname) {
+              e.preventDefault();
+              e.stopPropagation();
+              setNavInterceptUrl(target.href);
+              dialogRef.current?.showModal();
+            }
+          } catch (err) {}
+        }
+      }
+    };
+
+    document.addEventListener('click', handleGlobalClick, { capture: true });
+    return () => document.removeEventListener('click', handleGlobalClick, { capture: true });
+  }, [hasPdfFile, isDirty]);
 
   // Refs used by the canvas + zoom toolbar.
   const midPanelRef = useRef<HTMLDivElement | null>(null);
@@ -343,11 +420,9 @@ export function CvBuilderPage({
       setCvData(next);
       setManualSaveError(null);
       setManualSaveJustSucceeded(false);
-      if (canAutoSave) {
-        autoSave.debouncedSave(next);
-      }
+      setIsDirty(true);
     },
-    [autoSave, canAutoSave],
+    [],
   );
 
   /**
@@ -390,11 +465,16 @@ export function CvBuilderPage({
         const error = await onSave(cvDataRef.current);
         if (error) {
           setManualSaveError(error);
+          toast.error(error);
         } else {
           setManualSaveJustSucceeded(true);
+          setIsDirty(false); // Reset dirty flag
+          toast.success('Đã mã hóa thành công, sẵn sàng cho tìm kiếm việc!');
         }
       } catch {
-        setManualSaveError('Đã xảy ra lỗi. Vui lòng thử lại.');
+        const errorMsg = 'Đã xảy ra lỗi. Vui lòng thử lại.';
+        setManualSaveError(errorMsg);
+        toast.error(errorMsg);
       }
     });
   }, [onSave]);
@@ -447,20 +527,22 @@ export function CvBuilderPage({
 
   // Determines whether to render the auto-save indicator at all. The create
   // flow has no id → auto-save is off → there is nothing to display.
-  const showAutoSaveIndicator = canAutoSave;
+  const showAutoSaveIndicator = Boolean(cvId && accessToken);
+
+  let saveStatus: SaveStatus = 'saved';
+  if (isManualSaving) {
+    saveStatus = 'saving';
+  } else if (manualSaveError) {
+    saveStatus = 'error';
+  } else if (isDirty || (hasPdfFile && !hasSavedAtLeastOnce.current)) {
+    saveStatus = 'dirty';
+  }
 
   return (
-    <div
-      className="flex h-[calc(100vh-5rem)] flex-col overflow-hidden bg-zinc-50"
-      style={workspaceStyle}
-      data-testid="cv-builder-workspace"
-    >
-      {/* ─────────────── Top Bar (64 px) — Requirement 9.6 ────────────── */}
-      <header
-        className="flex h-16 shrink-0 items-center justify-between gap-3 border-b border-zinc-200 bg-white px-4"
-        data-testid="cv-builder-top-bar"
-      >
-        <div className="flex items-center gap-3">
+    <div className="flex h-[100dvh] min-h-[100dvh] flex-col overflow-hidden bg-zinc-50 font-sans antialiased">
+      {/* ─── Top Bar ──────────────────────────────────────────────────────── */}
+      <div className="relative z-10 flex h-16 shrink-0 items-center justify-between border-b border-zinc-200 bg-white px-4 shadow-sm sm:px-6">
+        <div className="flex items-center gap-4">
           <Link
             href="/dashboard/candidate/cvs"
             className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50"
@@ -477,8 +559,8 @@ export function CvBuilderPage({
         <div className="flex items-center gap-3">
           {showAutoSaveIndicator ? (
             <SaveStatusIndicator
-              status={autoSave.saveStatus}
-              onRetry={autoSave.retry}
+              status={saveStatus}
+              onRetry={handleManualSave}
             />
           ) : null}
           {manualSaveError ? (
@@ -498,6 +580,17 @@ export function CvBuilderPage({
               <Check className="h-3.5 w-3.5" aria-hidden />
               Đã lưu
             </span>
+          ) : null}
+
+          {hasPdfFile && pdfBlobUrl ? (
+            <button
+              type="button"
+              onClick={() => setShowPdf(!showPdf)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50"
+            >
+              <FileText className="h-4 w-4" aria-hidden />
+              {showPdf ? 'Ẩn bản gốc' : 'Xem bản gốc'}
+            </button>
           ) : null}
 
           <button
@@ -522,7 +615,7 @@ export function CvBuilderPage({
             Tải PDF
           </PDFDownloadButton>
         </div>
-      </header>
+      </div>
 
       {/* ─────────────── Three-panel workspace — Requirement 9.1 ──────── */}
       <div className="flex min-h-0 flex-1 overflow-hidden">
@@ -571,15 +664,33 @@ export function CvBuilderPage({
           </button>
         </div>
 
-        {/* Right: DesignSidebar (≥1024 px only) */}
-        <div className="hidden lg:block">
-          <DesignSidebar
-            templateId={cvData.templateId}
-            tokens={cvData.designTokens ?? DEFAULT_DESIGN_TOKENS}
-            onChangeTemplate={handleChangeTemplate}
-            onChangeTokens={handleChangeTokens}
-          />
-        </div>
+        {/* Right Middle: PDF Viewer (if enabled) */}
+        {showPdf && pdfBlobUrl ? (
+          <div className="hidden lg:flex w-[450px] shrink-0 flex-col border-l border-zinc-200 bg-zinc-100 z-10 shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.05)]">
+            <div className="flex h-12 shrink-0 items-center px-4 border-b border-zinc-200 bg-white justify-between">
+              <span className="text-sm font-semibold text-zinc-700 flex items-center gap-2">
+                <FileText className="w-4 h-4 text-brand-600" /> File PDF Gốc
+              </span>
+              <button 
+                onClick={() => setShowPdf(false)}
+                className="p-1 hover:bg-zinc-100 rounded text-zinc-500 hover:text-zinc-800"
+                title="Đóng bản gốc"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <iframe src={pdfBlobUrl} className="flex-1 w-full border-none" title="Original PDF" />
+          </div>
+        ) : (
+          <div className="hidden lg:block">
+            <DesignSidebar
+              templateId={cvData.templateId}
+              tokens={cvData.designTokens ?? DEFAULT_DESIGN_TOKENS}
+              onChangeTemplate={handleChangeTemplate}
+              onChangeTokens={handleChangeTokens}
+            />
+          </div>
+        )}
 
         {/* ─── Mobile drawer for DesignSidebar (<1024 px) — Req 9.2 ───── */}
         <div
@@ -629,6 +740,64 @@ export function CvBuilderPage({
           </div>
         </div>
       </div>
+
+      {/* Navigation Intercept Modal */}
+      <dialog
+        ref={dialogRef}
+        className="m-auto w-[400px] max-w-[90vw] rounded-2xl border border-blue-100 bg-white p-6 shadow-xl backdrop:bg-blue-900/30 open:animate-in open:fade-in-0 open:zoom-in-95"
+        onClick={(e) => {
+          if (e.target === dialogRef.current) {
+            dialogRef.current?.close();
+            setNavInterceptUrl(null);
+          }
+        }}
+      >
+        <h2 className="text-lg font-semibold text-slate-900">Bạn chưa lưu thay đổi</h2>
+        <p className="mt-2 text-sm text-slate-600">
+          Bạn có thay đổi chưa được lưu. Bạn có muốn lưu thay đổi này trước khi rời đi không?
+        </p>
+        <div className="mt-6 flex justify-end gap-3">
+          <button
+            type="button"
+            className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            onClick={() => {
+              dialogRef.current?.close();
+              setNavInterceptUrl(null);
+            }}
+          >
+            Hủy
+          </button>
+          <button
+            type="button"
+            className="rounded-md bg-slate-100 px-3 py-2 text-sm font-medium text-slate-900 hover:bg-slate-200"
+            onClick={() => {
+              dialogRef.current?.close();
+              hasSavedAtLeastOnce.current = true;
+              if (navInterceptUrl) window.location.href = navInterceptUrl;
+            }}
+          >
+            Không lưu
+          </button>
+          <button
+            type="button"
+            className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            onClick={async () => {
+              try {
+                await onSave(cvDataRef.current);
+                hasSavedAtLeastOnce.current = true;
+                toast.success('Đã mã hóa thành công, sẵn sàng cho tìm kiếm việc!');
+                dialogRef.current?.close();
+                if (navInterceptUrl) window.location.href = navInterceptUrl;
+              } catch (e) {
+                console.error(e);
+                toast.error('Đã xảy ra lỗi khi lưu.');
+              }
+            }}
+          >
+            Có, lưu lại
+          </button>
+        </div>
+      </dialog>
     </div>
   );
 }

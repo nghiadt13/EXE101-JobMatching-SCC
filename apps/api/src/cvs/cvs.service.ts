@@ -218,16 +218,7 @@ export class CvsService {
     const candidate = await this.getCandidateOrThrow(userId);
     const current = await this.ensureCvOwnership(candidate.id, cvId);
 
-    // Only builder CVs can be updated via this endpoint
-    if (current.source !== 'builder') {
-      throw new BadRequestException(
-        buildErrorPayload(
-          ERROR_CODES.cvLimitReached, // reuse existing error code
-          'Only builder CVs can be updated via this endpoint',
-        ),
-      );
-    }
-
+    // Allow CVs to be updated (including uploaded CVs being converted to builder CVs)
     const parsedData = this.buildNormalizedParsedData(dto);
     const rawText = this.generateRawText(dto);
     const normalizedSkills = this.skillStorageAdapter.toStoredSkills(
@@ -267,7 +258,7 @@ export class CvsService {
       templateId: dto.templateId ?? 'simple',
     });
 
-    this.vectorSync.syncCv(updated.id).catch(err => this.logger.error('cv_vector_sync_failed', err));
+    await this.vectorSync.syncCv(updated.id).catch(err => this.logger.error('cv_vector_sync_failed', err));
     return this.toView(updated);
   }
 
@@ -422,6 +413,29 @@ export class CvsService {
     return this.toView(cv);
   }
 
+  async getFileInfo(
+    userId: string,
+    cvId: string,
+  ): Promise<{ absolutePath: string; mimeType: string; fileName: string }> {
+    const candidate = await this.getCandidateOrThrow(userId);
+    const cv = await this.ensureCvOwnership(candidate.id, cvId);
+
+    if (!cv.filePath) {
+      throw new NotFoundException('CV file not found');
+    }
+
+    const absolutePath = this.cvStorageService.getAbsolutePath(cv.filePath);
+    const mimeType = cv.fileName.toLowerCase().endsWith('.pdf')
+      ? 'application/pdf'
+      : 'application/octet-stream';
+
+    return {
+      absolutePath,
+      mimeType,
+      fileName: cv.fileName,
+    };
+  }
+
   async update(
     userId: string,
     cvId: string,
@@ -546,6 +560,10 @@ export class CvsService {
         },
       });
 
+      await transaction.recommendationScan.deleteMany({
+        where: { cvId },
+      });
+
       if (target.isPrimary) {
         const fallback = await transaction.cV.findFirst({
           where: {
@@ -619,6 +637,7 @@ export class CvsService {
     parsedData: Prisma.JsonValue;
     skills: Prisma.JsonValue;
     source: string;
+    fileName: string;
   }> {
     // Look up the CV by id only (without candidate scoping) so we can
     // distinguish between "does not exist" (404) and "exists but not owned
@@ -636,6 +655,7 @@ export class CvsService {
         parsedData: true,
         skills: true,
         source: true,
+        fileName: true,
       },
     });
 
@@ -660,6 +680,7 @@ export class CvsService {
       parsedData: cv.parsedData,
       skills: cv.skills,
       source: cv.source,
+      fileName: cv.fileName,
     };
   }
 
@@ -832,7 +853,7 @@ export class CvsService {
       });
 
       this.logger.info('background_cv_parse_completed', { cvId });
-      await this.vectorSync.syncCv(cvId);
+      // We explicitly skip vectorSync here so the user can review and edit their parsed CV first.
     } catch (error) {
       this.logger.error('background_cv_parse_failed', { cvId }, error);
     }

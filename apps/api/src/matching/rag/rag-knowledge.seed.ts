@@ -1,8 +1,18 @@
 import { RagKnowledgeItem } from './rag.types';
 
 export const RAG_KNOWLEDGE_BASE: RagKnowledgeItem[] = [
-  alias('skill-alias-react', 'React', ['react', 'reactjs', 'react.js', 'react js']),
-  alias('skill-alias-node', 'Node.js', ['node', 'nodejs', 'node.js', 'node js']),
+  alias('skill-alias-react', 'React', [
+    'react',
+    'reactjs',
+    'react.js',
+    'react js',
+  ]),
+  alias('skill-alias-node', 'Node.js', [
+    'node',
+    'nodejs',
+    'node.js',
+    'node js',
+  ]),
   alias('skill-alias-postgresql', 'PostgreSQL', [
     'postgres',
     'postgresql',
@@ -181,14 +191,43 @@ export const RAG_KNOWLEDGE_BASE: RagKnowledgeItem[] = [
     'event management',
     'journalism',
   ]),
-  
-  alias('skill-alias-seo', 'SEO', ['seo', 'search engine optimization', 'tối ưu hóa công cụ tìm kiếm']),
-  alias('skill-alias-content', 'Content Creator', ['content creator', 'content writer', 'copywriter', 'sáng tạo nội dung']),
-  alias('skill-alias-pr', 'Public Relations', ['pr', 'public relations', 'quan hệ công chúng']),
-  alias('skill-alias-b2b', 'B2B Sales', ['b2b', 'b2b sales', 'kinh doanh b2b', 'doanh nghiệp']),
-  alias('skill-alias-b2c', 'B2C Sales', ['b2c', 'b2c sales', 'kinh doanh b2c', 'khách hàng cá nhân']),
-  alias('skill-alias-ads', 'Digital Ads', ['ads', 'facebook ads', 'google ads', 'quảng cáo số', 'chạy ads']),
-  
+
+  alias('skill-alias-seo', 'SEO', [
+    'seo',
+    'search engine optimization',
+    'tối ưu hóa công cụ tìm kiếm',
+  ]),
+  alias('skill-alias-content', 'Content Creator', [
+    'content creator',
+    'content writer',
+    'copywriter',
+    'sáng tạo nội dung',
+  ]),
+  alias('skill-alias-pr', 'Public Relations', [
+    'pr',
+    'public relations',
+    'quan hệ công chúng',
+  ]),
+  alias('skill-alias-b2b', 'B2B Sales', [
+    'b2b',
+    'b2b sales',
+    'kinh doanh b2b',
+    'doanh nghiệp',
+  ]),
+  alias('skill-alias-b2c', 'B2C Sales', [
+    'b2c',
+    'b2c sales',
+    'kinh doanh b2c',
+    'khách hàng cá nhân',
+  ]),
+  alias('skill-alias-ads', 'Digital Ads', [
+    'ads',
+    'facebook ads',
+    'google ads',
+    'quảng cáo số',
+    'chạy ads',
+  ]),
+
   related('related-marketing-sales', 'Marketing and Sales', [
     'marketing',
     'sales',

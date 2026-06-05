@@ -14,7 +14,13 @@ import {
 } from 'class-validator';
 import { JobStatus } from '@prisma/client';
 
-export const JOB_SORT_VALUES = ['newest', 'salary_asc', 'salary_desc', 'deadline_soon', 'relevance'] as const;
+export const JOB_SORT_VALUES = [
+  'newest',
+  'salary_asc',
+  'salary_desc',
+  'deadline_soon',
+  'relevance',
+] as const;
 export type JobsSort = (typeof JOB_SORT_VALUES)[number];
 
 export const JOB_REMOTE_VALUES = ['any', 'true', 'false'] as const;

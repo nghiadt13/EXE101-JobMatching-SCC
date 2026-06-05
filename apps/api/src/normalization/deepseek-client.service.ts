@@ -6,17 +6,25 @@ import { LlmClient } from './llm-client.interface';
 export class DeepseekClientService implements LlmClient {
   readonly provider = 'deepseek' as const;
 
-  getModelName(): string {
-    // Sử dụng deepseek-reasoner (DeepSeek-R1) cho chất lượng tốt nhất
-    // hoặc deepseek-chat (V3) nếu cần tốc độ/giá rẻ.
-    return process.env['DEEPSEEK_MODEL'] ?? 'deepseek-reasoner';
+  getModelName(tier: 'fast' | 'pro' = 'fast'): string {
+    if (tier === 'pro')
+      return process.env['DEEPSEEK_PRO_MODEL'] ?? 'deepseek-v4-pro';
+    return (
+      process.env['DEEPSEEK_FAST_MODEL'] ??
+      process.env['DEEPSEEK_MODEL'] ??
+      'deepseek-v4-flash'
+    );
   }
 
   private getBaseUrl(): string {
     return process.env['DEEPSEEK_BASE_URL'] ?? 'https://api.deepseek.com';
   }
 
-  async generateText(prompt: string, timeoutMs = 60000): Promise<string> {
+  async generateText(
+    prompt: string,
+    timeoutMs = 60000,
+    tier: 'fast' | 'pro' = 'fast',
+  ): Promise<string> {
     const apiKey = process.env['DEEPSEEK_API_KEY']?.trim();
     if (!apiKey) {
       throw new Error('DEEPSEEK_API_KEY is required');
@@ -29,9 +37,9 @@ export class DeepseekClientService implements LlmClient {
     });
 
     const response = await client.chat.completions.create({
-      model: this.getModelName(),
+      model: this.getModelName(tier),
       messages: [{ role: 'user', content: prompt }],
-      temperature: 0.2,
+      temperature: 0.3,
       stream: false,
     });
     const text = response.choices[0]?.message?.content?.trim() ?? '';

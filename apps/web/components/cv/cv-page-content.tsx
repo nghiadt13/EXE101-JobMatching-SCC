@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { uploadCv, type CvItem } from '@/lib/cv-client';
 import { CvPageHeader } from './cv-page-header';
@@ -37,6 +37,41 @@ export function CvPageContent({
   const [previewCv, setPreviewCv] = useState<CvItem | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
+
+  const prevItemsRef = useRef(items);
+
+  useEffect(() => {
+    const prevItems = prevItemsRef.current;
+    
+    // Check if any CV just transitioned from pending_apply to completed
+    const newlyCompleted = items.filter(
+      (item) => 
+        (item.parseStatus === 'parsed_ok' || item.parseStatus === 'needs_review') && 
+        prevItems.find((p) => p.id === item.id)?.parseStatus === 'pending_apply'
+    );
+
+    if (newlyCompleted.length > 0) {
+      toast.success(
+        'Phân tích thành công! Vui lòng kiểm tra và chỉnh sửa lại dữ liệu.',
+        { duration: 5000 }
+      );
+      // Navigate immediately to the builder to edit the parsed CV
+      router.push(`/dashboard/candidate/cvs/${newlyCompleted[0].id}/edit?isNew=1`);
+    }
+
+    prevItemsRef.current = items;
+  }, [items, router]);
+
+  useEffect(() => {
+    const hasPendingCvs = items.some((cv) => cv.parseStatus === 'pending_apply');
+    if (!hasPendingCvs) return;
+
+    const interval = setInterval(() => {
+      router.refresh();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [items, router]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

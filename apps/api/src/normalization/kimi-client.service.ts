@@ -6,7 +6,7 @@ import { LlmClient } from './llm-client.interface';
 export class KimiClientService implements LlmClient {
   readonly provider = 'kimi' as const;
 
-  getModelName(): string {
+  getModelName(tier: 'fast' | 'pro' = 'fast'): string {
     return process.env['KIMI_MODEL'] ?? 'moonshot-v1-8k';
   }
 
@@ -14,7 +14,11 @@ export class KimiClientService implements LlmClient {
     return process.env['KIMI_BASE_URL'] ?? 'https://api.moonshot.cn/v1';
   }
 
-  async generateText(prompt: string, timeoutMs = 60000): Promise<string> {
+  async generateText(
+    prompt: string,
+    timeoutMs = 60000,
+    tier: 'fast' | 'pro' = 'fast',
+  ): Promise<string> {
     const apiKey = process.env['KIMI_API_KEY'];
     if (!apiKey) {
       throw new Error('KIMI_API_KEY is required');
@@ -26,7 +30,7 @@ export class KimiClientService implements LlmClient {
       timeout: timeoutMs,
     });
     const response = await client.chat.completions.create({
-      model: this.getModelName(),
+      model: this.getModelName(tier),
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.3,
     });

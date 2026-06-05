@@ -57,7 +57,12 @@ export interface JobsListResponse {
     totalPages: number;
   };
   meta?: {
-    sort: 'newest' | 'salary_asc' | 'salary_desc' | 'deadline_soon' | 'relevance';
+    sort:
+      | 'newest'
+      | 'salary_asc'
+      | 'salary_desc'
+      | 'deadline_soon'
+      | 'relevance';
     appliedFilters: {
       q?: string;
       employmentTypes?: string[];

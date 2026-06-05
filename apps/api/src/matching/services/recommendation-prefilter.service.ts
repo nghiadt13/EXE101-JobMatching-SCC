@@ -43,10 +43,10 @@ export class RecommendationPrefilterService {
           ? this.textKeywordMatch(input.cvRawText, job.skills, job.description)
           : null;
 
-      // Combined score
+      // Combined score: heavily favor Jaccard canonical score, text fallback is extremely weak (0.1)
       const combined =
         textScore !== null
-          ? canonicalScore * 0.4 + textScore * 0.6
+          ? canonicalScore * 0.9 + textScore * 0.1
           : canonicalScore;
 
       return { job, score: combined };
@@ -86,11 +86,11 @@ export class RecommendationPrefilterService {
       : [];
 
     // Extract likely technical keywords from description
-    // (capitalized words, words with dots/hashes/plus signs)
+    // (Only extremely specific technical terms like C++, .NET, C#)
     const descKeywords = jobDescription
       .split(/[\s,;]+/)
       .filter((w) => w.length >= 2)
-      .filter((w) => /^[A-Z]/.test(w) || /[.#+]/.test(w))
+      .filter((w) => /[.#+]/.test(w))
       .map((w) => w.toLowerCase().replace(/[,.:;()]/g, ''));
 
     const allKeywords = [

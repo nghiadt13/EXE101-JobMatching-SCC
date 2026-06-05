@@ -14,6 +14,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CvStorageService } from './services/cv-storage.service';
 import { CvTextExtractorService } from './services/cv-text-extractor.service';
 import { CreateCvDto } from './dto/create-cv.dto';
+import { VectorSyncService } from '../matching/rag/vector-sync.service';
+import { CvAiParserService } from './services/cv-ai-parser.service';
 
 describe('CvsService', () => {
   let service: CvsService;
@@ -85,6 +87,14 @@ describe('CvsService', () => {
             warn: jest.fn(),
             error: jest.fn(),
           },
+        },
+        {
+          provide: VectorSyncService,
+          useValue: { syncCv: jest.fn().mockResolvedValue(undefined) },
+        },
+        {
+          provide: CvAiParserService,
+          useValue: { parseCvInBackground: jest.fn() },
         },
       ],
     }).compile();
@@ -166,10 +176,10 @@ describe('CvsService', () => {
     });
 
     const result = await service.upload('candidate-user', {
-        originalname: 'cv.pdf',
-        mimetype: 'application/pdf',
-        size: 100,
-        buffer: Buffer.from('content'),
+      originalname: 'cv.pdf',
+      mimetype: 'application/pdf',
+      size: 100,
+      buffer: Buffer.from('content'),
     } as Express.Multer.File);
 
     expect(result.parseStatus).toBe('pending_apply');

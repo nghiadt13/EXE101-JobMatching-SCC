@@ -17,4 +17,8 @@ export class CvStorageService {
   async remove(relativePath: string): Promise<void> {
     await this.documentStorageService.remove('cvs', relativePath);
   }
+
+  getAbsolutePath(relativePath: string): string {
+    return this.documentStorageService.getAbsolutePath('cvs', relativePath);
+  }
 }

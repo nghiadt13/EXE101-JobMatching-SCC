@@ -49,7 +49,11 @@ type ApplicationRecord = {
     id: string;
     title: string;
     slug: string;
-    company?: { name: string; logoUrl: string | null; iconKey: string | null } | null;
+    company?: {
+      name: string;
+      logoUrl: string | null;
+      iconKey: string | null;
+    } | null;
   };
   candidate: { id: string; user: { name: string; email: string } };
   cv: { id: string; fileName: string };

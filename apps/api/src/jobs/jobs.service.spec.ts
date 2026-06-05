@@ -18,6 +18,7 @@ import { AiNormalizationError } from '../normalization/normalization.errors';
 import { AppLogger } from '../common/logging/app-logger.service';
 import { JobsService } from './jobs.service';
 import { JobSlugService } from './services/job-slug.service';
+import { VectorSyncService } from '../matching/rag/vector-sync.service';
 
 describe('JobsService', () => {
   let service: JobsService;
@@ -142,6 +143,10 @@ describe('JobsService', () => {
         {
           provide: HomepageCacheService,
           useValue: homepageCacheService,
+        },
+        {
+          provide: VectorSyncService,
+          useValue: { syncJob: jest.fn().mockResolvedValue(undefined) },
         },
       ],
     }).compile();

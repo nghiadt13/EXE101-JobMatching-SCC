@@ -1,4 +1,4 @@
-require("dotenv").config();
+require('dotenv').config();
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
@@ -39,11 +39,11 @@ async function main() {
 
         // Convert array to pgvector format '[v1,v2,...]'
         const vectorString = `[${embedding.join(',')}]`;
-        
+
         await tx.$executeRawUnsafe(
           `UPDATE "RagKnowledge" SET embedding = $1::vector WHERE id = $2`,
           vectorString,
-          row.id
+          row.id,
         );
       });
 
@@ -52,14 +52,14 @@ async function main() {
       console.error(`Failed to seed ${item.title}:`, error);
     }
     // Delay to avoid Gemini API rate limit (15 RPM on free tier = 1 req / 4s)
-    await new Promise(resolve => setTimeout(resolve, 4500));
+    await new Promise((resolve) => setTimeout(resolve, 4500));
   }
 
   console.log('RAG Knowledge Seed Complete.');
   await prisma.$disconnect();
 }
 
-main().catch(e => {
+main().catch((e) => {
   console.error(e);
   process.exit(1);
 });

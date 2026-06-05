@@ -33,7 +33,7 @@ export class AiNormalizationService {
   ) {}
 
   async normalizeCv(rawText: string): Promise<NormalizationResult> {
-    return this.normalize('cv', rawText);
+    return this.normalize('cv', rawText, this.readCvParseProvider());
   }
 
   async normalizeJob(rawText: string): Promise<NormalizationResult> {
@@ -47,7 +47,11 @@ export class AiNormalizationService {
   ): Promise<JdContextualEvaluation> {
     const start = Date.now();
     const deadline = start + this.readNormalizationTimeoutMs();
-    const prompt = this.buildJdEvalPrompt(cvRawText, requirementsSchema, ragContext);
+    const prompt = this.buildJdEvalPrompt(
+      cvRawText,
+      requirementsSchema,
+      ragContext,
+    );
 
     try {
       const { client, parsed } = await this.generateParsedJsonWithFallback(
@@ -55,7 +59,11 @@ export class AiNormalizationService {
         deadline,
         'jd_cv_evaluation',
       );
-      const evaluation = this.normalizeJdEvaluation(parsed, requirementsSchema, cvRawText);
+      const evaluation = this.normalizeJdEvaluation(
+        parsed,
+        requirementsSchema,
+        cvRawText,
+      );
       this.logger.info('jd_cv_evaluation_completed', {
         provider: client.provider,
         model: client.getModelName(),
@@ -89,6 +97,7 @@ export class AiNormalizationService {
   private async normalize(
     domain: Domain,
     rawText: string,
+    providerOverride?: string,
   ): Promise<NormalizationResult> {
     const start = Date.now();
     const deadline = start + this.readNormalizationTimeoutMs();
@@ -100,6 +109,7 @@ export class AiNormalizationService {
         deadline,
         'ai_normalization',
         domain,
+        providerOverride,
       );
       const profile = this.normalizeProfile(parsed, domain, rawText);
       return {
@@ -113,14 +123,17 @@ export class AiNormalizationService {
         },
       };
     } catch (error) {
-      const failedClient = this.tryResolveClientForLogging();
+      const failedClient = this.tryResolveClientForLogging(providerOverride);
       const failure =
         error instanceof AiNormalizationError && error.details
           ? error.details
           : classifyLlmError(error);
       this.logger.warn('ai_normalization_failed', {
         domain,
-        provider: failedClient?.provider ?? this.readConfiguredProvider(),
+        provider:
+          failedClient?.provider ??
+          providerOverride ??
+          this.readConfiguredProvider(),
         model: failedClient?.getModelName() ?? 'unknown',
         latencyMs: Date.now() - start,
         failureCategory: failure.category,
@@ -142,7 +155,10 @@ export class AiNormalizationService {
   }
 
   private resolveClient(): LlmClient {
-    const provider = this.readConfiguredProvider();
+    return this.resolveClientByProvider(this.readConfiguredProvider());
+  }
+
+  private resolveClientByProvider(provider: string): LlmClient {
     if (provider === 'gemini') {
       return this.geminiClient;
     }
@@ -158,9 +174,11 @@ export class AiNormalizationService {
     );
   }
 
-  private tryResolveClientForLogging(): LlmClient | null {
+  private tryResolveClientForLogging(providerOverride?: string): LlmClient | null {
     try {
-      return this.resolveClient();
+      return providerOverride
+        ? this.resolveClientByProvider(providerOverride)
+        : this.resolveClient();
     } catch {
       return null;
     }
@@ -168,6 +186,12 @@ export class AiNormalizationService {
 
   private readConfiguredProvider(): string {
     return (process.env['LLM_PROVIDER'] ?? 'gemini').trim().toLowerCase();
+  }
+
+  private readCvParseProvider(): string {
+    return (process.env['CV_PARSE_LLM_PROVIDER'] ?? 'deepseek')
+      .trim()
+      .toLowerCase();
   }
 
   private resolveFallbackClient(primary: LlmClient): LlmClient | null {
@@ -193,8 +217,11 @@ export class AiNormalizationService {
     deadline: number,
     operation: 'ai_normalization' | 'jd_cv_evaluation',
     domain?: Domain,
+    providerOverride?: string,
   ): Promise<{ client: LlmClient; parsed: unknown }> {
-    const primary = this.resolveClient();
+    const primary = providerOverride
+      ? this.resolveClientByProvider(providerOverride)
+      : this.resolveClient();
     const fallback = this.resolveFallbackClient(primary);
     const clients = fallback ? [primary, fallback] : [primary];
     let lastError: unknown = null;
@@ -251,7 +278,9 @@ export class AiNormalizationService {
       requirementEvaluations: schema.requirements.map((r) => ({
         requirementId: r.id,
         status: 'met | partial | missing | not_applicable',
-        evidence: ['analytical insight about how candidate demonstrates this skill'],
+        evidence: [
+          'analytical insight about how candidate demonstrates this skill',
+        ],
         confidence: 'high | medium | low',
       })),
       constraintEvaluations: schema.constraints.map((c) => ({
@@ -278,13 +307,13 @@ export class AiNormalizationService {
     };
 
     const promptParts = [
-      'You are a senior HR consultant with deep technical expertise. Given a job\'s requirements and a candidate\'s CV, evaluate how well the candidate matches each requirement.',
+      "You are a senior HR consultant with deep technical expertise. Given a job's requirements and a candidate's CV, evaluate how well the candidate matches each requirement.",
       '',
       '## Language and Tone',
       '- Write all evidence and explanations in Vietnamese (Tiếng Việt).',
       '- Use a professional yet warm and insightful tone — like a career advisor giving personalized feedback.',
       '- Do NOT just copy-paste raw text from the CV. Instead, analyze and synthesize the information.',
-      '- Evidence should read like a consultant\'s assessment, e.g.:',
+      "- Evidence should read like a consultant's assessment, e.g.:",
       '  GOOD: "Ứng viên có 3 năm kinh nghiệm thực tế với Java Spring Boot qua việc phát triển hệ thống enterprise tại FPT Software, thể hiện qua dự án xây dựng REST API và microservices."',
       '  BAD: "Technologies: Java, Spring Boot, Angular · Skills list includes Java"',
       '',
@@ -336,7 +365,7 @@ export class AiNormalizationService {
         '1. Use this context to ENRICH your analysis — for example:',
         '   - If context says "React and React.js are the same framework", consider them equivalent when evaluating.',
         '   - If context provides industry benchmarks or technology relationships, weave them into your evidence.',
-        '   - If context describes what a technology does, use it to better assess the candidate\'s depth of experience.',
+        "   - If context describes what a technology does, use it to better assess the candidate's depth of experience.",
         '2. Candidate evidence must still be grounded in the CV text — do not fabricate skills.',
         '3. Use retrieved context to make your analysis MORE insightful, not to inflate scores.',
       );
@@ -523,7 +552,10 @@ export class AiNormalizationService {
     };
   }
 
-  private isEvidenceSupportedByCv(evidence: string, cvRawText: string): boolean {
+  private isEvidenceSupportedByCv(
+    evidence: string,
+    cvRawText: string,
+  ): boolean {
     const normalizedEvidence = this.normalizeEvidenceText(evidence);
     const normalizedCv = this.normalizeEvidenceText(cvRawText);
 
@@ -543,7 +575,9 @@ export class AiNormalizationService {
     }
 
     const cvTokens = new Set(this.extractEvidenceTokens(normalizedCv));
-    const overlap = evidenceTokens.filter((token) => cvTokens.has(token)).length;
+    const overlap = evidenceTokens.filter((token) =>
+      cvTokens.has(token),
+    ).length;
     const requiredOverlap = Math.max(2, Math.ceil(evidenceTokens.length * 0.5));
 
     return overlap >= requiredOverlap;
@@ -595,7 +629,8 @@ export class AiNormalizationService {
         (domain === 'cv' ? 'candidate CV' : 'Job Description') +
         '.',
       'CRITICAL INSTRUCTION: Read the ENTIRE document from start to finish. Extract ALL technical skills, tools, frameworks, platforms, protocols, and programming languages you can find into the "skills" array. Prefer atomic skill items like "AWS", "EC2", "S3", "Lambda" instead of grouped category strings. DO NOT summarize or omit technical keywords.',
-      'For Experience and Education: Connect the dates, company/school names, and job titles even if they appear on separate or disjointed lines in the raw text.',
+      'For Experience, Education, and Projects: Connect the dates, company/school names, and job titles even if they appear on separate or disjointed lines in the raw text.',
+      'For Experience and Projects specifically: EXPLICITLY EXTRACT ALL bullet points, descriptions, and details EXACTLY as they appear in the original text into the "description" field. DO NOT summarize, modify, hallucinate, or arbitrarily change the original content. Include every detail mentioned.',
       '',
       'Return STRICT JSON ONLY. No markdown formatted blocks (e.g. no ```json), no explanations, no preamble.',
       `Use schemaVersion="${NORMALIZED_SCHEMA_VERSION}" and match this exact JSON structure:`,
@@ -676,6 +711,7 @@ export class AiNormalizationService {
     return {
       schemaVersion: NORMALIZED_SCHEMA_VERSION,
       language: this.normalizeLanguage(src['language'], rawText),
+      candidateName: this.normalizeString(src['candidateName']),
       title: this.normalizeString(src['title']),
       summary: this.normalizeString(src['summary']).slice(0, 2000),
       skills: this.normalizeStringArray(src['skills'], 100),
@@ -845,6 +881,7 @@ export class AiNormalizationService {
     return {
       schemaVersion: NORMALIZED_SCHEMA_VERSION,
       language: 'mixed',
+      candidateName: '',
       title: '',
       summary: '',
       skills: [''],
@@ -854,6 +891,7 @@ export class AiNormalizationService {
           company: '',
           startDate: 'YYYY-MM',
           endDate: 'YYYY-MM',
+          description: '',
           tech: [''],
         },
       ],

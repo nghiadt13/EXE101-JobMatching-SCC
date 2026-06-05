@@ -38,7 +38,8 @@ import {
   it,
   vi,
 } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import type { ComponentProps } from 'react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 // `vi.mock` calls are hoisted above the imports — these stubs replace the
@@ -63,6 +64,12 @@ vi.mock('@/hooks/use-auto-save', () => ({
     retry: () => {},
     markDirty: () => {},
   }),
+}));
+
+vi.mock('@/lib/cv-client', () => ({
+  fetchCvFile: vi.fn(() =>
+    Promise.resolve(new Blob(['%PDF-1.4'], { type: 'application/pdf' })),
+  ),
 }));
 
 import { CvBuilderPage } from '../cv-builder-page';
@@ -96,6 +103,8 @@ let originalIntersectionObserver: typeof IntersectionObserver | undefined;
 let originalScrollIntoView:
   | ((arg?: boolean | ScrollIntoViewOptions) => void)
   | undefined;
+let originalCreateObjectUrl: typeof URL.createObjectURL | undefined;
+let originalRevokeObjectUrl: typeof URL.revokeObjectURL | undefined;
 
 beforeAll(() => {
   originalResizeObserver = (
@@ -120,6 +129,11 @@ beforeAll(() => {
   Element.prototype.scrollIntoView = function () {
     /* no-op */
   };
+
+  originalCreateObjectUrl = URL.createObjectURL;
+  originalRevokeObjectUrl = URL.revokeObjectURL;
+  URL.createObjectURL = () => 'blob:cv-file';
+  URL.revokeObjectURL = () => {};
 });
 
 afterAll(() => {
@@ -142,6 +156,13 @@ afterAll(() => {
 
   if (originalScrollIntoView) {
     Element.prototype.scrollIntoView = originalScrollIntoView;
+  }
+
+  if (originalCreateObjectUrl) {
+    URL.createObjectURL = originalCreateObjectUrl;
+  }
+  if (originalRevokeObjectUrl) {
+    URL.revokeObjectURL = originalRevokeObjectUrl;
   }
 });
 
@@ -167,13 +188,16 @@ const noopSave = async (): Promise<string | null> => null;
  * `CvBuilderPage`. Centralising the boilerplate keeps the individual tests
  * focused on the assertion under test.
  */
-function renderPage() {
+function renderPage(
+  props: Partial<ComponentProps<typeof CvBuilderPage>> = {},
+) {
   return render(
     <CvBuilderPage
       initialData={initialData}
       cvId="cv-1"
       accessToken="token-1"
       onSave={noopSave}
+      {...props}
     />,
   );
 }
@@ -304,5 +328,20 @@ describe('CvBuilderPage fit-to-width zoom (Requirement 9.5)', () => {
     await user.click(screen.getByTestId('zoom-fit'));
 
     expect(screen.getByTestId('zoom-reset')).toHaveTextContent(/120%/);
+  });
+});
+
+describe('CvBuilderPage original PDF comparison', () => {
+  it('loads and shows the original uploaded PDF next to the parsed template', async () => {
+    renderPage({ hasPdfFile: true });
+
+    await waitFor(() => {
+      expect(screen.getByTitle('Original PDF')).toBeInTheDocument();
+    });
+
+    expect(screen.getByTitle('Original PDF')).toHaveAttribute(
+      'src',
+      'blob:cv-file',
+    );
   });
 });

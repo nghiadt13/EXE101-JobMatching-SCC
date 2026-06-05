@@ -11,9 +11,12 @@ import {
   UploadedFile,
   UseGuards,
   UseInterceptors,
+  Res,
+  StreamableFile,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UserRole } from '@prisma/client';
+import { createReadStream } from 'node:fs';
 import { memoryStorage } from 'multer';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -76,6 +79,24 @@ export class CvsController {
     @Param('id') id: string,
   ): Promise<CvView> {
     return this.cvsService.getById(user.sub, id);
+  }
+
+  @Get(':id/file')
+  async getFile(
+    @CurrentUser() user: { sub: string },
+    @Param('id') id: string,
+    @Res({ passthrough: true }) res: any,
+  ): Promise<StreamableFile> {
+    const { absolutePath, mimeType, fileName } =
+      await this.cvsService.getFileInfo(user.sub, id);
+
+    res.set({
+      'Content-Type': mimeType,
+      'Content-Disposition': `inline; filename="${fileName}"`,
+    });
+
+    const file = createReadStream(absolutePath);
+    return new StreamableFile(file);
   }
 
   @Patch(':id')
