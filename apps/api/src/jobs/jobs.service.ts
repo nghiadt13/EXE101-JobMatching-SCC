@@ -1522,10 +1522,9 @@ export class JobsService {
     if (max <= 10_000_000) bands.push('under_10');
     if (min < 15_000_000 && max > 10_000_000) bands.push('10_15');
     if (min < 20_000_000 && max > 15_000_000) bands.push('15_20');
-    if (min < 25_000_000 && max > 20_000_000) bands.push('20_25');
-    if (min < 30_000_000 && max > 25_000_000) bands.push('25_30');
+    if (min < 30_000_000 && max > 20_000_000) bands.push('20_30');
     if (min < 50_000_000 && max > 30_000_000) bands.push('30_50');
-    if (max > 50_000_000) bands.push('over_50');
+    if (min >= 50_000_000 || max > 50_000_000) bands.push('over_50');
 
     return bands;
   }
