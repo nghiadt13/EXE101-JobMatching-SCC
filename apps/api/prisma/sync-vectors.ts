@@ -68,8 +68,8 @@ async function syncJobs() {
       console.error(`  ❌ Job ${job.title}:`, (error as Error).message);
     }
 
-    // Rate limit
-    await new Promise((r) => setTimeout(r, 500));
+    // Rate limit (Gemini Free Tier is 15 RPM)
+    await new Promise((r) => setTimeout(r, 4500));
   }
 }
 
