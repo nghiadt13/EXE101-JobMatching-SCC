@@ -45,8 +45,9 @@ export interface NormalizedProfile {
   language: 'vi' | 'en' | 'mixed';
   candidateName?: string;
   title: string;
-  summary: string;
+  summary: string | null;
   skills: string[];
+  jobCategorySlugs?: string[];
   experience: NormalizedExperience[];
   education: NormalizedEducation[];
   certifications: string[];

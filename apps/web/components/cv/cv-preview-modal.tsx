@@ -44,46 +44,40 @@ export function CvPreviewModal({ isOpen, onClose, cv }: CvPreviewModalProps) {
 
   // Extracted CV profile or mock fallbacks for premium rendering
   const profile = cv.candidateProfile;
-  const hasProfileData =
-    !!profile &&
-    ((profile.skills && profile.skills.length > 0) ||
-      (profile.experience && profile.experience.length > 0) ||
-      (profile.education && profile.education.length > 0));
+  const builderData = cv?.parsedData?.builderData as any;
+  const builderProfile = builderData?.profile || {};
+  const candidateInfo = cv.candidate || (cv as any).candidate;
+  const normalizedProfile = cv?.parsedData?.normalizedProfile as any;
+
+  // We prefer builderData if it's a builder CV or if builderData is present
+  const useBuilderData = cv.source === 'builder' || !!builderData;
 
   const anyProfile = profile as any;
-  const builderProfile = cv?.parsedData?.builderData?.profile as any;
-  const candidateInfo = cv.candidate || (cv as any).candidate;
+  
+  const fullName = useBuilderData
+    ? builderProfile?.name || normalizedProfile?.candidateName || candidateInfo?.user?.name || 'Ứng viên'
+    : normalizedProfile?.candidateName || builderProfile?.name || candidateInfo?.user?.name || anyProfile?.personal_info?.full_name || profile?.headline || anyProfile?.name || 'Ứng viên';
+  const roleName = useBuilderData
+    ? builderProfile?.summary?.slice(0, 50) || normalizedProfile?.title || profile?.headline || 'Ứng viên tiềm năng'
+    : profile?.headline || anyProfile?.personal_info?.title || anyProfile?.title || 'Ứng viên tiềm năng';
 
-  const normalizedProfile = cv?.normalizedProfile as any;
-  const fullName =
-    normalizedProfile?.candidateName ||
-    builderProfile?.name ||
-    candidateInfo?.user?.name ||
-    anyProfile?.personal_info?.full_name ||
-    profile?.headline ||
-    anyProfile?.name ||
-    'Ứng viên';
-  const roleName =
-    profile?.headline ||
-    anyProfile?.personal_info?.title ||
-    anyProfile?.title ||
-    'Ứng viên tiềm năng';
-  const summary = profile?.summary || builderProfile?.summary || '';
+  const summary = useBuilderData
+    ? builderProfile?.summary || profile?.summary || ''
+    : profile?.summary || builderProfile?.summary || '';
 
-  const email =
-    candidateInfo?.user?.email ||
-    anyProfile?.personal_info?.email ||
-    builderProfile?.email ||
-    'Chưa cập nhật email';
-  const phone =
-    candidateInfo?.phone ||
-    anyProfile?.personal_info?.phone ||
-    builderProfile?.phone ||
-    'Chưa cập nhật SĐT';
-  const github =
-    anyProfile?.personal_info?.github || builderProfile?.github || '';
+  const email = useBuilderData
+    ? builderProfile?.email || candidateInfo?.user?.email || 'Chưa cập nhật email'
+    : candidateInfo?.user?.email || anyProfile?.personal_info?.email || builderProfile?.email || 'Chưa cập nhật email';
 
-  const rawLocation = candidateInfo?.location || builderProfile?.location;
+  const phone = useBuilderData
+    ? builderProfile?.phone || candidateInfo?.phone || 'Chưa cập nhật SĐT'
+    : candidateInfo?.phone || anyProfile?.personal_info?.phone || builderProfile?.phone || 'Chưa cập nhật SĐT';
+
+  const github = useBuilderData
+    ? builderProfile?.github || anyProfile?.personal_info?.github || ''
+    : anyProfile?.personal_info?.github || builderProfile?.github || '';
+
+  const rawLocation = builderProfile?.location || candidateInfo?.location;
   const location = rawLocation?.city
     ? `${rawLocation.city}${rawLocation.country ? `, ${rawLocation.country}` : ''}`
     : anyProfile?.personal_info?.location ||
@@ -92,46 +86,39 @@ export function CvPreviewModal({ isOpen, onClose, cv }: CvPreviewModalProps) {
         : '');
 
   // Skills
-  const skills =
-    profile?.skills && profile.skills.length > 0
+  const skills = useBuilderData && cv?.parsedData?.skills && cv.parsedData.skills.length > 0
+    ? cv.parsedData.skills
+    : profile?.skills && profile.skills.length > 0
       ? profile.skills
       : cv?.parsedData?.skills && cv.parsedData.skills.length > 0
         ? cv.parsedData.skills
         : [];
 
   // Education list
-  const educationList =
-    profile?.education && profile.education.length > 0
+  const educationList = useBuilderData && builderData?.education && builderData.education.length > 0
+    ? builderData.education
+    : profile?.education && profile.education.length > 0
       ? profile.education
-      : cv?.parsedData?.builderData?.education &&
-          cv.parsedData.builderData.education.length > 0
-        ? cv.parsedData.builderData.education
-        : [];
+      : builderData?.education || [];
 
   // Experience & Projects list
-  const experienceList =
-    profile?.experience && profile.experience.length > 0
+  const experienceList = useBuilderData && builderData?.experience && builderData.experience.length > 0
+    ? builderData.experience
+    : profile?.experience && profile.experience.length > 0
       ? profile.experience
-      : cv?.parsedData?.builderData?.experience &&
-          cv.parsedData.builderData.experience.length > 0
-        ? cv.parsedData.builderData.experience
-        : [];
+      : builderData?.experience || [];
 
-  const projectsList =
-    profile?.projects && profile.projects.length > 0
+  const projectsList = useBuilderData && builderData?.projects && builderData.projects.length > 0
+    ? builderData.projects
+    : profile?.projects && profile.projects.length > 0
       ? profile.projects
-      : cv?.parsedData?.builderData?.projects &&
-          cv.parsedData.builderData.projects.length > 0
-        ? cv.parsedData.builderData.projects
-        : [];
+      : builderData?.projects || [];
 
-  const certifications =
-    profile?.certifications && profile.certifications.length > 0
+  const certifications = useBuilderData && builderData?.certifications && builderData.certifications.length > 0
+    ? builderData.certifications
+    : profile?.certifications && profile.certifications.length > 0
       ? profile.certifications
-      : cv?.parsedData?.builderData?.certifications &&
-          cv.parsedData.builderData.certifications.length > 0
-        ? cv.parsedData.builderData.certifications
-        : [];
+      : builderData?.certifications || [];
 
   return (
     <div
@@ -280,7 +267,7 @@ export function CvPreviewModal({ isOpen, onClose, cv }: CvPreviewModalProps) {
                     Học vấn
                   </h2>
                   <div className="space-y-4">
-                    {educationList.map((edu, idx) => (
+                    {educationList.map((edu: any, idx: number) => (
                       <div
                         key={idx}
                         className="relative pl-4 border-l-2 border-brand-500/30 space-y-1"
@@ -318,8 +305,8 @@ export function CvPreviewModal({ isOpen, onClose, cv }: CvPreviewModalProps) {
                       <Layers className="w-4 h-4 text-brand-500 shrink-0" />{' '}
                       Kinh nghiệm làm việc
                     </h2>
-                    <div className="space-y-4">
-                      {experienceList.map((exp, idx) => (
+                    <div className="space-y-6">
+                      {experienceList.map((exp: any, idx: number) => (
                         <div
                           key={idx}
                           className="relative pl-4 border-l-2 border-brand-500/30 space-y-1"
@@ -339,8 +326,8 @@ export function CvPreviewModal({ isOpen, onClose, cv }: CvPreviewModalProps) {
                             {exp.role}
                           </p>
                           {exp.tech && exp.tech.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {exp.tech.map((t) => (
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {exp.tech.map((t: string, i: number) => (
                                 <span
                                   key={t}
                                   className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-[9px] font-semibold"
@@ -364,7 +351,7 @@ export function CvPreviewModal({ isOpen, onClose, cv }: CvPreviewModalProps) {
                   </h2>
 
                   <div className="space-y-4">
-                    {projectsList.map((proj, idx) => (
+                    {projectsList.map((proj: any, idx: number) => (
                       <div key={idx} className="space-y-2">
                         <div className="flex justify-between items-start text-[11px]">
                           <h3 className="font-bold text-slate-800">

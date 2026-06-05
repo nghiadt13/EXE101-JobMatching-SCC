@@ -59,6 +59,11 @@ describe('AiNormalizationService', () => {
       geminiClient as unknown as GeminiClientService,
       kimiClient as unknown as KimiClientService,
       deepseekClient as unknown as DeepseekClientService,
+      {
+        jobCategory: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+      } as any,
     );
     process.env.GEMINI_API_KEY = 'test-key';
     delete process.env.LLM_PROVIDER;

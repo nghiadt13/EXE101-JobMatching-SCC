@@ -1223,6 +1223,9 @@ export class JobsService {
             SALARY_BAND_RANGES[band as keyof typeof SALARY_BAND_RANGES];
           if (range) {
             const rangeAnd: Prisma.JobWhereInput[] = [];
+            // Ignore fully negotiable jobs in numeric bands
+            rangeAnd.push({ salaryNegotiable: false });
+
             if (range.min !== undefined) {
               rangeAnd.push({
                 OR: [{ salaryMax: { gte: range.min } }, { salaryMax: null }],

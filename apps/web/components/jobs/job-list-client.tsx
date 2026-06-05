@@ -156,14 +156,7 @@ export function JobListClient({
     <div className="job-list-page min-h-screen bg-background-light text-slate-900" style={{ fontFamily: 'var(--font-inter), sans-serif' }}>
       <div className="sticky top-20 z-40 border-b border-primary-100 bg-white/95 shadow-sm backdrop-blur">
         <div className="mx-auto flex min-h-16 max-w-[1180px] items-center gap-2 px-4 py-3">
-          <button
-            type="button"
-            className="hidden h-10 shrink-0 items-center gap-2 rounded-lg border border-primary-100 bg-primary-50 px-3 text-sm font-semibold text-primary-700 md:flex"
-          >
-            <i className="fa-solid fa-list text-xs text-primary-500" />
-            Danh mục Nghề (88)
-            <i className="fa-solid fa-chevron-down text-[10px] text-primary-500" />
-          </button>
+
           <div className="relative min-w-0 flex-1">
             <i className="fa-solid fa-magnifying-glass absolute top-1/2 left-3 -translate-y-1/2 text-xs text-primary-400" />
             <input

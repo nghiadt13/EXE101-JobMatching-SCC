@@ -68,8 +68,13 @@ export function CvCardItem({
       <div>
         {/* Banner Preview Area */}
         <div
-          className="h-32 bg-slate-50 dark:bg-slate-950 rounded-xl relative overflow-hidden border border-slate-100 dark:border-slate-800/80 flex items-center justify-center cursor-pointer"
-          onClick={() => onPreview(cv.id)}
+          className={cn(
+            "h-32 bg-slate-50 dark:bg-slate-950 rounded-xl relative overflow-hidden border border-slate-100 dark:border-slate-800/80 flex items-center justify-center",
+            cv.parseStatus === 'pending_apply' ? "cursor-wait" : "cursor-pointer"
+          )}
+          onClick={() => {
+            if (cv.parseStatus !== 'pending_apply') onPreview(cv.id);
+          }}
         >
           {/* Mock CV Layout Background */}
           <div className="absolute inset-x-4 top-4 bottom-0 bg-white dark:bg-slate-900 shadow-sm border border-slate-200/50 dark:border-slate-800/50 rounded-t p-2 space-y-2 select-none pointer-events-none transition-transform duration-300 group-hover:scale-[1.03]">
@@ -149,12 +154,19 @@ export function CvCardItem({
               className="w-full rounded border border-brand-500 bg-white dark:bg-slate-900 px-2 py-1 text-sm font-bold text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-brand-500/20"
             />
           ) : (
-            <h4
-              className="font-bold text-sm text-slate-800 dark:text-slate-100 group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors line-clamp-1 cursor-pointer"
-              onClick={() => onPreview(cv.id)}
-            >
-              {title}
-            </h4>
+              <h4
+                className={cn(
+                  "font-bold text-sm text-slate-800 dark:text-slate-100 transition-colors line-clamp-1",
+                  cv.parseStatus === 'pending_apply' 
+                    ? "cursor-wait opacity-70" 
+                    : "group-hover:text-brand-600 dark:group-hover:text-brand-400 cursor-pointer"
+                )}
+                onClick={() => {
+                  if (cv.parseStatus !== 'pending_apply') onPreview(cv.id);
+                }}
+              >
+                {title}
+              </h4>
           )}
           <div className="flex items-center gap-2 text-[10px] text-slate-400 dark:text-slate-500">
             <span className="flex items-center gap-0.5">
@@ -176,17 +188,27 @@ export function CvCardItem({
 
         {/* Actions buttons */}
         <div className="flex items-center gap-1.5">
-          <Link
-            href={`/dashboard/candidate/cvs/${cv.id}/edit`}
-            className="p-1.5 text-slate-500 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
-            title="Chỉnh sửa CV"
-          >
-            <Edit className="w-4 h-4" />
-          </Link>
+          {cv.parseStatus === 'pending_apply' ? (
+            <span
+              className="p-1.5 text-slate-500 rounded-lg cursor-wait opacity-50"
+              title="Đang đọc CV..."
+            >
+              <Edit className="w-4 h-4" />
+            </span>
+          ) : (
+            <Link
+              href={`/dashboard/candidate/cvs/${cv.id}/edit`}
+              className="p-1.5 text-slate-500 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
+              title="Chỉnh sửa CV"
+            >
+              <Edit className="w-4 h-4" />
+            </Link>
+          )}
           <button
             type="button"
             onClick={() => onPreview(cv.id)}
-            className="p-1.5 text-slate-500 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
+            disabled={cv.parseStatus === 'pending_apply'}
+            className="p-1.5 text-slate-500 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer disabled:opacity-50 disabled:cursor-wait"
             title="Xem trước"
           >
             <Eye className="w-4 h-4" />

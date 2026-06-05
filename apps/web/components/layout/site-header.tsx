@@ -109,17 +109,35 @@ export function SiteHeader({
         </div>
 
         <div className="flex items-center space-x-2 md:space-x-4">
-          <button
-            className="transition-standard group relative rounded-full p-2.5 text-slate-600 hover:bg-primary-50 hover:text-primary-600"
-            type="button"
-          >
-            <i className="fa-regular fa-bell text-xl" />
-            <span className="absolute top-2 right-2 flex h-2.5 w-2.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary-400 opacity-75" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary-600" />
-            </span>
-            <span className="sr-only">{unreadCount} thông báo chưa đọc</span>
-          </button>
+          {role === 'CANDIDATE' ? (
+            <Link
+              href="/dashboard/candidate/notifications"
+              className="transition-standard group relative rounded-full p-2.5 text-slate-600 hover:bg-primary-50 hover:text-primary-600"
+            >
+              <i className="fa-regular fa-bell text-xl" />
+              {unreadCount > 0 && (
+                <span className="absolute top-2 right-2 flex h-2.5 w-2.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary-400 opacity-75" />
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary-600" />
+                </span>
+              )}
+              <span className="sr-only">{unreadCount} thông báo chưa đọc</span>
+            </Link>
+          ) : (
+            <button
+              className="transition-standard group relative rounded-full p-2.5 text-slate-600 hover:bg-primary-50 hover:text-primary-600"
+              type="button"
+            >
+              <i className="fa-regular fa-bell text-xl" />
+              {unreadCount > 0 && (
+                <span className="absolute top-2 right-2 flex h-2.5 w-2.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary-400 opacity-75" />
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary-600" />
+                </span>
+              )}
+              <span className="sr-only">{unreadCount} thông báo chưa đọc</span>
+            </button>
+          )}
 
           <button
             className="transition-standard rounded-full p-2.5 text-slate-600 hover:bg-primary-50 hover:text-primary-600"

@@ -8,6 +8,7 @@ import {
   Heart,
   Settings,
   Sparkles,
+  Bell,
   type LucideIcon,
 } from 'lucide-react';
 import { LEGACY_JOBS_LISTING_ROUTE, PUBLIC_JOBS_LISTING_ROUTE } from './routes';
@@ -21,7 +22,8 @@ export type NavIconName =
   | 'clipboard-list'
   | 'heart'
   | 'settings'
-  | 'sparkles';
+  | 'sparkles'
+  | 'bell';
 
 export type NavItem = {
   label: string;
@@ -34,6 +36,7 @@ export const candidateNav: NavItem[] = [
   { label: 'CV của tôi', href: '/dashboard/candidate/cvs', iconName: 'file-text' },
   { label: 'Đơn ứng tuyển', href: '/dashboard/candidate/applications', iconName: 'clipboard-list' },
   { label: 'Tìm việc thông minh', href: '/dashboard/candidate/recommendations', iconName: 'sparkles' },
+  { label: 'Thông báo', href: '/dashboard/candidate/notifications', iconName: 'bell' },
   { label: 'Tìm việc làm', href: PUBLIC_JOBS_LISTING_ROUTE, iconName: 'briefcase' },
   { label: 'Hồ sơ', href: '/dashboard/profile', iconName: 'user-circle' },
 ];
@@ -61,6 +64,7 @@ const navIcons: Record<NavIconName, LucideIcon> = {
   heart: Heart,
   settings: Settings,
   sparkles: Sparkles,
+  bell: Bell,
 };
 
 const DASHBOARD_ROOT_PATHS = new Set([

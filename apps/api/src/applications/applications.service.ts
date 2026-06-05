@@ -12,6 +12,7 @@ import type { JwtPayload } from '../auth/auth.types';
 import { CreateApplicationDto } from './dto/create-application.dto';
 import { QueryApplicationsDto } from './dto/query-applications.dto';
 import { UpdateApplicationStatusDto } from './dto/update-application-status.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 import {
   ApplicationView,
   ApplicationsListResponse,

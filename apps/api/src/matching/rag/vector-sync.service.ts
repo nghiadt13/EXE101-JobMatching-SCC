@@ -73,8 +73,10 @@ export class VectorSyncService {
         typeof cv.parsedData === 'object' && cv.parsedData !== null
           ? cv.parsedData
           : {};
-      const title = (parsed as any).title || (parsed as any).headline || '';
-      const summary = (parsed as any).summary || '';
+      
+      const normalizedProfile = (parsed as any).normalizedProfile || {};
+      const title = normalizedProfile.title || (parsed as any).title || (parsed as any).headline || '';
+      const summary = normalizedProfile.summary || (parsed as any).summary || '';
 
       const skillsArray = Array.isArray(cv.skills) ? cv.skills : [];
       const textToEmbed = [

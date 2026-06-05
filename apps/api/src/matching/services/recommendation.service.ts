@@ -176,10 +176,21 @@ export class RecommendationService {
         where: { status: JobStatus.PUBLISHED, deletedAt: null },
       });
 
-      // 3. Vector search: find top jobs by cosine similarity
+      // 3. Fetch CV's job categories for Hard-Filter
+      const cv = await this.prisma.cV.findUnique({
+        where: { id: cvId },
+        select: { parsedData: true },
+      });
+      const parsedData = cv?.parsedData as any;
+      const targetCategorySlugs = Array.isArray(parsedData?.jobCategorySlugs) 
+        ? parsedData.jobCategorySlugs.filter((s: any) => typeof s === 'string' && s.length > 0) 
+        : undefined;
+
+      // 4. Vector search: find top jobs by cosine similarity with Hard Filter
       const vectorResults = await this.semanticSearch.findTopJobsForCv(
         cvId,
         MAX_RESULTS,
+        targetCategorySlugs,
       );
 
       if (vectorResults.length === 0) {

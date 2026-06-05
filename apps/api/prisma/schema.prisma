@@ -302,6 +302,8 @@ model Notification {
   userId    String
   title     String
   body      String?
+  type      String   @default("SYSTEM")
+  metadata  Json?
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
 

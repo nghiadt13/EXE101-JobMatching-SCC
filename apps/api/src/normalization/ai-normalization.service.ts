@@ -23,6 +23,8 @@ type Domain = 'cv' | 'job';
 const MAX_NORMALIZATION_TIMEOUT_MS = 60_000;
 const REPAIR_TIMEOUT_CAP_MS = 8_000;
 
+import { PrismaService } from '../prisma/prisma.service';
+
 @Injectable()
 export class AiNormalizationService {
   constructor(
@@ -30,6 +32,7 @@ export class AiNormalizationService {
     private readonly geminiClient: GeminiClientService,
     private readonly kimiClient: KimiClientService,
     private readonly deepseekClient: DeepseekClientService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async normalizeCv(rawText: string): Promise<NormalizationResult> {
@@ -101,7 +104,7 @@ export class AiNormalizationService {
   ): Promise<NormalizationResult> {
     const start = Date.now();
     const deadline = start + this.readNormalizationTimeoutMs();
-    const prompt = this.buildPrompt(domain, rawText);
+    const prompt = await this.buildPrompt(domain, rawText);
 
     try {
       const { client, parsed } = await this.generateParsedJsonWithFallback(
@@ -622,7 +625,17 @@ export class AiNormalizationService {
     );
   }
 
-  private buildPrompt(domain: Domain, rawText: string): string {
+  private async buildPrompt(domain: Domain, rawText: string): Promise<string> {
+    let categoriesList = '';
+    try {
+      const categories = await this.prisma.jobCategory.findMany({
+        select: { slug: true, name: true }
+      });
+      categoriesList = 'Valid Category Slugs: ' + categories.map(c => `"${c.slug}" (${c.name})`).join(', ');
+    } catch (e) {
+      categoriesList = '';
+    }
+
     return [
       'You are an expert IT Recruiter AI.',
       'Analyze the following raw text extracted from a ' +
@@ -631,6 +644,9 @@ export class AiNormalizationService {
       'CRITICAL INSTRUCTION: Read the ENTIRE document from start to finish. Extract ALL technical skills, tools, frameworks, platforms, protocols, and programming languages you can find into the "skills" array. Prefer atomic skill items like "AWS", "EC2", "S3", "Lambda" instead of grouped category strings. DO NOT summarize or omit technical keywords.',
       'For Experience, Education, and Projects: Connect the dates, company/school names, and job titles even if they appear on separate or disjointed lines in the raw text.',
       'For Experience and Projects specifically: EXPLICITLY EXTRACT ALL bullet points, descriptions, and details EXACTLY as they appear in the original text into the "description" field. DO NOT summarize, modify, hallucinate, or arbitrarily change the original content. Include every detail mentioned.',
+      '',
+      'For "jobCategorySlugs": Classify the core industry/domain of this CV/JD into AT LEAST ONE and AT MOST TWO appropriate category slugs.',
+      categoriesList,
       '',
       'Return STRICT JSON ONLY. No markdown formatted blocks (e.g. no ```json), no explanations, no preamble.',
       `Use schemaVersion="${NORMALIZED_SCHEMA_VERSION}" and match this exact JSON structure:`,
@@ -715,6 +731,7 @@ export class AiNormalizationService {
       title: this.normalizeString(src['title']),
       summary: this.normalizeString(src['summary']).slice(0, 2000),
       skills: this.normalizeStringArray(src['skills'], 100),
+      jobCategorySlugs: this.normalizeStringArray(src['jobCategorySlugs'], 5),
       experience: this.normalizeExperience(src['experience']),
       education: this.normalizeEducation(src['education']),
       certifications: this.normalizeStringArray(src['certifications'], 50),
@@ -885,6 +902,7 @@ export class AiNormalizationService {
       title: '',
       summary: '',
       skills: [''],
+      jobCategorySlugs: [''],
       experience: [
         {
           role: '',

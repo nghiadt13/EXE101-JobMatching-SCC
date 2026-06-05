@@ -5,24 +5,15 @@ import type { JobsQuery, JobsListResponse } from '@/lib/jobs-client';
 import {
   WORKING_DAY_STATUS_LABELS,
   WORKING_DAY_STATUS_VALUES,
-  SALES_MODEL_LABELS,
-  SALES_MODEL_VALUES,
-  CUSTOMER_TYPE_LABELS,
-  CUSTOMER_TYPE_VALUES,
   EXPERIENCE_LEVEL_LABELS,
   EXPERIENCE_LEVEL_VALUES,
   JOB_LEVEL_LABELS,
   JOB_LEVEL_VALUES,
-  COMPANY_TYPE_LABELS,
-  COMPANY_TYPE_VALUES,
   SALARY_BAND_LABELS,
   SALARY_BAND_VALUES,
   type WorkingDayStatus,
-  type SalesModel,
-  type CustomerType,
   type ExperienceLevel,
   type JobLevel,
-  type CompanyType,
   type SalaryBand,
 } from '@/lib/job-filter-options';
 
@@ -34,24 +25,6 @@ type JobListSidebarProps = {
 };
 
 const CATEGORY_SHOW_LIMIT = 5;
-
-const FALLBACK_CATEGORIES = [
-  { value: 'sales-retail-consumer', label: 'Sales Ban le/Dich vu tieu dung', count: 1805 },
-  { value: 'business-sales-other', label: 'Kinh doanh/Ban hang khac', count: 1660 },
-  { value: 'sales-admin-support', label: 'Sales Admin/Sales Support', count: 1105 },
-  { value: 'business-management', label: 'Quan ly kinh doanh', count: 1098 },
-  { value: 'finance-insurance-sales', label: 'Sales Tai chinh/Ngan hang/Bao hiem', count: 1040 },
-  { value: 'real-estate-sales', label: 'Sales Bat dong san', count: 940 },
-  { value: 'education-sales', label: 'Sales Giao duc/Khoa hoc', count: 826 },
-];
-
-const FALLBACK_INDUSTRIES = [
-  { value: 'telecom', count: 246 },
-  { value: 'technology', count: 210 },
-  { value: 'finance', count: 168 },
-  { value: 'education', count: 124 },
-  { value: 'retail', count: 98 },
-];
 
 function withCountValues<T extends string>(
   values: readonly T[],
@@ -67,28 +40,17 @@ export function JobListSidebar({ query, facets, onFilterChange, onClearAll }: Jo
   const [showAllCategories, setShowAllCategories] = useState(false);
   const [showAllExperience, setShowAllExperience] = useState(false);
   const [showAllJobLevels, setShowAllJobLevels] = useState(false);
-  const [showAllSalesModels, setShowAllSalesModels] = useState(false);
   const [showAllIndustries, setShowAllIndustries] = useState(false);
 
-  const categories = facets?.categories?.length ? facets.categories : FALLBACK_CATEGORIES;
+  const categories = facets?.categories ?? [];
   const visibleCategories = showAllCategories ? categories : categories.slice(0, CATEGORY_SHOW_LIMIT);
 
   const workingDayStatuses = withCountValues(WORKING_DAY_STATUS_VALUES, facets?.workingDayStatus);
   const experienceLevels = withCountValues(EXPERIENCE_LEVEL_VALUES, facets?.experienceLevels);
-  const companyIndustryKeys = facets?.companyIndustryKeys?.length ? facets.companyIndustryKeys : FALLBACK_INDUSTRIES;
-  const companyTypes = withCountValues(COMPANY_TYPE_VALUES, facets?.companyTypes);
+  const companyIndustryKeys = facets?.companyIndustryKeys ?? [];
   const salaryBands = withCountValues(SALARY_BAND_VALUES, facets?.salaryBands);
   const jobLevels = withCountValues(JOB_LEVEL_VALUES, facets?.jobLevels);
-  const salesModels = withCountValues(SALES_MODEL_VALUES, facets?.salesModels);
-  const customerTypes = withCountValues(CUSTOMER_TYPE_VALUES, facets?.customerTypes);
-  const employmentTypes = facets?.employmentTypes?.length
-    ? facets.employmentTypes
-    : [
-        { value: 'FULL_TIME', count: 0 },
-        { value: 'PART_TIME', count: 0 },
-        { value: 'INTERN', count: 0 },
-        { value: 'OTHER', count: 0 },
-      ];
+  const employmentTypes = facets?.employmentTypes ?? [];
 
   const handleMultiToggle = (filterKey: string, value: string) => {
     const current = (query[filterKey as keyof JobsQuery] as string[] | undefined) ?? [];
@@ -103,7 +65,7 @@ export function JobListSidebar({ query, facets, onFilterChange, onClearAll }: Jo
   };
 
   return (
-    <div className="job-filter-panel sticky top-5">
+    <div className="job-filter-panel sticky top-[160px] max-h-[calc(100vh-180px)] overflow-y-auto pr-2 pb-6 custom-scrollbar">
       <div className="mb-3 flex items-center gap-2">
         <span className="flex h-6 w-6 items-center justify-center rounded-md bg-primary-100 text-primary-700">
           <i className="fa-solid fa-tags text-xs" />
@@ -111,123 +73,35 @@ export function JobListSidebar({ query, facets, onFilterChange, onClearAll }: Jo
         <span className="text-base font-bold text-slate-700">SCC <span className="text-primary-600">JobsHub</span></span>
       </div>
 
-      <div className="filter-section border-b border-gray-200 pb-3">
-        <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-          <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600">
-            <input
-              type="radio"
-              name="workingDayStatus"
-              className="h-4 w-4 border-gray-300 text-primary-600 focus:ring-primary-500"
-              checked={!query.workingDayStatus}
-              onChange={() => onFilterChange('workingDayStatus', undefined)}
-            />
-            Không lọc
-          </label>
-            {workingDayStatuses.map(facet => (
-              <label key={facet.value} className="flex cursor-pointer items-center gap-2 text-sm text-slate-600 hover:text-slate-800">
-                <input
-                  type="radio"
-                  name="workingDayStatus"
-                  className="h-4 w-4 border-gray-300 text-primary-600 focus:ring-primary-500"
-                  checked={query.workingDayStatus === facet.value}
-                  onChange={() => handleRadio('workingDayStatus', facet.value)}
-                />
-                {WORKING_DAY_STATUS_LABELS[facet.value as WorkingDayStatus] ?? facet.value}
-              </label>
-            ))}
-        </div>
-      </div>
-
       {/* Categories */}
-      <div className="filter-section border-b border-gray-200 py-4">
-          <h4 className="mb-3 text-sm font-bold text-slate-800">Lọc theo danh mục nghề</h4>
-          <div className="space-y-2.5">
-            {visibleCategories.map(facet => (
-              <label key={facet.value} className="flex cursor-pointer items-center gap-2.5 text-sm text-gray-600 hover:text-slate-800">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                  checked={query.categorySlugs?.includes(facet.value) ?? false}
-                  onChange={() => handleMultiToggle('categorySlugs', facet.value)}
-                />
-                <span className="flex-1">{facet.label}</span>
-                <span className="text-xs text-gray-400">({facet.count.toLocaleString('vi-VN')})</span>
-              </label>
-            ))}
-          </div>
-          {categories.length > CATEGORY_SHOW_LIMIT ? (
-            <button
-              className="mt-2 text-sm font-semibold text-primary-600 hover:underline"
-              type="button"
-              onClick={() => setShowAllCategories(!showAllCategories)}
-            >
-              {showAllCategories ? 'Thu gọn' : 'Xem thêm'}
-            </button>
-          ) : null}
-      </div>
-
-      {/* Sales models */}
-      <div className="filter-section border-b border-gray-200 py-4">
-          <h4 className="mb-3 text-sm font-bold text-slate-800">Hình thức kinh doanh</h4>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
-            <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600">
-              <input
-                type="radio"
-                name="salesModelAll"
-                className="h-4 w-4 border-gray-300 text-primary-600 focus:ring-primary-500"
-                checked={!query.salesModels?.length}
-                onChange={() => onFilterChange('salesModels', undefined)}
-              />
-              Tất cả
-            </label>
-            {(showAllSalesModels ? salesModels : salesModels.slice(0, 5)).map(facet => (
-              <label key={facet.value} className="flex cursor-pointer items-center gap-2 text-sm text-slate-600 hover:text-slate-800">
-                <input
-                  type="radio"
-                  name="salesModel"
-                  className="h-4 w-4 border-gray-300 text-primary-600 focus:ring-primary-500"
-                  checked={query.salesModels?.includes(facet.value) ?? false}
-                  onChange={() => onFilterChange('salesModels', [facet.value])}
-                />
-                <span>{SALES_MODEL_LABELS[facet.value as SalesModel] ?? facet.value}</span>
-              </label>
-            ))}
-          </div>
-          {salesModels.length > 5 ? (
-            <button className="mt-2 text-sm font-semibold text-primary-600 hover:underline" type="button" onClick={() => setShowAllSalesModels(!showAllSalesModels)}>
-              {showAllSalesModels ? 'Thu gọn' : 'Xem thêm'}
-            </button>
-          ) : null}
-      </div>
-
-      {/* Customer types */}
-      <div className="filter-section border-b border-gray-200 py-4">
-          <h4 className="mb-3 text-sm font-bold text-slate-800">Đối tượng khách hàng</h4>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
-            <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600">
-              <input
-                type="radio"
-                name="customerTypeAll"
-                className="h-4 w-4 border-gray-300 text-primary-600 focus:ring-primary-500"
-                checked={!query.customerTypes?.length}
-                onChange={() => onFilterChange('customerTypes', undefined)}
-              />
-              Tất cả
-            </label>
-            {customerTypes.map(facet => (
-              <label key={facet.value} className="flex cursor-pointer items-center gap-2 text-sm text-slate-600 hover:text-slate-800">
-                <input
-                  type="radio"
-                  name="customerType"
-                  className="h-4 w-4 border-gray-300 text-primary-600 focus:ring-primary-500"
-                  checked={query.customerTypes?.includes(facet.value) ?? false}
-                  onChange={() => onFilterChange('customerTypes', [facet.value])}
-                />
-                {CUSTOMER_TYPE_LABELS[facet.value as CustomerType] ?? facet.value}
-              </label>
-            ))}
-          </div>
-      </div>
+      {categories.length > 0 && (
+        <div className="filter-section border-b border-gray-200 pb-4 pt-2">
+            <h4 className="mb-3 text-sm font-bold text-slate-800">Danh mục ngành nghề</h4>
+            <div className="space-y-2.5">
+              {visibleCategories.map(facet => (
+                <label key={facet.value} className="flex cursor-pointer items-center gap-2.5 text-sm text-gray-600 hover:text-slate-800">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    checked={query.categorySlugs?.includes(facet.value) ?? false}
+                    onChange={() => handleMultiToggle('categorySlugs', facet.value)}
+                  />
+                  <span className="flex-1">{facet.label}</span>
+                  <span className="text-xs text-gray-400">({facet.count.toLocaleString('vi-VN')})</span>
+                </label>
+              ))}
+            </div>
+            {categories.length > CATEGORY_SHOW_LIMIT ? (
+              <button
+                className="mt-2 text-sm font-semibold text-primary-600 hover:underline"
+                type="button"
+                onClick={() => setShowAllCategories(!showAllCategories)}
+              >
+                {showAllCategories ? 'Thu gọn' : 'Xem thêm'}
+              </button>
+            ) : null}
+        </div>
+      )}
 
       {/* Salary bands */}
       <div className="filter-section border-b border-gray-200 py-4">
@@ -363,26 +237,34 @@ export function JobListSidebar({ query, facets, onFilterChange, onClearAll }: Jo
         </div>
       )}
 
-      {/* Company types */}
-      {companyTypes.length > 0 && (
-        <div className="py-4">
-          <h4 className="mb-3 text-sm font-bold text-slate-800">Loại công ty</h4>
-          <div className="space-y-2.5">
-            {companyTypes.map(facet => (
-              <label key={facet.value} className="flex cursor-pointer items-center gap-2.5 text-sm text-gray-600 hover:text-slate-800">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                  checked={query.companyTypes?.includes(facet.value) ?? false}
-                  onChange={() => handleMultiToggle('companyTypes', facet.value)}
-                />
-                <span className="flex-1">{COMPANY_TYPE_LABELS[facet.value as CompanyType] ?? facet.value}</span>
-                <span className="text-xs text-gray-400">({facet.count.toLocaleString('vi-VN')})</span>
-              </label>
-            ))}
-          </div>
+      {/* Working day status */}
+      <div className="filter-section py-4">
+        <h4 className="mb-3 text-sm font-bold text-slate-800">Thời gian làm việc</h4>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
+          <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600">
+            <input
+              type="radio"
+              name="workingDayStatus"
+              className="h-4 w-4 border-gray-300 text-primary-600 focus:ring-primary-500"
+              checked={!query.workingDayStatus}
+              onChange={() => onFilterChange('workingDayStatus', undefined)}
+            />
+            Tất cả
+          </label>
+          {workingDayStatuses.map(facet => (
+            <label key={facet.value} className="flex cursor-pointer items-center gap-2 text-sm text-slate-600 hover:text-slate-800">
+              <input
+                type="radio"
+                name="workingDayStatus"
+                className="h-4 w-4 border-gray-300 text-primary-600 focus:ring-primary-500"
+                checked={query.workingDayStatus === facet.value}
+                onChange={() => handleRadio('workingDayStatus', facet.value)}
+              />
+              {WORKING_DAY_STATUS_LABELS[facet.value as WorkingDayStatus] ?? facet.value}
+            </label>
+          ))}
         </div>
-      )}
+      </div>
 
       {/* Reset button */}
       <button

@@ -49,7 +49,6 @@ export class SemanticSearchService {
         FROM "CV"
         WHERE embedding IS NOT NULL
           AND "deletedAt" IS NULL
-          AND (1 - (embedding <=> $1::vector)) > 0.65
         ORDER BY embedding <=> $1::vector
         LIMIT $2
         `,
@@ -73,6 +72,7 @@ export class SemanticSearchService {
   async findTopJobsForCv(
     cvId: string,
     limit: number = 50,
+    targetCategorySlugs?: string[],
   ): Promise<SemanticSearchResult[]> {
     try {
       const cv = await this.prisma.cV.findUnique({
@@ -80,7 +80,7 @@ export class SemanticSearchService {
       });
 
       if (!cv) {
-        throw new Error(`CV \${cvId} not found`);
+        throw new Error(`CV ${cvId} not found`);
       }
 
       const cvVectorResult = await this.prisma.$queryRawUnsafe<any[]>(
@@ -91,26 +91,43 @@ export class SemanticSearchService {
       const embeddingStr = cvVectorResult[0]?.embedding;
       if (!embeddingStr) {
         this.logger.warn(
-          `CV \${cvId} has no embedding. Returning empty results.`,
+          `CV ${cvId} has no embedding. Returning empty results.`,
         );
         return [];
       }
 
       // Find top Jobs using pgvector <=> operator
-      // Can add further conditions like status = 'PUBLISHED' here
-      const results = await this.prisma.$queryRawUnsafe<any[]>(
-        `
-        SELECT id, 1 - (embedding <=> $1::vector) AS score
-        FROM "Job"
-        WHERE embedding IS NOT NULL
-          AND "deletedAt" IS NULL
-          AND status = 'PUBLISHED'
-          AND (1 - (embedding <=> $1::vector)) > 0.65
-        ORDER BY embedding <=> $1::vector
+      let queryStr = `
+        SELECT j.id, 1 - (j.embedding <=> $1::vector) AS score
+        FROM "Job" j
+        WHERE j.embedding IS NOT NULL
+          AND j."deletedAt" IS NULL
+          AND j.status = 'PUBLISHED'
+      `;
+
+      const params: any[] = [embeddingStr, limit];
+
+      if (targetCategorySlugs && targetCategorySlugs.length > 0) {
+        queryStr += `
+          AND EXISTS (
+            SELECT 1 
+            FROM "JobCategoryOnJob" jcj
+            JOIN "JobCategory" c ON c.id = jcj."categoryId"
+            WHERE jcj."jobId" = j.id
+              AND c.slug = ANY($3::text[])
+          )
+        `;
+        params.push(targetCategorySlugs);
+      }
+
+      queryStr += `
+        ORDER BY j.embedding <=> $1::vector
         LIMIT $2
-        `,
-        embeddingStr,
-        limit,
+      `;
+
+      const results = await this.prisma.$queryRawUnsafe<any[]>(
+        queryStr,
+        ...params,
       );
 
       return results.map((row) => ({

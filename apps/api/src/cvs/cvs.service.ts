@@ -178,7 +178,7 @@ export class CvsService {
         candidateId: candidate.id,
         source: 'builder',
         templateId: dto.templateId ?? 'simple',
-        fileName: `${dto.profile.name} - CV`,
+        fileName: `${dto.profile.name} - CV.pdf`,
         filePath: '',
         fileSize: 0,
         mimeType: 'application/json',
@@ -234,7 +234,7 @@ export class CvsService {
       where: { id: cvId },
       data: {
         templateId: dto.templateId ?? 'simple',
-        fileName: `${dto.profile.name} - CV`,
+        fileName: `${dto.profile.name} - CV.pdf`,
         parsedData: parsedData as unknown as Prisma.InputJsonValue,
         skills: normalizedSkills.skills as Prisma.InputJsonValue,
         skillAtoms:
@@ -304,6 +304,7 @@ export class CvsService {
     const normalizedProfile: NormalizedProfile = {
       schemaVersion: NORMALIZED_SCHEMA_VERSION,
       language: 'vi',
+      candidateName: dto.profile.name,
       title,
       summary: dto.profile.summary ?? '',
       skills: dto.skills,
@@ -312,6 +313,7 @@ export class CvsService {
         company: exp.company,
         startDate: exp.startDate,
         endDate: exp.endDate ?? null,
+        description: exp.description,
         tech: exp.tech ?? [],
       })),
       education: dto.education.map((edu) => ({

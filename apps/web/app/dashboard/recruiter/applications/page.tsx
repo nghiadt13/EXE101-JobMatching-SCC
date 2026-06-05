@@ -29,7 +29,11 @@ function isRecruiterStatus(value: string): value is Exclude<ApplicationStatus, '
   );
 }
 
-export default async function RecruiterApplicationsPage() {
+export default async function RecruiterApplicationsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   const session = await auth();
   if (!session?.user || !session.accessToken) redirect('/login');
   if (session.user.role !== 'RECRUITER') redirect('/dashboard');
@@ -54,7 +58,24 @@ export default async function RecruiterApplicationsPage() {
     revalidatePath('/dashboard/recruiter/applications');
   }
 
-  const applications = await getApplications(session.accessToken, { page: 1, limit: 50 });
+  const params = await searchParams;
+  const statusParam = typeof params.status === 'string' ? params.status : undefined;
+  const filterStatus = isRecruiterStatus(statusParam ?? '') ? (statusParam as ApplicationStatus) : undefined;
+
+  const applications = await getApplications(session.accessToken, {
+    page: 1,
+    limit: 50,
+    status: filterStatus,
+  });
+
+  const TABS = [
+    { label: 'Tất cả', value: '' },
+    { label: 'Mới ứng tuyển', value: 'APPLIED' },
+    { label: 'Đang duyệt', value: 'REVIEWING' },
+    { label: 'Phỏng vấn', value: 'INTERVIEW' },
+    { label: 'Đề nghị (Offer)', value: 'OFFER' },
+    { label: 'Đã từ chối', value: 'REJECTED' },
+  ];
 
   return (
     <DashboardShell
@@ -70,6 +91,28 @@ export default async function RecruiterApplicationsPage() {
         { label: 'Đơn ứng tuyển' },
       ]}
     >
+      <div className="mb-6 border-b border-md-outline-variant/30 overflow-x-auto">
+        <nav className="flex space-x-6 min-w-max px-1" aria-label="Tabs">
+          {TABS.map((tab) => {
+            const isActive = filterStatus ? filterStatus === tab.value : tab.value === '';
+            return (
+              <a
+                key={tab.value}
+                href={tab.value ? `?status=${tab.value}` : '?'}
+                className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  isActive
+                    ? 'border-brand-600 text-brand-600'
+                    : 'border-transparent text-md-on-surface-variant hover:text-md-on-surface hover:border-md-outline-variant'
+                }`}
+                aria-current={isActive ? 'page' : undefined}
+              >
+                {tab.label}
+              </a>
+            );
+          })}
+        </nav>
+      </div>
+
       <RecruiterApplicationsTable items={applications.items} action={updateStatusAction} />
     </DashboardShell>
   );
