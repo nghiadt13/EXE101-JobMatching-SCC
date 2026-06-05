@@ -156,6 +156,58 @@ export const RAG_KNOWLEDGE_BASE: RagKnowledgeItem[] = [
     'flutter',
   ]),
 
+  group('skill-group-marketing', 'Marketing skill group', [
+    'marketing',
+    'digital marketing',
+    'content',
+    'seo',
+    'sem',
+    'social media',
+    'branding',
+  ]),
+  group('skill-group-sales', 'Sales & Business skill group', [
+    'sales',
+    'business development',
+    'b2b',
+    'b2c',
+    'telesales',
+    'account manager',
+  ]),
+  group('skill-group-media', 'Media & Communications skill group', [
+    'media',
+    'communications',
+    'pr',
+    'public relations',
+    'event management',
+    'journalism',
+  ]),
+  
+  alias('skill-alias-seo', 'SEO', ['seo', 'search engine optimization', 'tối ưu hóa công cụ tìm kiếm']),
+  alias('skill-alias-content', 'Content Creator', ['content creator', 'content writer', 'copywriter', 'sáng tạo nội dung']),
+  alias('skill-alias-pr', 'Public Relations', ['pr', 'public relations', 'quan hệ công chúng']),
+  alias('skill-alias-b2b', 'B2B Sales', ['b2b', 'b2b sales', 'kinh doanh b2b', 'doanh nghiệp']),
+  alias('skill-alias-b2c', 'B2C Sales', ['b2c', 'b2c sales', 'kinh doanh b2c', 'khách hàng cá nhân']),
+  alias('skill-alias-ads', 'Digital Ads', ['ads', 'facebook ads', 'google ads', 'quảng cáo số', 'chạy ads']),
+  
+  related('related-marketing-sales', 'Marketing and Sales', [
+    'marketing',
+    'sales',
+    'business',
+    'revenue',
+  ]),
+  related('related-content-seo', 'Content and SEO', [
+    'content',
+    'seo',
+    'copywriting',
+    'digital marketing',
+  ]),
+  related('related-pr-event', 'PR and Event Management', [
+    'pr',
+    'event management',
+    'communications',
+    'media',
+  ]),
+
   role('role-intern', 'Intern engineer expectations', [
     'intern',
     'internship',

@@ -28,6 +28,8 @@ export type ApplicationView = {
   cv: {
     id: string;
     fileName: string;
+    candidateProfile?: Record<string, unknown> | null;
+    parsedData?: Record<string, unknown> | null;
   };
 };
 

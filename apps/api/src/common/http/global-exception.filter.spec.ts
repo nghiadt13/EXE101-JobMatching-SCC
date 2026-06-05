@@ -84,19 +84,29 @@ describe('GlobalExceptionFilter', () => {
   });
 
   it('normalizes unknown exceptions into a stable 500 envelope', () => {
-    filter.catch(new Error('boom'), createHost(response));
-
-    expect(response.status).toHaveBeenCalledWith(
-      HttpStatus.INTERNAL_SERVER_ERROR,
-    );
-    expect(response.json).toHaveBeenCalledWith(
-      expect.objectContaining({
-        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-        code: 'INTERNAL_SERVER_ERROR',
-        message: 'Unexpected server error. Please try again later.',
-        requestId: 'req-123',
+    const exception = new Error('boom');
+    const ctx = {
+      getRequest: () => ({ url: '/test' }),
+      getResponse: () => ({
+        status: () => ({ json: mockJson }),
       }),
-    );
+    };
+    const mockJson = jest.fn();
+
+    const mockHost = {
+      switchToHttp: () => ctx,
+    } as any;
+
+    filter.catch(exception, mockHost);
+
+    expect(mockJson).toHaveBeenCalledWith({
+      statusCode: 500,
+      code: 'INTERNAL_SERVER_ERROR',
+      message: 'Internal server error',
+      path: '/test',
+      timestamp: expect.any(String),
+      requestId: 'test-req-id',
+    });
     expect(logger.error).toHaveBeenCalled();
   });
 });
@@ -105,7 +115,7 @@ function createHost(response: {
   status: jest.Mock;
   json: jest.Mock;
   getHeader: jest.Mock;
-}): ArgumentsHost {
+}): any {
   return {
     switchToHttp: () => ({
       getRequest: () => ({

@@ -201,8 +201,9 @@ describe('HomepageService', () => {
   });
 
   it('returns user block and saved flags for authenticated users', async () => {
+    const mockUser = { sub: 'mockUserId', role: UserRole.CANDIDATE, email: 'test@example.com' };
     const result = await service.getHomepage(
-      { sub: 'user-1', role: UserRole.CANDIDATE },
+      mockUser,
       undefined,
     );
 

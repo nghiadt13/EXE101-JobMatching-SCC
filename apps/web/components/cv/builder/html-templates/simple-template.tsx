@@ -114,6 +114,42 @@ export const SimpleTemplate = memo(function SimpleTemplate({
     onChange({ ...data, projects: next });
   };
 
+  const addExperience = () => {
+    const next = data.experience.slice();
+    next.push({
+      role: '',
+      company: '',
+      startDate: '',
+      endDate: '',
+      description: '',
+      tech: [],
+    });
+    onChange({ ...data, experience: next });
+  };
+
+  const addEducation = () => {
+    const next = data.education.slice();
+    next.push({
+      school: '',
+      degree: '',
+      field: '',
+      startDate: '',
+      endDate: '',
+      gpa: '',
+    });
+    onChange({ ...data, education: next });
+  };
+
+  const addProject = () => {
+    const next = data.projects.slice();
+    next.push({
+      name: '',
+      description: '',
+      tech: [],
+    });
+    onChange({ ...data, projects: next });
+  };
+
   const replaceStringList = (
     key: 'skills' | 'certifications' | 'languages',
     raw: string,
@@ -324,6 +360,13 @@ export const SimpleTemplate = memo(function SimpleTemplate({
             </div>
           </BlockOverlay>
         ))}
+        <button
+          type="button"
+          onClick={addExperience}
+          className="mt-2 inline-flex items-center gap-1 text-[0.85em] font-semibold text-[var(--cv-primary-color)] hover:underline print:hidden"
+        >
+          + Thêm kinh nghiệm làm việc
+        </button>
       </section>
 
       {/* ----------------------------- Education ---------------------------- */}
@@ -410,6 +453,13 @@ export const SimpleTemplate = memo(function SimpleTemplate({
             </div>
           </BlockOverlay>
         ))}
+        <button
+          type="button"
+          onClick={addEducation}
+          className="mt-2 inline-flex items-center gap-1 text-[0.85em] font-semibold text-[var(--cv-primary-color)] hover:underline print:hidden"
+        >
+          + Thêm thông tin học vấn
+        </button>
       </section>
 
       {/* ------------------------------- Skills ----------------------------- */}
@@ -487,6 +537,13 @@ export const SimpleTemplate = memo(function SimpleTemplate({
             </div>
           </BlockOverlay>
         ))}
+        <button
+          type="button"
+          onClick={addProject}
+          className="mt-2 inline-flex items-center gap-1 text-[0.85em] font-semibold text-[var(--cv-primary-color)] hover:underline print:hidden"
+        >
+          + Thêm dự án nổi bật
+        </button>
       </section>
 
       {/* --------------------------- Certifications ------------------------- */}

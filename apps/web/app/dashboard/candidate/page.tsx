@@ -16,6 +16,7 @@ import { getDashboardStats, type CandidateDashboardStats } from '@/lib/dashboard
 import { getMyCvs } from '@/lib/cv-client';
 import { getApplications } from '@/lib/applications-client';
 import { getJobs } from '@/lib/jobs-client';
+import { listRecommendationScans, getRecommendationScan } from '@/lib/recommendation-client';
 import { Eye, Mail, Briefcase, Upload } from 'lucide-react';
 
 export default async function CandidateDashboardPage() {
@@ -30,13 +31,15 @@ export default async function CandidateDashboardPage() {
   };
   let cvs: Awaited<ReturnType<typeof getMyCvs>> = { items: [], pagination: { page: 1, limit: 50, totalItems: 0, totalPages: 0 } };
   let applications: Awaited<ReturnType<typeof getApplications>> = { items: [], pagination: { page: 1, limit: 3, totalItems: 0, totalPages: 0 } };
+  let scansResponse: Awaited<ReturnType<typeof listRecommendationScans>> | null = null;
   let errorMessage = '';
 
   try {
-    [stats, cvs, applications] = await Promise.all([
+    [stats, cvs, applications, scansResponse] = await Promise.all([
       getDashboardStats(session.accessToken) as Promise<CandidateDashboardStats>,
       getMyCvs(session.accessToken),
       getApplications(session.accessToken, { page: 1, limit: 3 }),
+      listRecommendationScans(session.accessToken).catch(() => null),
     ]);
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) redirect('/api/auth/logout');
@@ -72,12 +75,11 @@ export default async function CandidateDashboardPage() {
     });
   }
 
-  // Dynamic CV Strength Calculation
   const primaryCv = cvs.items.find((cv) => cv.isPrimary) || cvs.items[0];
 
-  let cvScore = 75; // Baseline default matching mockup
-  let improvementItems = ['Thêm kinh nghiệm làm việc', 'Cập nhật học văn'];
-  let cvSkills = ['ReactJS', 'Tailwind CSS', 'Figma', 'JavaScript', 'HTML/CSS'];
+  let cvScore = 0;
+  let improvementItems = ['Vui lòng tải lên CV đầu tiên của bạn để xem đánh giá'];
+  let cvSkills: string[] = [];
 
   if (primaryCv) {
     cvScore = 40; // baseline for raw CV
@@ -122,26 +124,24 @@ export default async function CandidateDashboardPage() {
   }> = [];
 
   try {
-    const jobsResponse = await getJobs({ status: 'PUBLISHED', limit: 3 }, session.accessToken);
-    recommendedJobs = jobsResponse.items.map((job, idx) => {
-      const loc = job.location as Record<string, string> | null;
-      const locationStr = loc?.city || loc?.country || 'Việt Nam';
-      const salaryStr = job.salaryMin && job.salaryMax
-        ? `${(job.salaryMin / 1_000_000).toFixed(0)} - ${(job.salaryMax / 1_000_000).toFixed(0)} triệu`
-        : job.salaryNegotiable ? 'Thương lượng' : undefined;
-      const scores = [92, 85, 78];
-      const tiers: Array<'excellent' | 'good' | 'potential'> = ['excellent', 'good', 'potential'];
-      return {
-        id: job.slug,
-        title: job.title,
-        companyName: job.companyName ?? 'Công ty',
-        location: locationStr,
-        matchScore: scores[idx] ?? 75,
-        matchTier: tiers[idx] ?? 'potential',
-        skills: (job.skills || []).slice(0, 4),
-        salary: salaryStr,
-      };
-    });
+    if (scansResponse && scansResponse.items.length > 0) {
+      const latestScanId = scansResponse.items[0].id;
+      const latestScan = await getRecommendationScan(session.accessToken, latestScanId).catch(() => null);
+      if (latestScan && latestScan.status === 'COMPLETED') {
+        recommendedJobs = latestScan.results.slice(0, 3).map((res) => ({
+          id: res.job.slug,
+          title: res.job.title,
+          companyName: res.job.company?.name ?? 'Công ty',
+          location: 'Việt Nam',
+          matchScore: res.matchScore,
+          matchTier: res.matchTier,
+          skills: res.strengths.slice(0, 4),
+          salary: res.job.salaryMin && res.job.salaryMax 
+            ? `${(res.job.salaryMin / 1000000).toFixed(0)} - ${(res.job.salaryMax / 1000000).toFixed(0)} triệu`
+            : undefined,
+        }));
+      }
+    }
   } catch {
     // Silently fail — will show empty state
   }
@@ -176,30 +176,27 @@ export default async function CandidateDashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-md mb-lg">
         <StatCardV2
           label="Lượt xem hồ sơ"
-          value="124"
+          value="0"
           icon={<Eye className="h-5 w-5" />}
           iconBg="bg-primary/10"
           iconColor="text-primary"
-          subtitle="So với tuần trước"
-          trend={{ text: '+12%', direction: 'up' }}
+          subtitle="Chưa có dữ liệu"
         />
         <StatCardV2
           label="Lời mời phỏng vấn"
-          value="5"
+          value={stats.interviewCount.toString()}
           icon={<Mail className="h-5 w-5" />}
           iconBg="bg-tertiary-container/10"
           iconColor="text-tertiary-container"
-          subtitle="Cần phản hồi sớm"
-          badge={{ text: 'Mới', variant: 'warning' }}
+          subtitle={stats.interviewCount > 0 ? "Kiểm tra email của bạn" : "Chưa có lời mời"}
         />
         <StatCardV2
           label="Việc làm mới phù hợp"
-          value="18"
+          value={recommendedJobs.length.toString()}
           icon={<Briefcase className="h-5 w-5" />}
           iconBg="bg-surface-variant"
           iconColor="text-primary"
-          subtitle="Dựa trên kỹ năng ReactJS"
-          badge={{ text: 'Hôm nay', variant: 'primary' }}
+          subtitle={recommendedJobs.length > 0 ? "Dựa trên phân tích gần nhất" : "Vui lòng cập nhật CV"}
         />
       </div>
 

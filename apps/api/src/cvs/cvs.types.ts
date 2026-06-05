@@ -18,6 +18,15 @@ export interface CvView {
   candidateProfile: CandidateProfileV1 | null;
   candidateProfileVersion: string | null;
   parseTelemetry: NormalizationTelemetry | null;
+  candidate?: {
+    phone: string | null;
+    location: unknown;
+    user: {
+      name: string;
+      email: string;
+      avatar: string | null;
+    };
+  } | null;
   source: string;
   templateId: string;
   isPrimary: boolean;

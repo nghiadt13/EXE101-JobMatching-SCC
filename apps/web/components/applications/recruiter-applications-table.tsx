@@ -1,3 +1,6 @@
+'use client';
+
+import { useState } from 'react';
 import Link from 'next/link';
 import {
   ApplicationStatus,
@@ -8,6 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { MatchingSnapshotV2View } from './matching-snapshot-v2';
+import { CvPreviewModal } from '@/components/cv/cv-preview-modal';
+import type { CvItem } from '@/lib/cv-client';
 
 type RecruiterApplicationsTableProps = {
   items: ApplicationItem[];
@@ -38,6 +43,8 @@ const statusVariant: Record<string, 'default' | 'success' | 'warning' | 'info' |
 };
 
 export function RecruiterApplicationsTable({ items, action }: RecruiterApplicationsTableProps) {
+  const [selectedCv, setSelectedCv] = useState<CvItem | null>(null);
+
   if (!items.length) {
     return (
       <EmptyState
@@ -109,11 +116,37 @@ export function RecruiterApplicationsTable({ items, action }: RecruiterApplicati
               defaultValue={item.notes ?? ''}
               className="h-9 min-w-56 rounded-lg border border-zinc-300 bg-white px-3 text-sm focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-2"
             />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                setSelectedCv({
+                  id: item.cv.id,
+                  fileName: item.cv.fileName,
+                  candidateProfile: item.cv.candidateProfile,
+                  parsedData: item.cv.parsedData,
+                  candidate: {
+                    phone: null,
+                    location: null,
+                    user: {
+                      name: item.candidate.name,
+                      email: item.candidate.email,
+                      avatar: null,
+                    },
+                  },
+                } as any)
+              }
+            >
+              Xem CV
+            </Button>
             <Button type="submit" size="sm">Cập nhật</Button>
           </form>
         </article>
         );
       })}
+      
+      <CvPreviewModal isOpen={!!selectedCv} onClose={() => setSelectedCv(null)} cv={selectedCv} />
     </div>
   );
 }

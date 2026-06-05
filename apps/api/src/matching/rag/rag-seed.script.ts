@@ -13,6 +13,8 @@ async function main() {
   const config = new ConfigService();
   const gemini = new GeminiClientService();
 
+  console.log('Clearing existing RAG Knowledge...');
+  await prisma.ragKnowledge.deleteMany({});
   console.log('Starting RAG Knowledge Seed...');
 
   for (const item of RAG_KNOWLEDGE_BASE) {

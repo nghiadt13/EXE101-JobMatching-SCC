@@ -61,6 +61,15 @@ export type CvItem = {
   } | null;
   candidateProfile: CandidateProfile | null;
   candidateProfileVersion: string | null;
+  candidate?: {
+    phone: string | null;
+    location: any;
+    user: {
+      name: string;
+      email: string;
+      avatar: string | null;
+    };
+  } | null;
   parsedData: {
     skills: string[];
     summary?: string;

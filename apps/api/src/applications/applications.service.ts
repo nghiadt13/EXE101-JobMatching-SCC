@@ -364,6 +364,8 @@ export class ApplicationsService {
         select: {
           id: true,
           fileName: true,
+          candidateProfile: true,
+          parsedData: true,
         },
       },
     } satisfies Prisma.ApplicationSelect;

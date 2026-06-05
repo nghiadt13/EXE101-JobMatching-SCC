@@ -21,7 +21,7 @@ export function SCCBrandIcon({ className }: SCCBrandIconProps) {
       aria-hidden="true"
     >
       <Image
-        src="/logo.jpg"
+        src="/logo.png"
         alt="SCC Logo"
         fill
         className="object-contain"
@@ -35,14 +35,10 @@ export function SCCBrandIcon({ className }: SCCBrandIconProps) {
 export function SCCBrandLogo({
   className,
   iconClassName,
-  textClassName,
 }: SCCBrandLogoProps) {
   return (
-    <span className={cn('flex items-center gap-1', className)}>
-      <SCCBrandIcon className={cn('h-20 w-20', iconClassName)} />
-      <span className={cn('text-2xl font-bold tracking-tight text-slate-800', textClassName)}>
-        SCC
-      </span>
+    <span className={cn('flex items-center', className)}>
+      <SCCBrandIcon className={cn('h-12 w-32 sm:h-14 sm:w-40', iconClassName)} />
     </span>
   );
 }

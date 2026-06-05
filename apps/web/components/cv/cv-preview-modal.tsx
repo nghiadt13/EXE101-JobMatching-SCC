@@ -35,58 +35,57 @@ export function CvPreviewModal({ isOpen, onClose, cv }: CvPreviewModalProps) {
     (profile.education && profile.education.length > 0)
   );
 
-  const fullName = profile?.headline || 'Đàm Trọng Nghĩa';
-  const roleName = profile?.headline ? 'Ứng viên tiềm năng' : 'Full-Stack Developer';
-  const summary = profile?.summary || 
-    'Là lập trình viên Full-Stack năng động và đầy đam mê, tôi khao khát ứng dụng kiến thức công nghệ hiện đại để xây dựng các giải pháp tối ưu cho doanh nghiệp. Mục tiêu ngắn hạn là hòa nhập nhanh và cống hiến giá trị, mục tiêu dài hạn là thăng tiến trở thành kỹ sư hệ thống / Solution Architect chuyên nghiệp.';
+  const anyProfile = profile as any;
+  const builderProfile = cv?.parsedData?.builderData?.profile as any;
+  const candidateInfo = cv.candidate || (cv as any).candidate;
 
-  const email = profile?.location ? 'candidate@example.com' : 'nghia.damtrong.it@gmail.com';
-  const phone = '+84 947 274 xxx';
-  const github = 'github.com/damtrongnghia';
-  const location = profile?.location 
-    ? `${profile.location.city || ''}, ${profile.location.country || ''}`.trim() || 'Hà Nội, Việt Nam'
-    : 'Thanh Xuân, Hà Nội';
+  const fullName = candidateInfo?.user?.name || anyProfile?.personal_info?.full_name || builderProfile?.name || profile?.headline || anyProfile?.name || 'Ứng viên';
+  const roleName = profile?.headline || anyProfile?.personal_info?.title || anyProfile?.title || 'Ứng viên tiềm năng';
+  const summary = profile?.summary || builderProfile?.summary || '';
+
+  const email = candidateInfo?.user?.email || anyProfile?.personal_info?.email || builderProfile?.email || 'Chưa cập nhật email';
+  const phone = candidateInfo?.phone || anyProfile?.personal_info?.phone || builderProfile?.phone || 'Chưa cập nhật SĐT';
+  const github = anyProfile?.personal_info?.github || builderProfile?.github || '';
+  
+  const rawLocation = candidateInfo?.location || builderProfile?.location;
+  const location = rawLocation?.city 
+    ? `${rawLocation.city}${rawLocation.country ? `, ${rawLocation.country}` : ''}`
+    : anyProfile?.personal_info?.location || (profile?.location 
+      ? `${profile.location.city || ''}, ${profile.location.country || ''}`.trim()
+      : '');
 
   // Skills
   const skills = profile?.skills && profile.skills.length > 0
     ? profile.skills
-    : ['ReactJS', 'TailwindCSS', 'TypeScript', 'Spring Boot', 'NodeJS', 'PostgreSQL'];
+    : cv?.parsedData?.skills && cv.parsedData.skills.length > 0 
+      ? cv.parsedData.skills 
+      : [];
 
   // Education list
   const educationList = profile?.education && profile.education.length > 0
     ? profile.education
-    : [
-        {
-          school: 'Đại Học FPT',
-          degree: 'Đại học',
-          field: 'Chuyên ngành Kỹ thuật Phần mềm',
-          startDate: '2021',
-          endDate: 'Hiện tại',
-          gpa: 'GPA: 3.2 / 4.0'
-        }
-      ];
+    : cv?.parsedData?.builderData?.education && cv.parsedData.builderData.education.length > 0
+      ? cv.parsedData.builderData.education
+      : [];
 
   // Experience & Projects list
   const experienceList = profile?.experience && profile.experience.length > 0
     ? profile.experience
-    : [];
+    : cv?.parsedData?.builderData?.experience && cv.parsedData.builderData.experience.length > 0
+      ? cv.parsedData.builderData.experience
+      : [];
 
   const projectsList = profile?.projects && profile.projects.length > 0
     ? profile.projects
-    : [
-        {
-          name: 'Hệ Thống Đặt Chỗ Ngân Hàng Thông Minh',
-          startDate: '11/2025',
-          endDate: '03/2026',
-          role: 'Lập trình viên chính (Full-Stack)',
-          description: 'Xây dựng giải pháp đặt lịch hẹn trực tuyến đồng bộ trực tiếp với hệ thống phòng giao dịch nhằm giảm thời gian chờ đợi tại quầy của khách hàng.',
-          highlights: [
-            'Sử dụng Spring Boot cho backend, ReactJS làm UI/UX frontend',
-            'Tích hợp cơ chế thông báo thời gian thực qua WebSockets',
-            'Sử dụng Redis Cache giúp giảm thời gian truy vấn dữ liệu từ DB xuống 40%'
-          ]
-        }
-      ];
+    : cv?.parsedData?.builderData?.projects && cv.parsedData.builderData.projects.length > 0
+      ? cv.parsedData.builderData.projects
+      : [];
+
+  const certifications = profile?.certifications && profile.certifications.length > 0
+    ? profile.certifications
+    : cv?.parsedData?.builderData?.certifications && cv.parsedData.builderData.certifications.length > 0
+      ? cv.parsedData.builderData.certifications
+      : [];
 
   return (
     <div
@@ -172,6 +171,18 @@ export function CvPreviewModal({ isOpen, onClose, cv }: CvPreviewModalProps) {
           {/* CV Document Paper Container */}
           <div className="bg-white text-slate-900 w-full max-w-[210mm] shadow-lg border border-slate-200 p-8 sm:p-12 rounded-xl text-left font-sans text-xs relative select-text leading-relaxed h-fit">
             
+            {cv.parseStatus === 'pending_apply' && (
+              <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs flex items-start gap-3">
+                <div className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold text-amber-900">Hệ thống đang phân tích CV bằng AI ở chế độ nền...</p>
+                  <p className="text-amber-700 mt-1 leading-relaxed">
+                    Dữ liệu Kinh nghiệm, Học vấn, Dự án và Kỹ năng đang được bóc tách từ file tĩnh của bạn. Quá trình này mất khoảng 1-2 phút (do dùng DeepSeek) hoặc chỉ vài giây (nếu dùng Gemini). Vui lòng tắt xem trước và F5/Tải lại trang sau ít phút để cập nhật đầy đủ thông tin.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* CV Header */}
             <div className="border-b-2 border-slate-800 pb-5 text-center sm:text-left flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4">
               <div>
@@ -212,11 +223,15 @@ export function CvPreviewModal({ isOpen, onClose, cv }: CvPreviewModalProps) {
                       <div key={idx} className="relative pl-4 border-l-2 border-brand-500/30 space-y-1">
                         <div className="absolute -left-[5px] top-1.5 w-2 h-2 rounded-full bg-brand-500" />
                         <div className="flex justify-between items-start text-[11px]">
-                          <h3 className="font-bold text-slate-800">{edu.school || edu.degree}</h3>
-                          <span className="text-slate-400">{edu.startDate} - {edu.endDate}</span>
+                          <h3 className="font-bold text-slate-800">{(edu as any).school || (edu as any).institution || (edu as any).degree}</h3>
+                          <span className="text-slate-400">
+                            {((edu as any).startDate && (edu as any).endDate) 
+                              ? `${(edu as any).startDate} - ${(edu as any).endDate}` 
+                              : (edu as any).duration || ''}
+                          </span>
                         </div>
-                        <p className="text-slate-500 font-medium">{edu.field || edu.degree}</p>
-                        {('gpa' in edu) && <p className="text-slate-400 text-[10px]">{edu.gpa as string}</p>}
+                        <p className="text-slate-500 font-medium">{(edu as any).field || (edu as any).degree}</p>
+                        {(edu as any).gpa && <p className="text-slate-500 font-semibold text-[10px] mt-0.5">{(edu as any).gpa}</p>}
                       </div>
                     ))}
                   </div>
@@ -233,8 +248,12 @@ export function CvPreviewModal({ isOpen, onClose, cv }: CvPreviewModalProps) {
                         <div key={idx} className="relative pl-4 border-l-2 border-brand-500/30 space-y-1">
                           <div className="absolute -left-[5px] top-1.5 w-2 h-2 rounded-full bg-brand-500" />
                           <div className="flex justify-between items-start text-[11px]">
-                            <h3 className="font-bold text-slate-800">{exp.company}</h3>
-                            <span className="text-slate-400">{exp.startDate} - {exp.endDate}</span>
+                            <h3 className="font-bold text-slate-800">{(exp as any).company}</h3>
+                            <span className="text-slate-400">
+                              {((exp as any).startDate && (exp as any).endDate)
+                                ? `${(exp as any).startDate} - ${(exp as any).endDate}`
+                                : (exp as any).duration || ''}
+                            </span>
                           </div>
                           <p className="text-slate-500 font-medium">{exp.role}</p>
                           {exp.tech && exp.tech.length > 0 && (
@@ -260,29 +279,29 @@ export function CvPreviewModal({ isOpen, onClose, cv }: CvPreviewModalProps) {
                     {projectsList.map((proj, idx) => (
                       <div key={idx} className="space-y-2">
                         <div className="flex justify-between items-start text-[11px]">
-                          <h3 className="font-bold text-slate-800">{proj.name}</h3>
-                          {('startDate' in proj) && (
-                            <span className="text-slate-400 text-[10px]">
-                              {proj.startDate} - {proj.endDate}
-                            </span>
-                          )}
+                          <h3 className="font-bold text-slate-800">{(proj as any).name || (proj as any).company}</h3>
+                          <span className="text-slate-400 text-[10px]">
+                            {((proj as any).startDate && (proj as any).endDate)
+                              ? `${(proj as any).startDate} - ${(proj as any).endDate}`
+                              : (proj as any).duration || ''}
+                          </span>
                         </div>
-                        {('role' in proj) && proj.role && (
-                          <p className="text-slate-500 font-semibold text-[10px]">{proj.role}</p>
+                        {('role' in (proj as any)) && (proj as any).role && (
+                          <p className="text-slate-500 font-semibold text-[10px]">{(proj as any).role as React.ReactNode}</p>
                         )}
                         <p className="text-slate-600 text-[11px] leading-relaxed">
-                          {proj.description}
+                          {(proj as any).description as React.ReactNode}
                         </p>
-                        {('highlights' in proj) && proj.highlights ? (
+                        {('highlights' in (proj as any)) && (proj as any).highlights ? (
                           <ul className="list-disc list-inside text-slate-500 text-[10px] pl-2 space-y-0.5">
-                            {proj.highlights.map((h: string, i: number) => (
+                            {((proj as any).highlights as string[]).map((h, i) => (
                               <li key={i}>{h}</li>
                             ))}
                           </ul>
                         ) : (
-                          ('tech' in proj) && proj.tech && proj.tech.length > 0 && (
+                          ('tech' in (proj as any)) && (proj as any).tech && ((proj as any).tech as string[]).length > 0 && (
                             <div className="flex flex-wrap gap-1">
-                              {proj.tech.map((t) => (
+                              {((proj as any).tech as string[]).map((t) => (
                                 <span key={t} className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-[9px] font-semibold">{t}</span>
                               ))}
                             </div>
@@ -298,21 +317,25 @@ export function CvPreviewModal({ isOpen, onClose, cv }: CvPreviewModalProps) {
               <div className="space-y-6">
                 
                 {/* Certifications */}
-                <section className="space-y-2">
-                  <h2 className="text-xs font-bold text-slate-900 uppercase tracking-widest border-b border-slate-200 pb-1 flex items-center gap-1.5">
-                    <Award className="w-4 h-4 text-brand-500 shrink-0" /> Chứng chỉ
-                  </h2>
-                  <div className="space-y-1.5 text-[11px]">
-                    <div>
-                      <p className="font-bold text-slate-800">IELTS Academic 7.5</p>
-                      <p className="text-slate-400 text-[10px]">2025</p>
+                {certifications.length > 0 && (
+                  <section className="space-y-2">
+                    <h2 className="text-xs font-bold text-slate-900 uppercase tracking-widest border-b border-slate-200 pb-1 flex items-center gap-1.5">
+                      <Award className="w-4 h-4 text-brand-500 shrink-0" /> Chứng chỉ
+                    </h2>
+                    <div className="space-y-1.5 text-[11px]">
+                      {certifications.map((cert: any, idx: number) => {
+                        const name = typeof cert === 'string' ? cert : cert.name || cert.title || '';
+                        const date = typeof cert === 'string' ? '' : cert.date || '';
+                        return (
+                          <div key={idx}>
+                            <p className="font-bold text-slate-800">{name}</p>
+                            {date && <p className="text-slate-400 text-[10px]">{date}</p>}
+                          </div>
+                        );
+                      })}
                     </div>
-                    <div>
-                      <p className="font-bold text-slate-800">AWS Certified Cloud Practitioner</p>
-                      <p className="text-slate-400 text-[10px]">2025</p>
-                    </div>
-                  </div>
-                </section>
+                  </section>
+                )}
 
                 {/* Skills */}
                 <section className="space-y-3">
@@ -331,18 +354,6 @@ export function CvPreviewModal({ isOpen, onClose, cv }: CvPreviewModalProps) {
                       </div>
                     </div>
                   </div>
-                </section>
-
-                {/* Soft Skills */}
-                <section className="space-y-2">
-                  <h2 className="text-xs font-bold text-slate-900 uppercase tracking-widest border-b border-slate-200 pb-1 flex items-center gap-1.5">
-                    <Users className="w-4 h-4 text-brand-500 shrink-0" /> Kỹ năng mềm
-                  </h2>
-                  <ul className="text-slate-600 text-[10px] space-y-1 pl-1">
-                    <li className="flex items-center gap-1"><Check className="w-3 h-3 text-brand-500 shrink-0" /> Tư duy giải quyết vấn đề</li>
-                    <li className="flex items-center gap-1"><Check className="w-3 h-3 text-brand-500 shrink-0" /> Thuyết trình và đàm phán</li>
-                    <li className="flex items-center gap-1"><Check className="w-3 h-3 text-brand-500 shrink-0" /> Giao tiếp tiếng Anh lưu loát</li>
-                  </ul>
                 </section>
               </div>
 
