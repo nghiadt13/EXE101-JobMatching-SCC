@@ -127,6 +127,29 @@ export function getCvById(token: string, cvId: string) {
   });
 }
 
+/**
+ * Fetch the original uploaded CV file (PDF/DOCX) as a Blob.
+ *
+ * The download endpoint is auth-protected, so an `<iframe src>` can't load it
+ * directly (iframes send no Authorization header). We fetch it with the
+ * bearer token here and let the caller wrap it in an object URL for inline
+ * preview or download. Throws an ApiError on non-2xx responses.
+ */
+export async function getCvFileBlob(token: string, cvId: string): Promise<Blob> {
+  const response = await fetch(`${API_BASE_URL}/cvs/${cvId}/file`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${token}` },
+    cache: 'no-store',
+  });
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as
+      | { message?: string | string[]; code?: string }
+      | null;
+    throw createApiError(response.status, body);
+  }
+  return response.blob();
+}
+
 export function uploadCv(token: string, file: File) {
   const formData = new FormData();
   formData.append('file', file);

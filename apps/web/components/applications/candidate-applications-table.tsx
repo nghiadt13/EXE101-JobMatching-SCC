@@ -223,7 +223,7 @@ function StatsSummary({ items }: { items: ApplicationItem[] }) {
 
   const stats = [
     {
-      label: 'Tổng đơn',
+      label: 'Tổng jobs',
       value: total,
       icon: <Briefcase className="h-4 w-4" />,
       color: 'text-blue-600',

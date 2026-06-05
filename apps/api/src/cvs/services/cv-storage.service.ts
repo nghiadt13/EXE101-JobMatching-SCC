@@ -17,4 +17,13 @@ export class CvStorageService {
   async remove(relativePath: string): Promise<void> {
     await this.documentStorageService.remove('cvs', relativePath);
   }
+
+  /**
+   * Resolve the safe absolute path of a stored CV file so callers can stream
+   * the original upload back to the owner. Delegates path-traversal hardening
+   * to {@link DocumentStorageService.getAbsolutePath}.
+   */
+  getAbsolutePath(relativePath: string): string {
+    return this.documentStorageService.getAbsolutePath('cvs', relativePath);
+  }
 }

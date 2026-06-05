@@ -120,7 +120,7 @@ const STATIC_HERO = {
 };
 
 const STATIC_MARKET_STATS = {
-  asOfText: '13 tháng 3, 2026',
+  asOfText: new Date().toLocaleDateString('vi-VN', { day: 'numeric', month: 'long', year: 'numeric' }),
   newJobs24h: 5059,
   activeJobs: 63198,
   hiringCompanies: 18402,

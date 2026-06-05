@@ -8,11 +8,15 @@ import {
   Post,
   Put,
   Query,
+  Res,
+  StreamableFile,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import type { Response } from 'express';
+import { createReadStream } from 'node:fs';
 import { UserRole } from '@prisma/client';
 import { memoryStorage } from 'multer';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -76,6 +80,26 @@ export class CvsController {
     @Param('id') id: string,
   ): Promise<CvView> {
     return this.cvsService.getById(user.sub, id);
+  }
+
+  @Get(':id/file')
+  async downloadFile(
+    @CurrentUser() user: { sub: string },
+    @Param('id') id: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const { absolutePath, fileName, mimeType } =
+      await this.cvsService.getFileForDownload(user.sub, id);
+
+    // `inline` lets browsers render PDFs in an <iframe>/<embed> while still
+    // suggesting the original filename when the user chooses to save.
+    const asciiName = fileName.replace(/[^\x20-\x7E]/g, '_');
+    const encodedName = encodeURIComponent(fileName);
+    res.set({
+      'Content-Type': mimeType,
+      'Content-Disposition': `inline; filename="${asciiName}"; filename*=UTF-8''${encodedName}`,
+    });
+    return new StreamableFile(createReadStream(absolutePath));
   }
 
   @Patch(':id')

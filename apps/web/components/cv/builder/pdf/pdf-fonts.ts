@@ -11,40 +11,49 @@
  *     safe to call multiple times — and is also auto-invoked at module load
  *     so any importer triggers registration.
  *
+ * Why fonts are SELF-HOSTED (not loaded from a CDN):
+ *   The previous implementation registered Inter / Outfit from
+ *   `https://fonts.gstatic.com/...` TTF URLs. Those URLs are versioned and
+ *   were eventually retired by Google — every one of them now returns a 404
+ *   HTML page. `@react-pdf/renderer` fetches each `src` lazily during render,
+ *   hands the 404 HTML body to `fontkit`, and `fontkit` throws
+ *   `Unknown font format` (the exact crash reported in the CV builder). Since
+ *   Inter is the default family, the editor crashed the instant it opened.
+ *
+ *   Self-hosting the TTFs under `apps/web/public/fonts/` removes the external
+ *   dependency entirely: the files are served from the same origin as the app,
+ *   never 404, and work offline. This is the canonical react-pdf pattern.
+ *
  * Vietnamese coverage:
- *   The Google Fonts CDN TTF URLs below ship the latin-ext + Vietnamese
- *   subsets, so glyphs like "ấ", "ợ", "ừ" render correctly without manual
- *   subset stitching.
+ *   The bundled TTFs ship the Vietnamese subset so glyphs like "ấ", "ợ", "ừ"
+ *   render correctly:
+ *     - Inter            → Google "Inter" (vietnamese subset)
+ *     - Roboto           → Google "Roboto" (full unicode)
+ *     - Times New Roman  → Google "Tinos" (metric-compatible, vietnamese)
+ *     - Arial            → Google "Arimo" (metric-compatible, vietnamese)
+ *   Outfit is Latin-only because Google does not publish a Vietnamese subset
+ *   for it; Latin text renders correctly and Vietnamese falls back to tofu
+ *   glyphs (it never crashes).
+ *
+ * Family names:
+ *   The keys below MUST match what `resolveFontFamily()` in `pdf-styles.ts`
+ *   derives from each `FONT_OPTIONS` value, i.e. the first family token of the
+ *   CSS string: `Inter`, `Roboto`, `Outfit`, `Times New Roman`, `Arial`.
  *
  * Hyphenation:
  *   Vietnamese words must NOT be split mid-syllable. We disable hyphenation
  *   via `Font.registerHyphenationCallback(word => [word])` so each word is
  *   treated as an atomic unit during line breaking.
  *
- * Fallback strategy:
- *   1. Primary: Google Fonts CDN (`https://fonts.gstatic.com/...`).
- *   2. Optional self-hosted fallback in `apps/web/public/fonts/` — drop TTFs
- *      named `Inter-Regular.ttf`, `Inter-Bold.ttf`, `Outfit-Regular.ttf`,
- *      `Outfit-Bold.ttf`, `Roboto-Regular.ttf`, `Roboto-Bold.ttf` and call
- *      `registerLocalFallbackFonts()` to swap them in. Roboto already has
- *      local files in this project (`/fonts/Roboto-Regular.ttf` and
- *      `/fonts/Roboto-Bold.ttf`); Inter/Outfit are placeholders for a
- *      follow-up commit (binary fonts intentionally not added in this task).
- *   3. Ultimate fallback: `Times-Roman` is part of the PDF base 14 fonts and
- *      is always available without registration. Templates may reference it
- *      directly when nothing else loads.
- *
  * Why error handling is best-effort:
  *   `Font.register` is synchronous and only buffers metadata — the actual
- *   network fetch of each TTF happens lazily inside `@react-pdf/renderer`
- *   during render. There is no public callback for fetch failure. The
- *   `useFontLoadStatus` hook below performs a best-effort `HEAD` probe of
- *   the CDN URLs so the UI can warn the user before they click "Tải PDF",
- *   but the probe is informational only — the render path can still fail
- *   (or succeed) independently. When the probe fails we proactively
- *   register the local fallback so the next render attempt has a chance.
- *   All caught errors are logged via `console.error` with a descriptive
- *   prefix so they show up in DevTools without crashing the editor.
+ *   fetch of each TTF happens lazily inside `@react-pdf/renderer` during
+ *   render. There is no public callback for fetch failure. The
+ *   `useFontLoadStatus` hook below performs a best-effort `HEAD` probe of the
+ *   local font URLs so the UI can warn the user before they click "Tải PDF",
+ *   but the probe is informational only. All caught errors are logged via
+ *   `console.error` with a descriptive prefix so they show up in DevTools
+ *   without crashing the editor.
  */
 
 'use client';
@@ -53,8 +62,8 @@ import { Font } from '@react-pdf/renderer';
 import { useEffect, useState } from 'react';
 
 /**
- * User-facing message surfaced when CDN font loading is detected as
- * unavailable. Kept as a constant so the same wording is reusable across
+ * User-facing message surfaced when font loading is detected as unavailable.
+ * Kept as a constant so the same wording is reusable across
  * `cv-pdf-download.tsx` and any toast/banner.
  */
 export const FONT_FALLBACK_USER_MESSAGE =
@@ -64,40 +73,14 @@ export const FONT_FALLBACK_USER_MESSAGE =
 export const ULTIMATE_FALLBACK_FONT = 'Times-Roman';
 
 /**
- * Primary CDN sources. Each TTF URL is the canonical Google Fonts CDN file
- * that includes the Vietnamese subset (`latin`, `latin-ext`, `vietnamese`).
+ * Self-hosted TTF paths under `apps/web/public/fonts/`. Keyed by the resolved
+ * font-family name (the first token of each `FONT_OPTIONS` CSS value) so the
+ * registered family matches what `getDynamicStyles()` requests at render time.
  *
- * NOTE: The two Outfit URLs are identical because Outfit ships as a single
- * variable font on the CDN — react-pdf still treats it as the bold weight
- * when `fontWeight: 'bold'` is requested.
+ * These files are served from the app origin (`/fonts/...`) and are committed
+ * to the repo, so registration never depends on a third-party CDN.
  */
-const CDN_FONT_SOURCES = {
-  Inter: {
-    regular:
-      'https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMa1ZL7.ttf',
-    bold:
-      'https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMa2JL7SUc.ttf',
-  },
-  Roboto: {
-    regular:
-      'https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxKKTU1Kg.ttf',
-    bold:
-      'https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlfBBc4.ttf',
-  },
-  Outfit: {
-    regular:
-      'https://fonts.gstatic.com/s/outfit/v11/QGYvz_MVcBeNP4NJuktqkA.ttf',
-    bold:
-      'https://fonts.gstatic.com/s/outfit/v11/QGYvz_MVcBeNP4NJuktqkA.ttf',
-  },
-} as const;
-
-/**
- * Local fallback paths under `apps/web/public/fonts/`. Files only need to
- * exist when `registerLocalFallbackFonts()` is called. Roboto files exist
- * today; Inter/Outfit will be added in a follow-up.
- */
-const LOCAL_FONT_PATHS = {
+const FONT_SOURCES = {
   Inter: {
     regular: '/fonts/Inter-Regular.ttf',
     bold: '/fonts/Inter-Bold.ttf',
@@ -110,21 +93,35 @@ const LOCAL_FONT_PATHS = {
     regular: '/fonts/Outfit-Regular.ttf',
     bold: '/fonts/Outfit-Bold.ttf',
   },
+  'Times New Roman': {
+    regular: '/fonts/TimesNewRoman-Regular.ttf',
+    bold: '/fonts/TimesNewRoman-Bold.ttf',
+  },
+  Arial: {
+    regular: '/fonts/Arial-Regular.ttf',
+    bold: '/fonts/Arial-Bold.ttf',
+  },
 } as const;
 
 /** Family names registered by this module. Useful for callers building styles. */
-export const REGISTERED_FONT_FAMILIES = ['Inter', 'Roboto', 'Outfit'] as const;
+export const REGISTERED_FONT_FAMILIES = [
+  'Inter',
+  'Roboto',
+  'Outfit',
+  'Times New Roman',
+  'Arial',
+] as const;
 export type RegisteredFontFamily = (typeof REGISTERED_FONT_FAMILIES)[number];
 
-// Module-level guards so repeat imports don't redo the work. The primary
-// registration is idempotent; the local fallback intentionally re-registers
-// to overwrite the previous (failed) source list.
+// Module-level guard so repeat imports don't redo the work. Registration is
+// idempotent; the guard also keeps it safe under HMR.
 let primaryRegistered = false;
 let lastRegistrationError: Error | null = null;
 
 /**
- * Register all Vietnamese-capable fonts (CDN sources) with `@react-pdf/renderer`
- * and disable hyphenation. Idempotent: subsequent calls are no-ops.
+ * Register all Vietnamese-capable fonts (self-hosted TTFs) with
+ * `@react-pdf/renderer` and disable hyphenation. Idempotent: subsequent calls
+ * are no-ops.
  *
  * Called automatically at the bottom of this module so any importer triggers
  * registration immediately. Safe to call again from a component effect (for
@@ -138,7 +135,7 @@ export function registerCvFonts(): void {
   if (primaryRegistered) return;
   try {
     for (const family of REGISTERED_FONT_FAMILIES) {
-      const sources = CDN_FONT_SOURCES[family];
+      const sources = FONT_SOURCES[family];
       Font.register({
         family,
         fonts: [
@@ -157,7 +154,7 @@ export function registerCvFonts(): void {
     // Templates can fall back to `ULTIMATE_FALLBACK_FONT`.
     // eslint-disable-next-line no-console
     console.error(
-      '[cv-builder/pdf-fonts] Failed to register CV fonts from CDN; falling back at render time.',
+      '[cv-builder/pdf-fonts] Failed to register CV fonts; falling back at render time.',
       lastRegistrationError,
     );
   }
@@ -173,19 +170,14 @@ export function registerCvFonts(): void {
 export const registerCvBuilderFonts = registerCvFonts;
 
 /**
- * Re-register the same families using local TTF files in
- * `apps/web/public/fonts/`. Call this when the CDN probe detects an outage
- * or when running offline. Subsequent `Font.register` calls overwrite the
- * previous source list for the same family.
- *
- * Safe to call even if the local files are missing — react-pdf will simply
- * fail at render time and surface its own error, at which point the caller
- * should fall back to `ULTIMATE_FALLBACK_FONT`.
+ * Re-register the same families. Fonts are already self-hosted, so this is the
+ * same operation as {@link registerCvFonts} and exists only for backwards
+ * compatibility with callers that invoked it as a CDN-outage recovery hook.
  */
 export function registerLocalFallbackFonts(): void {
   try {
     for (const family of REGISTERED_FONT_FAMILIES) {
-      const sources = LOCAL_FONT_PATHS[family];
+      const sources = FONT_SOURCES[family];
       Font.register({
         family,
         fonts: [
@@ -199,7 +191,7 @@ export function registerLocalFallbackFonts(): void {
     lastRegistrationError = err instanceof Error ? err : new Error(String(err));
     // eslint-disable-next-line no-console
     console.error(
-      '[cv-builder/pdf-fonts] Failed to register local fallback fonts.',
+      '[cv-builder/pdf-fonts] Failed to (re-)register local fonts.',
       lastRegistrationError,
     );
   }
@@ -217,21 +209,15 @@ export function getFontRegistrationError(): Error | null {
 export type FontLoadStatus = 'loading' | 'loaded' | 'error';
 
 /**
- * Best-effort hook that probes whether the Google Fonts CDN URLs are
+ * Best-effort hook that probes whether the self-hosted font files are
  * reachable from the user's browser. Returns:
  *   - 'loading' while the probe is in flight (initial render)
  *   - 'loaded'  when every TTF responded successfully
  *   - 'error'   when at least one TTF failed (network error or non-2xx)
  *
- * Caveat: this hook does NOT guarantee the actual PDF render will succeed.
- * `@react-pdf/renderer` fetches each font lazily during render, so a CDN
- * outage that begins between the probe and the render will still cause a
- * render-time failure. The hook also auto-triggers
- * `registerLocalFallbackFonts()` on probe failure so the next render
- * attempt has a higher chance of succeeding.
- *
- * Consumers should display `FONT_FALLBACK_USER_MESSAGE` when the status is
- * `'error'`.
+ * Because the fonts are served from the same origin as the app, 'error' here
+ * effectively only happens if the files are missing from the deployment, in
+ * which case the caller should display `FONT_FALLBACK_USER_MESSAGE`.
  */
 export function useFontLoadStatus(): FontLoadStatus {
   const [status, setStatus] = useState<FontLoadStatus>('loading');
@@ -242,7 +228,7 @@ export function useFontLoadStatus(): FontLoadStatus {
     async function probe(): Promise<void> {
       const urls: string[] = [];
       for (const family of REGISTERED_FONT_FAMILIES) {
-        const sources = CDN_FONT_SOURCES[family];
+        const sources = FONT_SOURCES[family];
         urls.push(sources.regular, sources.bold);
       }
       try {
@@ -262,20 +248,18 @@ export function useFontLoadStatus(): FontLoadStatus {
         } else {
           // eslint-disable-next-line no-console
           console.error(
-            '[cv-builder/pdf-fonts] Google Fonts CDN probe failed for one or more font URLs; switching to local fallback.',
+            '[cv-builder/pdf-fonts] One or more self-hosted font files failed to load; PDF may fall back to a base font.',
           );
           setStatus('error');
-          registerLocalFallbackFonts();
         }
       } catch (err) {
         if (cancelled) return;
         // eslint-disable-next-line no-console
         console.error(
-          '[cv-builder/pdf-fonts] Unexpected error during font CDN probe; switching to local fallback.',
+          '[cv-builder/pdf-fonts] Unexpected error while probing font files.',
           err,
         );
         setStatus('error');
-        registerLocalFallbackFonts();
       }
     }
 

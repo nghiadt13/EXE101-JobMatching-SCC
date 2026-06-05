@@ -167,7 +167,12 @@ export function CvPageContent({
           window.location.href = `/dashboard/candidate/cvs/create?template=${style}&title=${encodeURIComponent(title)}`;
         }}
       />
-      <CvPreviewModal isOpen={!!previewCv} onClose={() => setPreviewCv(null)} cv={previewCv} />
+      <CvPreviewModal
+        isOpen={!!previewCv}
+        onClose={() => setPreviewCv(null)}
+        cv={previewCv}
+        accessToken={accessToken}
+      />
 
       {/* Hidden file input for seamless uploading */}
       <input

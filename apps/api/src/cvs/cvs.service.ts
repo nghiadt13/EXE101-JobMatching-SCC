@@ -412,6 +412,35 @@ export class CvsService {
     return this.toView(cv);
   }
 
+  /**
+   * Resolve the original uploaded file for an owned CV so the controller can
+   * stream it back to the candidate's browser (inline preview / download).
+   *
+   * Only "upload" CVs have a real file on disk; "builder" CVs are rendered
+   * client-side from structured data and have an empty `filePath`, so we
+   * reject them with 404 to keep the contract explicit.
+   */
+  async getFileForDownload(
+    userId: string,
+    cvId: string,
+  ): Promise<{ absolutePath: string; fileName: string; mimeType: string }> {
+    const candidate = await this.getCandidateOrThrow(userId);
+    const cv = await this.prisma.cV.findFirst({
+      where: { id: cvId, candidateId: candidate.id, deletedAt: null },
+      select: { filePath: true, fileName: true, mimeType: true, source: true },
+    });
+    if (!cv || !cv.filePath || cv.source === 'builder') {
+      throw new NotFoundException(
+        buildErrorPayload(ERROR_CODES.notFound, 'CV file not found'),
+      );
+    }
+    return {
+      absolutePath: this.cvStorageService.getAbsolutePath(cv.filePath),
+      fileName: cv.fileName,
+      mimeType: cv.mimeType,
+    };
+  }
+
   async update(
     userId: string,
     cvId: string,
