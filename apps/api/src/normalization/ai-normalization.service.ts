@@ -177,7 +177,9 @@ export class AiNormalizationService {
     );
   }
 
-  private tryResolveClientForLogging(providerOverride?: string): LlmClient | null {
+  private tryResolveClientForLogging(
+    providerOverride?: string,
+  ): LlmClient | null {
     try {
       return providerOverride
         ? this.resolveClientByProvider(providerOverride)
@@ -629,9 +631,11 @@ export class AiNormalizationService {
     let categoriesList = '';
     try {
       const categories = await this.prisma.jobCategory.findMany({
-        select: { slug: true, name: true }
+        select: { slug: true, name: true },
       });
-      categoriesList = 'Valid Category Slugs: ' + categories.map(c => `"${c.slug}" (${c.name})`).join(', ');
+      categoriesList =
+        'Valid Category Slugs: ' +
+        categories.map((c) => `"${c.slug}" (${c.name})`).join(', ');
     } catch (e) {
       categoriesList = '';
     }

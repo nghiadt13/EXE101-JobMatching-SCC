@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Eye, Edit, Clock, Sparkles, Award } from 'lucide-react';
 import { cn } from '@/lib/cn';
@@ -16,7 +16,6 @@ import {
 
 type CvCardItemProps = {
   cv: CvItem;
-  onPreview: (cvId: string) => void;
   onDelete: (cvId: string) => void;
   onSetDefault: (cvId: string) => void;
   onRename: (cvId: string, newTitle: string) => void;
@@ -24,11 +23,11 @@ type CvCardItemProps = {
 
 export function CvCardItem({
   cv,
-  onPreview,
   onDelete,
   onSetDefault,
   onRename,
 }: CvCardItemProps) {
+  const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
 
   const title = getTitle(cv);
@@ -49,10 +48,9 @@ export function CvCardItem({
     setIsEditing(false);
   }
 
-  function handleRenamePrompt() {
-    const newTitle = window.prompt('Nhập tiêu đề mới cho CV của bạn:', title);
-    if (newTitle && newTitle.trim() !== '' && newTitle.trim() !== title) {
-      onRename(cv.id, newTitle.trim());
+  function navigateToEdit() {
+    if (cv.parseStatus !== 'pending_apply') {
+      router.push(`/dashboard/candidate/cvs/${cv.id}/edit`);
     }
   }
 
@@ -72,9 +70,7 @@ export function CvCardItem({
             "h-32 bg-slate-50 dark:bg-slate-950 rounded-xl relative overflow-hidden border border-slate-100 dark:border-slate-800/80 flex items-center justify-center",
             cv.parseStatus === 'pending_apply' ? "cursor-wait" : "cursor-pointer"
           )}
-          onClick={() => {
-            if (cv.parseStatus !== 'pending_apply') onPreview(cv.id);
-          }}
+          onClick={navigateToEdit}
         >
           {/* Mock CV Layout Background */}
           <div className="absolute inset-x-4 top-4 bottom-0 bg-white dark:bg-slate-900 shadow-sm border border-slate-200/50 dark:border-slate-800/50 rounded-t p-2 space-y-2 select-none pointer-events-none transition-transform duration-300 group-hover:scale-[1.03]">
@@ -110,11 +106,11 @@ export function CvCardItem({
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onPreview(cv.id);
+                  navigateToEdit();
                 }}
                 className="px-3 py-1.5 bg-white text-slate-800 rounded-lg text-xs font-bold hover:bg-slate-100 shadow flex items-center gap-1 cursor-pointer border-0"
               >
-                <Eye className="w-3.5 h-3.5" /> Xem nhanh
+                <Edit className="w-3.5 h-3.5" /> Mở CV
               </button>
             </div>
           )}
@@ -161,9 +157,7 @@ export function CvCardItem({
                     ? "cursor-wait opacity-70" 
                     : "group-hover:text-brand-600 dark:group-hover:text-brand-400 cursor-pointer"
                 )}
-                onClick={() => {
-                  if (cv.parseStatus !== 'pending_apply') onPreview(cv.id);
-                }}
+                onClick={navigateToEdit}
               >
                 {title}
               </h4>
@@ -204,15 +198,6 @@ export function CvCardItem({
               <Edit className="w-4 h-4" />
             </Link>
           )}
-          <button
-            type="button"
-            onClick={() => onPreview(cv.id)}
-            disabled={cv.parseStatus === 'pending_apply'}
-            className="p-1.5 text-slate-500 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer disabled:opacity-50 disabled:cursor-wait"
-            title="Xem trước"
-          >
-            <Eye className="w-4 h-4" />
-          </button>
 
           {/* Dropdown Options */}
           <CvCardDropdown

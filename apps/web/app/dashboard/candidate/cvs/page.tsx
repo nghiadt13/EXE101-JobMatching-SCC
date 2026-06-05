@@ -61,7 +61,7 @@ export default async function CandidateCvsPage({ searchParams }: PageProps) {
     const currentSession = await auth();
     if (!currentSession?.user || !currentSession.accessToken) redirect('/login');
     try {
-      await updateCv(currentSession.accessToken, cvId, { parsedData: { summary: newTitle } });
+      await updateCv(currentSession.accessToken, cvId, { fileName: newTitle });
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) redirect('/api/auth/logout');
     }

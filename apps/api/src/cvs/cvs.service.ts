@@ -125,9 +125,15 @@ export class CvsService {
         fileName: file.originalname,
         rawTextLength: rawText.length,
       });
-      this.vectorSync.syncCv(created.id).catch(err => this.logger.error('cv_vector_sync_failed', err));
-      this.parseCvInBackground(created.id, rawText).catch(err =>
-        this.logger.error('cv_background_parse_unhandled', { cvId: created.id }, err)
+      this.vectorSync
+        .syncCv(created.id)
+        .catch((err) => this.logger.error('cv_vector_sync_failed', err));
+      this.parseCvInBackground(created.id, rawText).catch((err) =>
+        this.logger.error(
+          'cv_background_parse_unhandled',
+          { cvId: created.id },
+          err,
+        ),
       );
       return this.toView(created);
     } catch (error) {
@@ -206,7 +212,9 @@ export class CvsService {
       templateId: dto.templateId ?? 'simple',
     });
 
-    this.vectorSync.syncCv(created.id).catch(err => this.logger.error('cv_vector_sync_failed', err));
+    this.vectorSync
+      .syncCv(created.id)
+      .catch((err) => this.logger.error('cv_vector_sync_failed', err));
     return this.toView(created);
   }
 
@@ -234,7 +242,6 @@ export class CvsService {
       where: { id: cvId },
       data: {
         templateId: dto.templateId ?? 'simple',
-        fileName: `${dto.profile.name} - CV.pdf`,
         parsedData: parsedData as unknown as Prisma.InputJsonValue,
         skills: normalizedSkills.skills as Prisma.InputJsonValue,
         skillAtoms:
@@ -258,7 +265,9 @@ export class CvsService {
       templateId: dto.templateId ?? 'simple',
     });
 
-    await this.vectorSync.syncCv(updated.id).catch(err => this.logger.error('cv_vector_sync_failed', err));
+    await this.vectorSync
+      .syncCv(updated.id)
+      .catch((err) => this.logger.error('cv_vector_sync_failed', err));
     return this.toView(updated);
   }
 
@@ -514,11 +523,14 @@ export class CvsService {
       ? this.buildCandidateProfile(mergedParsedData, effectiveSkills)
       : null;
     const shouldWriteCvDerivedFields =
-      dto.parsedData !== undefined || normalizedSkillsPayload !== null;
+      dto.parsedData !== undefined ||
+      normalizedSkillsPayload !== null ||
+      dto.fileName !== undefined;
 
     const updated = await this.prisma.cV.update({
       where: { id: cvId },
       data: {
+        ...(dto.fileName !== undefined ? { fileName: dto.fileName } : {}),
         ...(shouldWriteCvDerivedFields
           ? { parsedData: mergedParsedData as Prisma.InputJsonValue }
           : {}),
@@ -545,7 +557,9 @@ export class CvsService {
       select: this.cvViewSelect,
     });
 
-    this.vectorSync.syncCv(updated.id).catch(err => this.logger.error('cv_vector_sync_failed', err));
+    this.vectorSync
+      .syncCv(updated.id)
+      .catch((err) => this.logger.error('cv_vector_sync_failed', err));
     return this.toView(updated);
   }
 
@@ -828,10 +842,13 @@ export class CvsService {
       // MatchingService reads rawText via a separate targeted query.
     } satisfies Prisma.CVSelect;
   }
-  private async parseCvInBackground(cvId: string, rawText: string): Promise<void> {
+  private async parseCvInBackground(
+    cvId: string,
+    rawText: string,
+  ): Promise<void> {
     try {
       this.logger.info('background_cv_parse_started', { cvId });
-      const parsed = await this.cvAiParser.parse(rawText) as any;
+      const parsed = (await this.cvAiParser.parse(rawText)) as any;
 
       const normalizedSkills = this.skillStorageAdapter.toStoredSkills(
         parsed.skills || [],
@@ -848,8 +865,10 @@ export class CvsService {
         data: {
           parsedData: parsed as Prisma.InputJsonValue,
           skills: normalizedSkills.skills as Prisma.InputJsonValue,
-          skillAtoms: normalizedSkills.skillAtoms as unknown as Prisma.InputJsonValue,
-          candidateProfile: candidateProfile as unknown as Prisma.InputJsonValue,
+          skillAtoms:
+            normalizedSkills.skillAtoms as unknown as Prisma.InputJsonValue,
+          candidateProfile:
+            candidateProfile as unknown as Prisma.InputJsonValue,
           candidateProfileVersion: candidateProfile?.version ?? null,
         },
       });

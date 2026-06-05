@@ -165,7 +165,7 @@ export function updateBuilderCv(token: string, cvId: string, data: CvBuilderData
 export function updateCv(
   token: string,
   cvId: string,
-  payload: { skills?: string[]; parsedData?: Record<string, unknown> },
+  payload: { skills?: string[]; parsedData?: Record<string, unknown>; fileName?: string },
 ) {
   return apiRequest<CvItem>(token, `/cvs/${cvId}`, {
     method: 'PATCH',

@@ -125,7 +125,7 @@ export default async function EditCvPage({ params, searchParams }: PageProps) {
         initialData={initialData} 
         cvId={cv.id} 
         accessToken={session.accessToken} 
-        hasPdfFile={cv.source !== 'builder'} 
+        hasPdfFile={cv.source !== 'builder' && cv.mimeType === 'application/pdf'} 
         isNewUpload={isNewUpload}
         onSave={saveAction} 
       />

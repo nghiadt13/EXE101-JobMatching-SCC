@@ -9,7 +9,6 @@ import { CvStatsCard } from './cv-stats-card';
 import { CvCardGrid } from './cv-card-grid';
 import { CvSearchBar } from './cv-search-bar';
 import { CvCreateModal } from './cv-create-modal';
-import { CvPreviewModal } from './cv-preview-modal';
 import { Button } from '@/components/ui/button';
 import { Plus, FileText } from 'lucide-react';
 import { toast } from 'sonner';
@@ -34,7 +33,6 @@ export function CvPageContent({
   const router = useRouter();
   const [search, setSearch] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [previewCv, setPreviewCv] = useState<CvItem | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -183,10 +181,6 @@ export function CvPageContent({
         ) : (
           <CvCardGrid
             items={filtered}
-            onPreview={(cvId) => {
-              const cv = items.find((c) => c.id === cvId);
-              if (cv) setPreviewCv(cv);
-            }}
             onDelete={onDelete}
             onSetDefault={onSetDefault}
             onRename={onRename}
@@ -202,7 +196,6 @@ export function CvPageContent({
           window.location.href = `/dashboard/candidate/cvs/create?template=${style}&title=${encodeURIComponent(title)}`;
         }}
       />
-      <CvPreviewModal isOpen={!!previewCv} onClose={() => setPreviewCv(null)} cv={previewCv} />
 
       {/* Hidden file input for seamless uploading */}
       <input

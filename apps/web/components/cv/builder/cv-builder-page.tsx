@@ -331,13 +331,16 @@ export function CvBuilderPage({
     let url: string | null = null;
     
     import('@/lib/cv-client').then(({ fetchCvFile }) => {
-      fetchCvFile(accessToken, cvId).then(blob => {
+      fetchCvFile(accessToken, cvId).then(rawBlob => {
         if (active) {
-          url = URL.createObjectURL(blob);
+          // Force content type to application/pdf so browsers render it inline in the iframe
+          // instead of triggering a download (which happens if type is octet-stream).
+          const pdfBlob = new Blob([rawBlob], { type: 'application/pdf' });
+          url = URL.createObjectURL(pdfBlob);
           setPdfBlobUrl(url);
-          setShowPdf(true);
+          setShowPdf(isNewUpload); // Only auto-show if it's a new upload
         }
-      }).catch(console.error);
+      }).catch(err => console.warn('Lỗi tải PDF gốc:', err.message));
     });
 
     return () => {
