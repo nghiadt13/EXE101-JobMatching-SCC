@@ -49,8 +49,8 @@ async function main() {
     } catch (error) {
       console.error(`Failed to seed ${item.title}:`, error);
     }
-    // Delay to avoid Gemini API rate limit (15-60 RPM on free tier)
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    // Delay to avoid Gemini API rate limit (15 RPM on free tier = 1 req / 4s)
+    await new Promise(resolve => setTimeout(resolve, 4500));
   }
 
   console.log('RAG Knowledge Seed Complete.');

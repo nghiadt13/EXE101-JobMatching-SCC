@@ -239,6 +239,32 @@ export const RAG_KNOWLEDGE_BASE: RagKnowledgeItem[] = [
     'vulnerability',
     'compliance',
   ]),
+  domain('domain-marketing', 'Marketing domain', [
+    'marketing',
+    'digital marketing',
+    'seo',
+    'content creator',
+    'social media',
+    'campaign',
+    'branding',
+  ]),
+  domain('domain-economics', 'Economics & Business domain', [
+    'economics',
+    'business',
+    'sales',
+    'accounting',
+    'finance',
+    'b2b',
+    'b2c',
+    'business analyst',
+  ]),
+  domain('domain-hr', 'Human Resources domain', [
+    'hr',
+    'human resources',
+    'recruitment',
+    'talent acquisition',
+    'payroll',
+  ]),
 ];
 
 function alias(id: string, title: string, tags: string[]): RagKnowledgeItem {

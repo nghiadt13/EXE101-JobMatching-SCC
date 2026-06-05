@@ -7,7 +7,9 @@ export class DeepseekClientService implements LlmClient {
   readonly provider = 'deepseek' as const;
 
   getModelName(): string {
-    return process.env['DEEPSEEK_MODEL'] ?? 'deepseek-chat';
+    // Sử dụng deepseek-reasoner (DeepSeek-R1) cho chất lượng tốt nhất
+    // hoặc deepseek-chat (V3) nếu cần tốc độ/giá rẻ.
+    return process.env['DEEPSEEK_MODEL'] ?? 'deepseek-reasoner';
   }
 
   private getBaseUrl(): string {
