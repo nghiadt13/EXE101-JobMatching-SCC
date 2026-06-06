@@ -13,6 +13,7 @@ export type CandidateProfile = {
     company: string;
     startDate: string | null;
     endDate: string | null;
+    description?: string | null;
     tech: string[];
   }>;
   education: Array<{

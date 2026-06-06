@@ -16,31 +16,41 @@ export default async function CandidateApplicationsPage({ searchParams }: PagePr
   if (session.user.role !== 'CANDIDATE') redirect('/dashboard');
 
   const query = await searchParams;
-  const statusParam = typeof query.status === 'string' ? query.status : undefined;
+  const statusParam = typeof query.status === 'string' ? query.status : 'PENDING';
   
-  let filterStatus: undefined | string = undefined;
-  if (['APPLIED', 'REVIEWING', 'INTERVIEW', 'OFFER', 'REJECTED'].includes(statusParam || '')) {
-    filterStatus = statusParam;
-  }
+  const filterStatus = ['PENDING', 'ACCEPTED', 'REJECTED'].includes(statusParam) ? statusParam : 'PENDING';
 
   let applications;
   try {
     applications = await getApplications(session.accessToken, { 
       page: 1, 
-      limit: 50,
-      status: filterStatus as any,
+      limit: 100,
     });
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) redirect('/api/auth/logout');
-    applications = { items: [], pagination: { page: 1, limit: 50, totalItems: 0, totalPages: 0 } };
+    applications = { items: [], pagination: { page: 1, limit: 100, totalItems: 0, totalPages: 0 } };
+  }
+
+  // Filter items based on active tab
+  let filteredItems: typeof applications.items = [];
+  if (filterStatus === 'PENDING') {
+    filteredItems = applications.items.filter(item => 
+      ['PENDING_MATCHING', 'APPLIED', 'REVIEWING'].includes(item.status)
+    );
+  } else if (filterStatus === 'ACCEPTED') {
+    filteredItems = applications.items.filter(item => 
+      ['ACCEPTED', 'INTERVIEW', 'OFFER'].includes(item.status)
+    );
+  } else if (filterStatus === 'REJECTED') {
+    filteredItems = applications.items.filter(item => 
+      ['REJECTED', 'WITHDRAWN'].includes(item.status)
+    );
   }
 
   const TABS = [
-    { label: 'Tất cả', value: '' },
-    { label: 'HR Chưa đọc', value: 'APPLIED' },
-    { label: 'Đang xử lý', value: 'REVIEWING' },
-    { label: 'Chấp nhận', value: 'INTERVIEW' }, // Interview/Offer are considered accepted
-    { label: 'Từ chối', value: 'REJECTED' },
+    { label: 'Đang chờ xem xét', value: 'PENDING' },
+    { label: 'Đã được nhận', value: 'ACCEPTED' },
+    { label: 'Đã bị từ chối', value: 'REJECTED' },
   ];
 
   return (
@@ -66,14 +76,12 @@ export default async function CandidateApplicationsPage({ searchParams }: PagePr
       <div className="mb-6 border-b border-zinc-200 overflow-x-auto">
         <nav className="flex space-x-6 min-w-max px-1" aria-label="Tabs">
           {TABS.map((tab) => {
-            const isActive = filterStatus ? filterStatus === tab.value : tab.value === '';
-            // Match INTERVIEW and OFFER into "Chấp nhận"
-            let targetStatus = tab.value;
+            const isActive = filterStatus === tab.value;
             
             return (
               <a
                 key={tab.value}
-                href={`/dashboard/candidate/applications${tab.value ? `?status=${tab.value}` : ''}`}
+                href={`/dashboard/candidate/applications?status=${tab.value}`}
                 className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
                   isActive
                     ? 'border-brand-600 text-brand-600'
@@ -88,7 +96,7 @@ export default async function CandidateApplicationsPage({ searchParams }: PagePr
         </nav>
       </div>
 
-      <CandidateApplicationsTable items={applications.items} />
+      <CandidateApplicationsTable items={filteredItems} allItems={applications.items} />
     </DashboardShell>
   );
 }

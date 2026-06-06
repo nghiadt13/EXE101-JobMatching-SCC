@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import {
   X,
   Printer,
@@ -18,15 +18,49 @@ import {
   Check,
 } from 'lucide-react';
 import type { CvItem } from '@/lib/cv-client';
+import { fetchCvFile } from '@/lib/cv-client';
 import { toast } from 'sonner';
 
 type CvPreviewModalProps = {
   isOpen: boolean;
   onClose: () => void;
   cv: CvItem | null;
+  token?: string;
 };
 
-export function CvPreviewModal({ isOpen, onClose, cv }: CvPreviewModalProps) {
+export function CvPreviewModal({ isOpen, onClose, cv, token }: CvPreviewModalProps) {
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [loadingPdf, setLoadingPdf] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen || !cv || cv.source !== 'upload' || !token) {
+      setPdfUrl(null);
+      return;
+    }
+
+    setLoadingPdf(true);
+    fetchCvFile(token, cv.id)
+      .then((blob) => {
+        const url = URL.createObjectURL(blob);
+        setPdfUrl(url);
+      })
+      .catch((err) => {
+        console.error('Failed to fetch CV file', err);
+        toast.error('Không thể tải file CV gốc');
+      })
+      .finally(() => {
+        setLoadingPdf(false);
+      });
+  }, [isOpen, cv?.id, cv?.source, token]);
+
+  useEffect(() => {
+    return () => {
+      if (pdfUrl) {
+        URL.revokeObjectURL(pdfUrl);
+      }
+    };
+  }, [pdfUrl]);
+
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -200,9 +234,26 @@ export function CvPreviewModal({ isOpen, onClose, cv }: CvPreviewModalProps) {
         </div>
 
         {/* Preview Body (Scrollable CV Content) */}
-        <div className="flex-grow overflow-y-auto p-8 bg-slate-100 dark:bg-slate-950 flex justify-center w-full">
-          {/* CV Document Paper Container */}
-          <div className="bg-white text-slate-900 w-full max-w-[210mm] shadow-lg border border-slate-200 p-8 sm:p-12 rounded-xl text-left font-sans text-xs relative select-text leading-relaxed h-fit">
+        <div className="flex-grow overflow-y-auto p-4 sm:p-8 bg-slate-100 dark:bg-slate-950 flex justify-center w-full">
+          {loadingPdf ? (
+            <div className="flex h-full w-full items-center justify-center min-h-[50vh]">
+              <div className="flex flex-col items-center gap-3">
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-200 border-t-brand-600" />
+                <p className="text-sm text-zinc-500">Đang tải file PDF gốc...</p>
+              </div>
+            </div>
+          ) : cv.source === 'upload' && pdfUrl ? (
+            <div className="w-full h-full min-h-[70vh] flex flex-col">
+              <iframe
+                src={`${pdfUrl}#toolbar=1`}
+                className="w-full flex-grow bg-white shadow-2xl rounded-xl border border-slate-200"
+                style={{ height: '100%', minHeight: '70vh' }}
+                title="CV Original PDF"
+              />
+            </div>
+          ) : (
+            /* CV Document Paper Container */
+            <div className="bg-white text-slate-900 w-full max-w-[210mm] shadow-lg border border-slate-200 p-8 sm:p-12 rounded-xl text-left font-sans text-xs relative select-text leading-relaxed h-fit">
             {cv.parseStatus === 'pending_apply' && (
               <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs flex items-start gap-3">
                 <div className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping shrink-0 mt-0.5" />
@@ -325,6 +376,11 @@ export function CvPreviewModal({ isOpen, onClose, cv }: CvPreviewModalProps) {
                           <p className="text-slate-500 font-medium">
                             {exp.role}
                           </p>
+                          {exp.description && (
+                            <p className="text-slate-600 text-[11px] leading-relaxed mt-1 whitespace-pre-line">
+                              {exp.description}
+                            </p>
+                          )}
                           {exp.tech && exp.tech.length > 0 && (
                             <div className="flex flex-wrap gap-1 mt-2">
                               {exp.tech.map((t: string, i: number) => (
@@ -465,6 +521,7 @@ export function CvPreviewModal({ isOpen, onClose, cv }: CvPreviewModalProps) {
               Hồ sơ được xác thực bảo mật bởi hệ thống topcv.pro
             </div>
           </div>
+          )}
         </div>
       </div>
     </div>

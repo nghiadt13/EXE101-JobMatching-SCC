@@ -104,8 +104,7 @@ export default async function RecruiterApplicationsPage({
         </nav>
       </div>
 
-      <RecruiterApplicationsTable items={applications.items} action={updateStatusAction} />
+      <RecruiterApplicationsTable items={applications.items} action={updateStatusAction} token={session.accessToken} />
     </DashboardShell>
   );
 }
-

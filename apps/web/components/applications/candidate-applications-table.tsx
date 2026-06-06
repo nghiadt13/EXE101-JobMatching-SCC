@@ -35,6 +35,7 @@ import {
 
 type CandidateApplicationsTableProps = {
   items: ApplicationItem[];
+  allItems?: ApplicationItem[];
 };
 
 /* ── Status config ─────────────────────────────────────── */
@@ -356,6 +357,14 @@ function ApplicationCard({ item, index }: { item: ApplicationItem; index: number
               )}
             </div>
 
+            {/* Recruiter Notes */}
+            {item.notes && (
+              <div className="mt-3 rounded-xl bg-zinc-50 border border-zinc-200/80 p-3 text-xs text-zinc-600">
+                <span className="font-bold text-zinc-800 block mb-1">Phản hồi từ nhà tuyển dụng:</span>
+                <p className="whitespace-pre-line leading-relaxed">{item.notes}</p>
+              </div>
+            )}
+
             {/* Quick preview pills (only when collapsed) */}
             {!expanded && hasSnapshot && (previewStrengths.length > 0 || previewGaps.length > 0) && (
               <div className="mt-2.5 flex flex-wrap gap-1.5">
@@ -460,7 +469,7 @@ function ApplicationCard({ item, index }: { item: ApplicationItem; index: number
 
 const POLL_INTERVAL_MS = 5_000;
 
-export function CandidateApplicationsTable({ items: initialItems }: CandidateApplicationsTableProps) {
+export function CandidateApplicationsTable({ items: initialItems, allItems }: CandidateApplicationsTableProps) {
   const [items, setItems] = useState<ApplicationItem[]>(initialItems);
   const router = useRouter();
 
@@ -499,7 +508,7 @@ export function CandidateApplicationsTable({ items: initialItems }: CandidateApp
   return (
     <div className="space-y-6">
       {/* Stats summary */}
-      <StatsSummary items={items} />
+      <StatsSummary items={allItems || items} />
 
       {/* Application cards */}
       <div className="space-y-3">

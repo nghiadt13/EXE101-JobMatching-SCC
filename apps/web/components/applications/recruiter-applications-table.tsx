@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 type RecruiterApplicationsTableProps = {
   items: ApplicationItem[];
   action: (formData: FormData) => Promise<void>;
+  token: string;
 };
 
 const RECRUITER_TRANSITIONS: Record<string, ApplicationStatus[]> = {
@@ -51,7 +52,7 @@ const statusVariant: Record<string, 'default' | 'success' | 'warning' | 'info' |
   REJECTED: 'danger',
 };
 
-export function RecruiterApplicationsTable({ items, action }: RecruiterApplicationsTableProps) {
+export function RecruiterApplicationsTable({ items, action, token }: RecruiterApplicationsTableProps) {
   const [selectedCv, setSelectedCv] = useState<CvItem | null>(null);
 
   const handleAction = async (formData: FormData) => {
@@ -169,7 +170,7 @@ export function RecruiterApplicationsTable({ items, action }: RecruiterApplicati
         );
       })}
       
-      <CvPreviewModal isOpen={!!selectedCv} onClose={() => setSelectedCv(null)} cv={selectedCv} />
+      <CvPreviewModal isOpen={!!selectedCv} onClose={() => setSelectedCv(null)} cv={selectedCv} token={token} />
     </div>
   );
 }
