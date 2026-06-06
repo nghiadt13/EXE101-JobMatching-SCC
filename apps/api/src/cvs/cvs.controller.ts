@@ -16,9 +16,10 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
-import { createReadStream } from 'node:fs';
 import { UserRole } from '@prisma/client';
+import { createReadStream } from 'node:fs';
 import { memoryStorage } from 'multer';
+import type { JwtPayload } from '../auth/auth.types';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -30,8 +31,8 @@ import { SuggestCvDto } from './dto/suggest-cv.dto';
 import { UpdateCvDto } from './dto/update-cv.dto';
 import { CvsService } from './cvs.service';
 import { CvSuggestionService } from './services/cv-suggestion.service';
-import { CvView, CvsListResponse } from './cvs.types';
 import { CvSuggestion } from './cv-suggestion.types';
+import { CvView, CvsListResponse } from './cvs.types';
 
 @Controller('cvs')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -83,13 +84,14 @@ export class CvsController {
   }
 
   @Get(':id/file')
-  async downloadFile(
-    @CurrentUser() user: { sub: string },
+  @Roles(UserRole.CANDIDATE, UserRole.RECRUITER)
+  async getFile(
+    @CurrentUser() user: JwtPayload,
     @Param('id') id: string,
     @Res({ passthrough: true }) res: Response,
   ): Promise<StreamableFile> {
-    const { absolutePath, fileName, mimeType } =
-      await this.cvsService.getFileForDownload(user.sub, id);
+    const { absolutePath, mimeType, fileName } =
+      await this.cvsService.getFileInfo(user, id);
 
     // `inline` lets browsers render PDFs in an <iframe>/<embed> while still
     // suggesting the original filename when the user chooses to save.
@@ -99,7 +101,9 @@ export class CvsController {
       'Content-Type': mimeType,
       'Content-Disposition': `inline; filename="${asciiName}"; filename*=UTF-8''${encodedName}`,
     });
-    return new StreamableFile(createReadStream(absolutePath));
+
+    const file = createReadStream(absolutePath);
+    return new StreamableFile(file);
   }
 
   @Patch(':id')

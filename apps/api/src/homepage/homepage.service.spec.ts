@@ -201,10 +201,12 @@ describe('HomepageService', () => {
   });
 
   it('returns user block and saved flags for authenticated users', async () => {
-    const result = await service.getHomepage(
-      { sub: 'user-1', role: UserRole.CANDIDATE },
-      undefined,
-    );
+    const mockUser = {
+      sub: 'user-1',
+      role: UserRole.CANDIDATE,
+      email: 'test@example.com',
+    };
+    const result = await service.getHomepage(mockUser, undefined);
 
     expect(result.currentUser).toEqual(
       expect.objectContaining({

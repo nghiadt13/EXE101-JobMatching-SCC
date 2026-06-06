@@ -41,7 +41,7 @@ export default async function CandidateCvsPage({ searchParams }: PageProps) {
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) redirect('/api/auth/logout');
     }
-    revalidatePath('/dashboard/candidate/cvs');
+    revalidatePath('/', 'layout');
   }
 
   async function deleteAction(cvId: string) {
@@ -53,7 +53,7 @@ export default async function CandidateCvsPage({ searchParams }: PageProps) {
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) redirect('/api/auth/logout');
     }
-    revalidatePath('/dashboard/candidate/cvs');
+    revalidatePath('/', 'layout');
   }
 
   async function renameAction(cvId: string, newTitle: string) {
@@ -61,11 +61,11 @@ export default async function CandidateCvsPage({ searchParams }: PageProps) {
     const currentSession = await auth();
     if (!currentSession?.user || !currentSession.accessToken) redirect('/login');
     try {
-      await updateCv(currentSession.accessToken, cvId, { parsedData: { summary: newTitle } });
+      await updateCv(currentSession.accessToken, cvId, { fileName: newTitle });
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) redirect('/api/auth/logout');
     }
-    revalidatePath('/dashboard/candidate/cvs');
+    revalidatePath('/', 'layout');
   }
 
   let cvs: Awaited<ReturnType<typeof getMyCvs>>;

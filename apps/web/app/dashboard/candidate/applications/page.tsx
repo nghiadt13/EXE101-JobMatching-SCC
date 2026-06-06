@@ -7,7 +7,7 @@ import { Alert } from '@/components/ui/alert';
 import { ApiError } from '@/lib/api-client';
 
 type PageProps = {
-  searchParams: Promise<{ applied?: string }>;
+  searchParams: Promise<{ applied?: string; status?: string }>;
 };
 
 export default async function CandidateApplicationsPage({ searchParams }: PageProps) {
@@ -16,13 +16,55 @@ export default async function CandidateApplicationsPage({ searchParams }: PagePr
   if (session.user.role !== 'CANDIDATE') redirect('/dashboard');
 
   const query = await searchParams;
+  const statusParam = typeof query.status === 'string' ? query.status : 'PENDING';
+  
+  const filterStatus = ['PENDING', 'ACCEPTED', 'REJECTED'].includes(statusParam) ? statusParam : 'PENDING';
+
   let applications;
   try {
-    applications = await getApplications(session.accessToken, { page: 1, limit: 50 });
+    applications = await getApplications(session.accessToken, { 
+      page: 1, 
+      limit: 100,
+    });
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) redirect('/api/auth/logout');
-    applications = { items: [], pagination: { page: 1, limit: 50, totalItems: 0, totalPages: 0 } };
+    applications = { items: [], pagination: { page: 1, limit: 100, totalItems: 0, totalPages: 0 } };
   }
+
+  // Calculate counts for each tab
+  const pendingCount = applications.items.filter(item => 
+    ['PENDING_MATCHING', 'APPLIED', 'REVIEWING'].includes(item.status)
+  ).length;
+
+  const acceptedCount = applications.items.filter(item => 
+    ['ACCEPTED', 'INTERVIEW', 'OFFER'].includes(item.status)
+  ).length;
+
+  const rejectedCount = applications.items.filter(item => 
+    ['REJECTED', 'WITHDRAWN'].includes(item.status)
+  ).length;
+
+  // Filter items based on active tab
+  let filteredItems: typeof applications.items = [];
+  if (filterStatus === 'PENDING') {
+    filteredItems = applications.items.filter(item => 
+      ['PENDING_MATCHING', 'APPLIED', 'REVIEWING'].includes(item.status)
+    );
+  } else if (filterStatus === 'ACCEPTED') {
+    filteredItems = applications.items.filter(item => 
+      ['ACCEPTED', 'INTERVIEW', 'OFFER'].includes(item.status)
+    );
+  } else if (filterStatus === 'REJECTED') {
+    filteredItems = applications.items.filter(item => 
+      ['REJECTED', 'WITHDRAWN'].includes(item.status)
+    );
+  }
+
+  const TABS = [
+    { label: `Đang chờ xem xét (${pendingCount})`, value: 'PENDING' },
+    { label: `Đã được nhận (${acceptedCount})`, value: 'ACCEPTED' },
+    { label: `Đã bị từ chối (${rejectedCount})`, value: 'REJECTED' },
+  ];
 
   return (
     <DashboardShell
@@ -43,7 +85,31 @@ export default async function CandidateApplicationsPage({ searchParams }: PagePr
           Đã nộp đơn ứng tuyển! CV của bạn đang được phân tích — kết quả sẽ hiển thị trong giây lát.
         </Alert>
       )}
-      <CandidateApplicationsTable items={applications.items} />
+
+      <div className="mb-6 border-b border-zinc-200 overflow-x-auto">
+        <nav className="flex space-x-6 min-w-max px-1" aria-label="Tabs">
+          {TABS.map((tab) => {
+            const isActive = filterStatus === tab.value;
+            
+            return (
+              <a
+                key={tab.value}
+                href={`/dashboard/candidate/applications?status=${tab.value}`}
+                className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  isActive
+                    ? 'border-brand-600 text-brand-600'
+                    : 'border-transparent text-zinc-500 hover:text-zinc-700 hover:border-zinc-300'
+                }`}
+                aria-current={isActive ? 'page' : undefined}
+              >
+                {tab.label}
+              </a>
+            );
+          })}
+        </nav>
+      </div>
+
+      <CandidateApplicationsTable items={filteredItems} allItems={applications.items} />
     </DashboardShell>
   );
 }

@@ -135,8 +135,12 @@ export class JobsService {
           jobFieldKey: dto.jobFieldKey ?? null,
           jobLevel: dto.jobLevel ?? null,
           salesModel: dto.salesModel ?? null,
-          salaryNegotiable: dto.salaryNegotiable ?? (dto.salaryMin == null && dto.salaryMax == null),
-          applicationDeadline: dto.applicationDeadline ? new Date(dto.applicationDeadline) : null,
+          salaryNegotiable:
+            dto.salaryNegotiable ??
+            (dto.salaryMin == null && dto.salaryMax == null),
+          applicationDeadline: dto.applicationDeadline
+            ? new Date(dto.applicationDeadline)
+            : null,
         },
         select: this.jobViewSelect,
       });
@@ -149,7 +153,10 @@ export class JobsService {
         });
         if (categories.length > 0) {
           await this.prisma.jobCategoryOnJob.createMany({
-            data: categories.map(cat => ({ jobId: created.id, categoryId: cat.id })),
+            data: categories.map((cat) => ({
+              jobId: created.id,
+              categoryId: cat.id,
+            })),
             skipDuplicates: true,
           });
         }
@@ -158,7 +165,7 @@ export class JobsService {
       // Create customer type join rows
       if (dto.customerTypes?.length) {
         await this.prisma.jobCustomerTypeOnJob.createMany({
-          data: dto.customerTypes.map(type => ({ jobId: created.id, type })),
+          data: dto.customerTypes.map((type) => ({ jobId: created.id, type })),
           skipDuplicates: true,
         });
       }
@@ -166,7 +173,9 @@ export class JobsService {
       return this.toView(created);
     });
     this.homepageCache.clearAll();
-    this.vectorSync.syncJob(result.id).catch(err => this.logger.error('job_vector_sync_failed', err));
+    this.vectorSync
+      .syncJob(result.id)
+      .catch((err) => this.logger.error('job_vector_sync_failed', err));
     return result;
   }
 
@@ -254,7 +263,13 @@ export class JobsService {
               salaryMin: null,
               salaryMax: null,
               employmentType: draft.employmentType,
-              workingDayStatus: 'not_mentioned',
+              workingDayStatus: draft.workingDayStatus ?? 'not_mentioned',
+              experienceLevel: draft.experienceLevel ?? 'no_required',
+              minExperienceMonths: draft.minExperienceMonths ?? null,
+              companyIndustryKey: draft.companyIndustryKey ?? null,
+              jobFieldKey: draft.jobFieldKey ?? null,
+              jobLevel: draft.jobLevel ?? null,
+              salesModel: draft.salesModel ?? null,
               salaryNegotiable: true,
               status: JobStatus.DRAFT,
             },
@@ -274,7 +289,9 @@ export class JobsService {
 
       const response = this.toView(created);
       this.homepageCache.clearAll();
-      this.vectorSync.syncJob(created.id).catch(err => this.logger.error('job_vector_sync_failed', err));
+      this.vectorSync
+        .syncJob(created.id)
+        .catch((err) => this.logger.error('job_vector_sync_failed', err));
       return response;
     } catch (error) {
       this.logger.error(
@@ -562,16 +579,34 @@ export class JobsService {
           ...(dto.employmentType !== undefined
             ? { employmentType: dto.employmentType }
             : {}),
-          ...(dto.workingDayStatus !== undefined ? { workingDayStatus: dto.workingDayStatus } : {}),
-          ...(dto.experienceLevel !== undefined ? { experienceLevel: dto.experienceLevel } : {}),
-          ...(dto.minExperienceMonths !== undefined ? { minExperienceMonths: dto.minExperienceMonths } : {}),
-          ...(dto.companyIndustryKey !== undefined ? { companyIndustryKey: dto.companyIndustryKey } : {}),
-          ...(dto.jobFieldKey !== undefined ? { jobFieldKey: dto.jobFieldKey } : {}),
+          ...(dto.workingDayStatus !== undefined
+            ? { workingDayStatus: dto.workingDayStatus }
+            : {}),
+          ...(dto.experienceLevel !== undefined
+            ? { experienceLevel: dto.experienceLevel }
+            : {}),
+          ...(dto.minExperienceMonths !== undefined
+            ? { minExperienceMonths: dto.minExperienceMonths }
+            : {}),
+          ...(dto.companyIndustryKey !== undefined
+            ? { companyIndustryKey: dto.companyIndustryKey }
+            : {}),
+          ...(dto.jobFieldKey !== undefined
+            ? { jobFieldKey: dto.jobFieldKey }
+            : {}),
           ...(dto.jobLevel !== undefined ? { jobLevel: dto.jobLevel } : {}),
-          ...(dto.salesModel !== undefined ? { salesModel: dto.salesModel } : {}),
-          ...(dto.salaryNegotiable !== undefined ? { salaryNegotiable: dto.salaryNegotiable } : {}),
+          ...(dto.salesModel !== undefined
+            ? { salesModel: dto.salesModel }
+            : {}),
+          ...(dto.salaryNegotiable !== undefined
+            ? { salaryNegotiable: dto.salaryNegotiable }
+            : {}),
           ...(dto.applicationDeadline !== undefined
-            ? { applicationDeadline: dto.applicationDeadline ? new Date(dto.applicationDeadline) : null }
+            ? {
+                applicationDeadline: dto.applicationDeadline
+                  ? new Date(dto.applicationDeadline)
+                  : null,
+              }
             : {}),
         },
         select: this.jobViewSelect,
@@ -587,7 +622,10 @@ export class JobsService {
           });
           if (categories.length > 0) {
             await this.prisma.jobCategoryOnJob.createMany({
-              data: categories.map(cat => ({ jobId: id, categoryId: cat.id })),
+              data: categories.map((cat) => ({
+                jobId: id,
+                categoryId: cat.id,
+              })),
             });
           }
         }
@@ -595,17 +633,21 @@ export class JobsService {
 
       // Replace customer type join rows
       if (dto.customerTypes !== undefined) {
-        await this.prisma.jobCustomerTypeOnJob.deleteMany({ where: { jobId: id } });
+        await this.prisma.jobCustomerTypeOnJob.deleteMany({
+          where: { jobId: id },
+        });
         if (dto.customerTypes.length > 0) {
           await this.prisma.jobCustomerTypeOnJob.createMany({
-            data: dto.customerTypes.map(type => ({ jobId: id, type })),
+            data: dto.customerTypes.map((type) => ({ jobId: id, type })),
           });
         }
       }
 
       const response = this.toView(updated);
       this.homepageCache.clearAll();
-      this.vectorSync.syncJob(updated.id).catch(err => this.logger.error('job_vector_sync_failed', err));
+      this.vectorSync
+        .syncJob(updated.id)
+        .catch((err) => this.logger.error('job_vector_sync_failed', err));
       return response;
     }
 
@@ -644,16 +686,34 @@ export class JobsService {
             ...(dto.employmentType !== undefined
               ? { employmentType: dto.employmentType }
               : {}),
-            ...(dto.workingDayStatus !== undefined ? { workingDayStatus: dto.workingDayStatus } : {}),
-            ...(dto.experienceLevel !== undefined ? { experienceLevel: dto.experienceLevel } : {}),
-            ...(dto.minExperienceMonths !== undefined ? { minExperienceMonths: dto.minExperienceMonths } : {}),
-            ...(dto.companyIndustryKey !== undefined ? { companyIndustryKey: dto.companyIndustryKey } : {}),
-            ...(dto.jobFieldKey !== undefined ? { jobFieldKey: dto.jobFieldKey } : {}),
+            ...(dto.workingDayStatus !== undefined
+              ? { workingDayStatus: dto.workingDayStatus }
+              : {}),
+            ...(dto.experienceLevel !== undefined
+              ? { experienceLevel: dto.experienceLevel }
+              : {}),
+            ...(dto.minExperienceMonths !== undefined
+              ? { minExperienceMonths: dto.minExperienceMonths }
+              : {}),
+            ...(dto.companyIndustryKey !== undefined
+              ? { companyIndustryKey: dto.companyIndustryKey }
+              : {}),
+            ...(dto.jobFieldKey !== undefined
+              ? { jobFieldKey: dto.jobFieldKey }
+              : {}),
             ...(dto.jobLevel !== undefined ? { jobLevel: dto.jobLevel } : {}),
-            ...(dto.salesModel !== undefined ? { salesModel: dto.salesModel } : {}),
-            ...(dto.salaryNegotiable !== undefined ? { salaryNegotiable: dto.salaryNegotiable } : {}),
+            ...(dto.salesModel !== undefined
+              ? { salesModel: dto.salesModel }
+              : {}),
+            ...(dto.salaryNegotiable !== undefined
+              ? { salaryNegotiable: dto.salaryNegotiable }
+              : {}),
             ...(dto.applicationDeadline !== undefined
-              ? { applicationDeadline: dto.applicationDeadline ? new Date(dto.applicationDeadline) : null }
+              ? {
+                  applicationDeadline: dto.applicationDeadline
+                    ? new Date(dto.applicationDeadline)
+                    : null,
+                }
               : {}),
           },
           select: this.jobViewSelect,
@@ -672,7 +732,7 @@ export class JobsService {
         });
         if (categories.length > 0) {
           await this.prisma.jobCategoryOnJob.createMany({
-            data: categories.map(cat => ({ jobId: id, categoryId: cat.id })),
+            data: categories.map((cat) => ({ jobId: id, categoryId: cat.id })),
           });
         }
       }
@@ -680,17 +740,21 @@ export class JobsService {
 
     // Replace customer type join rows
     if (dto.customerTypes !== undefined) {
-      await this.prisma.jobCustomerTypeOnJob.deleteMany({ where: { jobId: id } });
+      await this.prisma.jobCustomerTypeOnJob.deleteMany({
+        where: { jobId: id },
+      });
       if (dto.customerTypes.length > 0) {
         await this.prisma.jobCustomerTypeOnJob.createMany({
-          data: dto.customerTypes.map(type => ({ jobId: id, type })),
+          data: dto.customerTypes.map((type) => ({ jobId: id, type })),
         });
       }
     }
 
     const response = this.toView(updated);
     this.homepageCache.clearAll();
-    this.vectorSync.syncJob(updated.id).catch(err => this.logger.error('job_vector_sync_failed', err));
+    this.vectorSync
+      .syncJob(updated.id)
+      .catch((err) => this.logger.error('job_vector_sync_failed', err));
     return response;
   }
 
@@ -973,13 +1037,9 @@ export class JobsService {
       ...(query.companyTypes?.length
         ? { companyTypes: query.companyTypes }
         : {}),
-      ...(query.salaryBands?.length
-        ? { salaryBands: query.salaryBands }
-        : {}),
+      ...(query.salaryBands?.length ? { salaryBands: query.salaryBands } : {}),
       ...(query.jobLevels?.length ? { jobLevels: query.jobLevels } : {}),
-      ...(query.salesModels?.length
-        ? { salesModels: query.salesModels }
-        : {}),
+      ...(query.salesModels?.length ? { salesModels: query.salesModels } : {}),
       ...(query.customerTypes?.length
         ? { customerTypes: query.customerTypes }
         : {}),
@@ -1027,17 +1087,35 @@ export class JobsService {
       } else if (searchScope === 'both') {
         andFilters.push({
           OR: [
-            { title: { contains: query.q, mode: Prisma.QueryMode.insensitive } },
-            { description: { contains: query.q, mode: Prisma.QueryMode.insensitive } },
-            { company: { name: { contains: query.q, mode: Prisma.QueryMode.insensitive } } },
+            {
+              title: { contains: query.q, mode: Prisma.QueryMode.insensitive },
+            },
+            {
+              description: {
+                contains: query.q,
+                mode: Prisma.QueryMode.insensitive,
+              },
+            },
+            {
+              company: {
+                name: { contains: query.q, mode: Prisma.QueryMode.insensitive },
+              },
+            },
           ],
         });
       } else {
         // 'job' scope - default behavior
         andFilters.push({
           OR: [
-            { title: { contains: query.q, mode: Prisma.QueryMode.insensitive } },
-            { description: { contains: query.q, mode: Prisma.QueryMode.insensitive } },
+            {
+              title: { contains: query.q, mode: Prisma.QueryMode.insensitive },
+            },
+            {
+              description: {
+                contains: query.q,
+                mode: Prisma.QueryMode.insensitive,
+              },
+            },
           ],
         });
       }
@@ -1100,7 +1178,10 @@ export class JobsService {
       andFilters.push({
         jobCustomerTypes: {
           some: {
-            type: { in: query.customerTypes, mode: Prisma.QueryMode.insensitive },
+            type: {
+              in: query.customerTypes,
+              mode: Prisma.QueryMode.insensitive,
+            },
           },
         },
       });
@@ -1114,7 +1195,9 @@ export class JobsService {
       andFilters.push({ experienceLevel: { in: query.experienceLevels } });
     }
     if (query.companyIndustryKeys?.length) {
-      andFilters.push({ companyIndustryKey: { in: query.companyIndustryKeys } });
+      andFilters.push({
+        companyIndustryKey: { in: query.companyIndustryKeys },
+      });
     }
     if (query.jobFieldKeys?.length) {
       andFilters.push({ jobFieldKey: { in: query.jobFieldKeys } });
@@ -1142,9 +1225,13 @@ export class JobsService {
         if (band === 'negotiable') {
           bandOr.push({ salaryNegotiable: true });
         } else {
-          const range = SALARY_BAND_RANGES[band as keyof typeof SALARY_BAND_RANGES];
+          const range =
+            SALARY_BAND_RANGES[band as keyof typeof SALARY_BAND_RANGES];
           if (range) {
             const rangeAnd: Prisma.JobWhereInput[] = [];
+            // Ignore fully negotiable jobs in numeric bands
+            rangeAnd.push({ salaryNegotiable: false });
+
             if (range.min !== undefined) {
               rangeAnd.push({
                 OR: [{ salaryMax: { gte: range.min } }, { salaryMax: null }],
@@ -1152,7 +1239,10 @@ export class JobsService {
             }
             if (range.maxExclusive !== undefined) {
               rangeAnd.push({
-                OR: [{ salaryMin: { lt: range.maxExclusive } }, { salaryMin: null }],
+                OR: [
+                  { salaryMin: { lt: range.maxExclusive } },
+                  { salaryMin: null },
+                ],
               });
             }
             if (rangeAnd.length > 0) {
@@ -1316,18 +1406,21 @@ export class JobsService {
     ]);
 
     // Resolve category names
-    const categoryIds = categoryRows.map(r => r.categoryId);
-    const categoryMap = categoryIds.length > 0
-      ? new Map(
-          (await this.prisma.jobCategory.findMany({
-            where: { id: { in: categoryIds } },
-            select: { id: true, slug: true, name: true },
-          })).map(c => [c.id, c])
-        )
-      : new Map();
+    const categoryIds = categoryRows.map((r) => r.categoryId);
+    const categoryMap =
+      categoryIds.length > 0
+        ? new Map(
+            (
+              await this.prisma.jobCategory.findMany({
+                where: { id: { in: categoryIds } },
+                select: { id: true, slug: true, name: true },
+              })
+            ).map((c) => [c.id, c]),
+          )
+        : new Map();
 
     const categories = categoryRows
-      .map(row => {
+      .map((row) => {
         const cat = categoryMap.get(row.categoryId);
         return cat
           ? { value: cat.slug, label: cat.name, count: row._count._all }
@@ -1342,24 +1435,40 @@ export class JobsService {
       getValue: (row: T) => string | null,
     ) =>
       rows
-        .map(row => ({ value: getValue(row) ?? '', count: row._count._all }))
-        .filter(e => e.value && e.count > 0)
+        .map((row) => ({ value: getValue(row) ?? '', count: row._count._all }))
+        .filter((e) => e.value && e.count > 0)
         .sort((a, b) => b.count - a.count);
 
-    const workingDayStatus = mapGroupBy(workingDayRows, r => r.workingDayStatus);
-    const experienceLevels = mapGroupBy(experienceRows, r => r.experienceLevel);
-    const companyIndustryKeys = mapGroupBy(industryRows, r => r.companyIndustryKey);
-    const jobFieldKeys = mapGroupBy(jobFieldRows, r => r.jobFieldKey);
-    const companyTypes = mapGroupBy(companyTypeRows, r => r.companyType);
-    const jobLevels = mapGroupBy(jobLevelRows, r => r.jobLevel);
-    const employmentTypes = mapGroupBy(employmentTypeRows, r => r.employmentType);
-    const salesModels = mapGroupBy(salesModelRows, r => r.salesModel);
-    const customerTypes = mapGroupBy(customerTypeRows, r => r.type);
+    const workingDayStatus = mapGroupBy(
+      workingDayRows,
+      (r) => r.workingDayStatus,
+    );
+    const experienceLevels = mapGroupBy(
+      experienceRows,
+      (r) => r.experienceLevel,
+    );
+    const companyIndustryKeys = mapGroupBy(
+      industryRows,
+      (r) => r.companyIndustryKey,
+    );
+    const jobFieldKeys = mapGroupBy(jobFieldRows, (r) => r.jobFieldKey);
+    const companyTypes = mapGroupBy(companyTypeRows, (r) => r.companyType);
+    const jobLevels = mapGroupBy(jobLevelRows, (r) => r.jobLevel);
+    const employmentTypes = mapGroupBy(
+      employmentTypeRows,
+      (r) => r.employmentType,
+    );
+    const salesModels = mapGroupBy(salesModelRows, (r) => r.salesModel);
+    const customerTypes = mapGroupBy(customerTypeRows, (r) => r.type);
 
     // Compute salary band counts
     const salaryBandCounts = new Map<string, number>();
     for (const job of salaryBandRows) {
-      const bands = this.resolveSalaryBands(job.salaryMin, job.salaryMax, job.salaryNegotiable);
+      const bands = this.resolveSalaryBands(
+        job.salaryMin,
+        job.salaryMax,
+        job.salaryNegotiable,
+      );
       for (const band of bands) {
         salaryBandCounts.set(band, (salaryBandCounts.get(band) ?? 0) + 1);
       }
@@ -1379,7 +1488,7 @@ export class JobsService {
     }
     const cities = Array.from(cityCounts.entries())
       .map(([value, count]) => ({ value, count }))
-      .filter(e => e.count >= 1)
+      .filter((e) => e.count >= 1)
       .sort((a, b) => b.count - a.count)
       .slice(0, 20);
 
@@ -1419,10 +1528,9 @@ export class JobsService {
     if (max <= 10_000_000) bands.push('under_10');
     if (min < 15_000_000 && max > 10_000_000) bands.push('10_15');
     if (min < 20_000_000 && max > 15_000_000) bands.push('15_20');
-    if (min < 25_000_000 && max > 20_000_000) bands.push('20_25');
-    if (min < 30_000_000 && max > 25_000_000) bands.push('25_30');
+    if (min < 30_000_000 && max > 20_000_000) bands.push('20_30');
     if (min < 50_000_000 && max > 30_000_000) bands.push('30_50');
-    if (max > 50_000_000) bands.push('over_50');
+    if (min >= 50_000_000 || max > 50_000_000) bands.push('over_50');
 
     return bands;
   }
@@ -1665,8 +1773,8 @@ export class JobsService {
       salesModel: item.salesModel ?? null,
       salaryNegotiable: item.salaryNegotiable ?? false,
       applicationDeadline: item.applicationDeadline ?? null,
-      categorySlugs: item.jobCategories?.map(jc => jc.category.slug) ?? [],
-      customerTypes: item.jobCustomerTypes?.map(jct => jct.type) ?? [],
+      categorySlugs: item.jobCategories?.map((jc) => jc.category.slug) ?? [],
+      customerTypes: item.jobCustomerTypes?.map((jct) => jct.type) ?? [],
     };
   }
 
@@ -2026,6 +2134,13 @@ export class JobsService {
     description: string;
     skills: string[];
     employmentType: string;
+    workingDayStatus?: string;
+    experienceLevel?: string;
+    minExperienceMonths?: number | null;
+    companyIndustryKey?: string;
+    jobFieldKey?: string;
+    jobLevel?: string;
+    salesModel?: string;
   } {
     const fallbackTitle = this.buildFallbackTitle(originalName);
     const title =
@@ -2040,6 +2155,13 @@ export class JobsService {
       skills: this.normalizeSkills(profile.skills),
       employmentType:
         this.clampString(profile.jobMeta?.employmentType, 50) || 'FULL_TIME',
+      workingDayStatus: this.clampString(profile.jobMeta?.workingDayStatus, 50) || 'not_mentioned',
+      experienceLevel: this.clampString(profile.jobMeta?.experienceLevel, 50) || 'no_required',
+      minExperienceMonths: profile.jobMeta?.minExperienceMonths ?? null,
+      companyIndustryKey: this.clampString(profile.jobMeta?.companyIndustryKey, 50) || undefined,
+      jobFieldKey: this.clampString(profile.jobMeta?.jobFieldKey, 50) || undefined,
+      jobLevel: this.clampString(profile.jobMeta?.jobLevel, 50) || undefined,
+      salesModel: this.clampString(profile.jobMeta?.salesModel, 50) || undefined,
     };
   }
 

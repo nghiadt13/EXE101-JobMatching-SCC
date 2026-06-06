@@ -60,12 +60,12 @@ describe('HomepageController', () => {
 
   it('passes authenticated user and location to service', async () => {
     await controller.getHomepage(
-      { sub: 'user-1', role: UserRole.CANDIDATE },
+      { sub: 'user-1', role: UserRole.CANDIDATE, email: 'test@example.com' },
       'hcm',
     );
 
     expect(homepageService.getHomepage).toHaveBeenCalledWith(
-      { sub: 'user-1', role: UserRole.CANDIDATE },
+      { sub: 'user-1', role: UserRole.CANDIDATE, email: 'test@example.com' },
       'hcm',
     );
   });

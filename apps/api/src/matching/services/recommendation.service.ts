@@ -176,13 +176,108 @@ export class RecommendationService {
         where: { status: JobStatus.PUBLISHED, deletedAt: null },
       });
 
-      // 3. Vector search: find top jobs by cosine similarity
+      // 3. Fetch CV's job categories for Hard-Filter
+      const cv = await this.prisma.cV.findUnique({
+        where: { id: cvId },
+        select: { parsedData: true },
+      });
+      const parsedData = cv?.parsedData as any;
+
+      // Extract category slugs from multiple possible paths
+      const rawSlugs: unknown[] =
+        Array.isArray(parsedData?.jobCategorySlugs)
+          ? parsedData.jobCategorySlugs
+          : Array.isArray(
+                parsedData?.normalizedProfile?.jobCategorySlugs,
+              )
+            ? parsedData.normalizedProfile.jobCategorySlugs
+            : [];
+      const targetCategorySlugs = rawSlugs.filter(
+        (s): s is string => typeof s === 'string' && s.length > 0,
+      );
+
+      // 4. Vector search: find top jobs by cosine similarity with Hard Filter
       const vectorResults = await this.semanticSearch.findTopJobsForCv(
         cvId,
         MAX_RESULTS,
+        targetCategorySlugs.length > 0 ? targetCategorySlugs : undefined,
       );
 
-      if (vectorResults.length === 0) {
+      // 4b. Post-filter: when CV has NO explicit categories, find the
+      //     dominant category across all results and keep only jobs in that
+      //     category. This ensures results stay focused on a single
+      //     industry, even if the total count drops below MAX_RESULTS.
+      let filteredResults = vectorResults;
+      if (targetCategorySlugs.length === 0 && vectorResults.length > 1) {
+        const allMatchedIds = vectorResults.map((r) => r.id);
+        const jobCats = await this.prisma.jobCategoryOnJob.findMany({
+          where: { jobId: { in: allMatchedIds } },
+          select: { jobId: true, category: { select: { slug: true } } },
+        });
+
+        // Build map: jobId → Set<slug>
+        const catMap = new Map<string, Set<string>>();
+        for (const jc of jobCats) {
+          if (!catMap.has(jc.jobId)) catMap.set(jc.jobId, new Set());
+          catMap.get(jc.jobId)!.add(jc.category.slug);
+        }
+
+        // Find the dominant category: the one with the most jobs among
+        // the top results, weighted by match score. This is more reliable
+        // than just using the top-1 job's category.
+        const scoreMap = new Map(
+          vectorResults.map((r) => [r.id, r.score]),
+        );
+        const categoryScore = new Map<
+          string,
+          { count: number; totalScore: number }
+        >();
+        for (const [jobId, cats] of catMap) {
+          const score = scoreMap.get(jobId) ?? 0;
+          for (const slug of cats) {
+            const entry = categoryScore.get(slug) ?? {
+              count: 0,
+              totalScore: 0,
+            };
+            entry.count += 1;
+            entry.totalScore += score;
+            categoryScore.set(slug, entry);
+          }
+        }
+
+        // Pick the category with the highest (count × avgScore)
+        let dominantSlug: string | null = null;
+        let dominantWeight = -1;
+        for (const [slug, { count, totalScore }] of categoryScore) {
+          const weight = count * (totalScore / count); // count × avgScore
+          if (weight > dominantWeight) {
+            dominantWeight = weight;
+            dominantSlug = slug;
+          }
+        }
+
+        if (dominantSlug) {
+          filteredResults = vectorResults.filter((r) => {
+            const cats = catMap.get(r.id);
+            return cats !== undefined && cats.has(dominantSlug!);
+          });
+        }
+
+        this.logger.info('recommendation_post_filter_applied', {
+          scanId,
+          before: vectorResults.length,
+          after: filteredResults.length,
+          dominantCategory: dominantSlug,
+          categoryBreakdown: Object.fromEntries(
+            [...categoryScore].map(([slug, v]) => [
+              slug,
+              { count: v.count, avgScore: +(v.totalScore / v.count).toFixed(3) },
+            ]),
+          ),
+        });
+      }
+
+      if (filteredResults.length === 0) {
         this.logger.warn('recommendation_no_vector_results', {
           scanId,
           cvId,
@@ -194,28 +289,35 @@ export class RecommendationService {
       this.logger.info('recommendation_vector_search_done', {
         scanId,
         totalJobs,
-        vectorResultCount: vectorResults.length,
-        topScore: vectorResults[0]?.score ?? 0,
+        vectorResultCount: filteredResults.length,
+        topScore: filteredResults[0]?.score ?? 0,
         processingMs: Date.now() - startTime,
       });
 
-      // 4. Fetch job metadata for the matched jobs
-      const jobIds = vectorResults.map((r) => r.id);
-      const jobs = jobIds.length > 0
-        ? await this.prisma.job.findMany({
-            where: { id: { in: jobIds } },
-            select: {
-              id: true,
-              title: true,
-              description: true,
-              skills: true,
-            },
-          })
-        : [];
+      // 5. Fetch job metadata for the matched jobs
+      const jobIds = filteredResults.map((r) => r.id);
+      const jobs =
+        jobIds.length > 0
+          ? await this.prisma.job.findMany({
+              where: { id: { in: jobIds } },
+              select: {
+                id: true,
+                title: true,
+                description: true,
+                skills: true,
+                skillAtoms: true,
+                requirementsSchema: true,
+                location: true,
+                recruiterId: true,
+              },
+            })
+          : [];
+
+      // 5. Pre-filter / Re-rank using Canonical Skills
       const jobMap = new Map(jobs.map((j) => [j.id, j]));
 
-      // 5. Build ranked results — convert cosine similarity (0-1) to percentage (0-100)
-      const rankedResults = vectorResults.map((result, index) => {
+      // 6. Build ranked results — convert cosine similarity (0-1) to percentage (0-100)
+      const rankedResults = filteredResults.map((result, index) => {
         const job = jobMap.get(result.id);
         const matchScore = Math.round(result.score * 100);
 
@@ -223,9 +325,10 @@ export class RecommendationService {
         const jobSkills = Array.isArray(job?.skills)
           ? (job.skills as string[]).slice(0, 4)
           : [];
-        const strengths = jobSkills.length > 0
-          ? [`Phù hợp kỹ năng: ${jobSkills.join(', ')}`]
-          : [];
+        const strengths =
+          jobSkills.length > 0
+            ? [`Phù hợp kỹ năng: ${jobSkills.join(', ')}`]
+            : [];
 
         return {
           jobId: result.id,
@@ -268,7 +371,7 @@ export class RecommendationService {
         data: {
           status: RecommendationScanStatus.COMPLETED,
           totalJobs,
-          preFiltered: vectorResults.length,
+          preFiltered: filteredResults.length,
           aiEvaluated: 0, // No LLM calls in vector-only mode
           processingMs: Date.now() - startTime,
           completedAt: new Date(),

@@ -9,13 +9,6 @@ export function formatDate(dateStr: string): string {
 }
 
 export function getTitle(cv: CvItem): string {
-  const summary =
-    cv.parsedData?.summary ??
-    cv.normalizedProfile?.summary ??
-    cv.candidateProfile?.summary;
-  if (typeof summary === 'string' && summary.length > 0) {
-    return summary.length > 50 ? summary.slice(0, 50) + '...' : summary;
-  }
   return cv.fileName || 'CV chưa đặt tên';
 }
 

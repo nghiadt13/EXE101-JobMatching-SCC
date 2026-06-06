@@ -316,6 +316,19 @@ function ExperienceSection({
     onChange({ ...data, experience: next });
   };
 
+  const addEntry = () => {
+    const next = data.experience.slice();
+    next.push({
+      role: '',
+      company: '',
+      startDate: '',
+      endDate: '',
+      description: '',
+      tech: [],
+    });
+    onChange({ ...data, experience: next });
+  };
+
   return (
     <section id="cv-section-experience" className="flex flex-col gap-3">
       <PillHeading pillBackground={pillBackground}>
@@ -323,63 +336,78 @@ function ExperienceSection({
       </PillHeading>
 
       {data.experience.length === 0 ? (
-        <p className="text-[0.9em] italic text-zinc-400">
-          Chưa có kinh nghiệm nào. Hãy thêm từ panel chỉnh sửa.
-        </p>
+        <button
+          type="button"
+          onClick={addEntry}
+          className="text-[0.9em] italic text-zinc-400 hover:underline text-left print:hidden"
+        >
+          Chưa có kinh nghiệm nào. Click vào đây để thêm.
+        </button>
       ) : (
-        data.experience.map((entry, index) => (
-          <BlockOverlay
-            key={index}
-            canMoveUp={index > 0}
-            canMoveDown={index < data.experience.length - 1}
-            onMoveUp={() => onReorder(index, 'up')}
-            onMoveDown={() => onReorder(index, 'down')}
-            onDelete={() => onDelete(index)}
-            ariaLabel={`Khối kinh nghiệm ${index + 1}`}
+        <div className="flex flex-col gap-2 items-start">
+          <div className="space-y-4 w-full">
+            {data.experience.map((entry, index) => (
+              <BlockOverlay
+                key={index}
+                canMoveUp={index > 0}
+                canMoveDown={index < data.experience.length - 1}
+                onMoveUp={() => onReorder(index, 'up')}
+                onMoveDown={() => onReorder(index, 'down')}
+                onDelete={() => onDelete(index)}
+                ariaLabel={`Khối kinh nghiệm ${index + 1}`}
+              >
+                <div className="flex flex-col gap-1 px-2 py-1">
+                  <InlineEditableText
+                    value={entry.role}
+                    onChange={(role) => updateEntry(index, { role })}
+                    placeholder="[Chức danh]"
+                    ariaLabel="Chức danh"
+                    className="text-[1.05em] font-semibold text-zinc-900"
+                  />
+                  <InlineEditableText
+                    value={entry.company}
+                    onChange={(company) => updateEntry(index, { company })}
+                    placeholder="[Công ty]"
+                    ariaLabel="Công ty"
+                    className="text-[0.95em] font-medium text-[var(--cv-primary-color)]"
+                  />
+                  <div className="flex flex-wrap items-center gap-x-2 text-[0.85em] text-zinc-500">
+                    <InlineEditableText
+                      value={entry.startDate}
+                      onChange={(startDate) => updateEntry(index, { startDate })}
+                      placeholder="MM/YYYY"
+                      ariaLabel="Ngày bắt đầu"
+                      className="min-w-[6ch]"
+                    />
+                    <span aria-hidden="true">—</span>
+                    <InlineEditableText
+                      value={entry.endDate ?? ''}
+                      onChange={(endDate) => updateEntry(index, { endDate })}
+                      placeholder="Hiện tại"
+                      ariaLabel="Ngày kết thúc"
+                      className="min-w-[6ch]"
+                    />
+                  </div>
+                  <InlineEditableText
+                    type="textarea"
+                    value={entry.description ?? ''}
+                    onChange={(description) => updateEntry(index, { description })}
+                    placeholder="[Mô tả công việc và thành tựu]"
+                    ariaLabel="Mô tả công việc"
+                    className="text-[0.9em] leading-relaxed text-zinc-700"
+                  />
+                </div>
+              </BlockOverlay>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={addEntry}
+            className="text-xs font-semibold text-[var(--cv-primary-color)] hover:underline print:hidden"
           >
-            <div className="flex flex-col gap-1 px-2 py-1">
-              <InlineEditableText
-                value={entry.role}
-                onChange={(role) => updateEntry(index, { role })}
-                placeholder="[Chức danh]"
-                ariaLabel="Chức danh"
-                className="text-[1.05em] font-semibold text-zinc-900"
-              />
-              <InlineEditableText
-                value={entry.company}
-                onChange={(company) => updateEntry(index, { company })}
-                placeholder="[Công ty]"
-                ariaLabel="Công ty"
-                className="text-[0.95em] font-medium text-[var(--cv-primary-color)]"
-              />
-              <div className="flex flex-wrap items-center gap-x-2 text-[0.85em] text-zinc-500">
-                <InlineEditableText
-                  value={entry.startDate}
-                  onChange={(startDate) => updateEntry(index, { startDate })}
-                  placeholder="MM/YYYY"
-                  ariaLabel="Ngày bắt đầu"
-                  className="min-w-[6ch]"
-                />
-                <span aria-hidden="true">—</span>
-                <InlineEditableText
-                  value={entry.endDate ?? ''}
-                  onChange={(endDate) => updateEntry(index, { endDate })}
-                  placeholder="Hiện tại"
-                  ariaLabel="Ngày kết thúc"
-                  className="min-w-[6ch]"
-                />
-              </div>
-              <InlineEditableText
-                type="textarea"
-                value={entry.description ?? ''}
-                onChange={(description) => updateEntry(index, { description })}
-                placeholder="[Mô tả công việc và thành tựu]"
-                ariaLabel="Mô tả công việc"
-                className="text-[0.9em] leading-relaxed text-zinc-700"
-              />
-            </div>
-          </BlockOverlay>
-        ))
+            + Thêm kinh nghiệm làm việc
+          </button>
+        </div>
       )}
     </section>
   );
@@ -403,6 +431,19 @@ function EducationSection({
     onChange({ ...data, education: next });
   };
 
+  const addEntry = () => {
+    const next = data.education.slice();
+    next.push({
+      school: '',
+      degree: '',
+      field: '',
+      startDate: '',
+      endDate: '',
+      gpa: '',
+    });
+    onChange({ ...data, education: next });
+  };
+
   return (
     <section id="cv-section-education" className="flex flex-col gap-3">
       <PillHeading pillBackground={pillBackground}>
@@ -410,71 +451,86 @@ function EducationSection({
       </PillHeading>
 
       {data.education.length === 0 ? (
-        <p className="text-[0.9em] italic text-zinc-400">
-          Chưa có thông tin học vấn.
-        </p>
+        <button
+          type="button"
+          onClick={addEntry}
+          className="text-[0.9em] italic text-zinc-400 hover:underline text-left print:hidden"
+        >
+          Chưa có thông tin học vấn. Click vào đây để thêm.
+        </button>
       ) : (
-        data.education.map((entry, index) => (
-          <BlockOverlay
-            key={index}
-            canMoveUp={index > 0}
-            canMoveDown={index < data.education.length - 1}
-            onMoveUp={() => onReorder(index, 'up')}
-            onMoveDown={() => onReorder(index, 'down')}
-            onDelete={() => onDelete(index)}
-            ariaLabel={`Khối học vấn ${index + 1}`}
+        <div className="flex flex-col gap-2 items-start">
+          <div className="space-y-4 w-full">
+            {data.education.map((entry, index) => (
+              <BlockOverlay
+                key={index}
+                canMoveUp={index > 0}
+                canMoveDown={index < data.education.length - 1}
+                onMoveUp={() => onReorder(index, 'up')}
+                onMoveDown={() => onReorder(index, 'down')}
+                onDelete={() => onDelete(index)}
+                ariaLabel={`Khối học vấn ${index + 1}`}
+              >
+                <div className="flex flex-col gap-1 px-2 py-1">
+                  <InlineEditableText
+                    value={entry.school}
+                    onChange={(school) => updateEntry(index, { school })}
+                    placeholder="[Trường]"
+                    ariaLabel="Trường"
+                    className="text-[1.05em] font-semibold text-zinc-900"
+                  />
+                  <InlineEditableText
+                    value={entry.degree}
+                    onChange={(degree) => updateEntry(index, { degree })}
+                    placeholder="[Bằng cấp]"
+                    ariaLabel="Bằng cấp"
+                    className="text-[0.95em] font-medium text-[var(--cv-primary-color)]"
+                  />
+                  <InlineEditableText
+                    value={entry.field ?? ''}
+                    onChange={(field) => updateEntry(index, { field })}
+                    placeholder="[Chuyên ngành]"
+                    ariaLabel="Chuyên ngành"
+                    className="text-[0.9em] text-zinc-600"
+                  />
+                  <div className="flex flex-wrap items-center gap-x-2 text-[0.85em] text-zinc-500">
+                    <InlineEditableText
+                      value={entry.startDate ?? ''}
+                      onChange={(startDate) => updateEntry(index, { startDate })}
+                      placeholder="MM/YYYY"
+                      ariaLabel="Ngày bắt đầu"
+                      className="min-w-[6ch]"
+                    />
+                    <span aria-hidden="true">—</span>
+                    <InlineEditableText
+                      value={entry.endDate ?? ''}
+                      onChange={(endDate) => updateEntry(index, { endDate })}
+                      placeholder="Hiện tại"
+                      ariaLabel="Ngày kết thúc"
+                      className="min-w-[6ch]"
+                    />
+                  </div>
+                  {entry.gpa !== undefined ? (
+                    <InlineEditableText
+                      value={entry.gpa}
+                      onChange={(gpa) => updateEntry(index, { gpa })}
+                      placeholder="GPA"
+                      ariaLabel="GPA"
+                      className="text-[0.85em] text-zinc-500"
+                    />
+                  ) : null}
+                </div>
+              </BlockOverlay>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={addEntry}
+            className="text-xs font-semibold text-[var(--cv-primary-color)] hover:underline print:hidden"
           >
-            <div className="flex flex-col gap-1 px-2 py-1">
-              <InlineEditableText
-                value={entry.school}
-                onChange={(school) => updateEntry(index, { school })}
-                placeholder="[Trường]"
-                ariaLabel="Trường"
-                className="text-[1.05em] font-semibold text-zinc-900"
-              />
-              <InlineEditableText
-                value={entry.degree}
-                onChange={(degree) => updateEntry(index, { degree })}
-                placeholder="[Bằng cấp]"
-                ariaLabel="Bằng cấp"
-                className="text-[0.95em] font-medium text-[var(--cv-primary-color)]"
-              />
-              <InlineEditableText
-                value={entry.field ?? ''}
-                onChange={(field) => updateEntry(index, { field })}
-                placeholder="[Chuyên ngành]"
-                ariaLabel="Chuyên ngành"
-                className="text-[0.9em] text-zinc-600"
-              />
-              <div className="flex flex-wrap items-center gap-x-2 text-[0.85em] text-zinc-500">
-                <InlineEditableText
-                  value={entry.startDate ?? ''}
-                  onChange={(startDate) => updateEntry(index, { startDate })}
-                  placeholder="MM/YYYY"
-                  ariaLabel="Ngày bắt đầu"
-                  className="min-w-[6ch]"
-                />
-                <span aria-hidden="true">—</span>
-                <InlineEditableText
-                  value={entry.endDate ?? ''}
-                  onChange={(endDate) => updateEntry(index, { endDate })}
-                  placeholder="Hiện tại"
-                  ariaLabel="Ngày kết thúc"
-                  className="min-w-[6ch]"
-                />
-              </div>
-              {entry.gpa !== undefined ? (
-                <InlineEditableText
-                  value={entry.gpa}
-                  onChange={(gpa) => updateEntry(index, { gpa })}
-                  placeholder="GPA"
-                  ariaLabel="GPA"
-                  className="text-[0.85em] text-zinc-500"
-                />
-              ) : null}
-            </div>
-          </BlockOverlay>
-        ))
+            + Thêm thông tin học vấn
+          </button>
+        </div>
       )}
     </section>
   );
@@ -496,6 +552,12 @@ function SkillsSection({
     onChange({ ...data, skills: next });
   };
 
+  const addSkill = () => {
+    const next = data.skills.slice();
+    next.push('');
+    onChange({ ...data, skills: next });
+  };
+
   return (
     <section id="cv-section-skills" className="flex flex-col gap-3">
       <PillHeading pillBackground={pillBackground}>
@@ -503,37 +565,50 @@ function SkillsSection({
       </PillHeading>
 
       {data.skills.length === 0 ? (
-        <p className="text-[0.9em] italic text-zinc-400">
-          Chưa có kỹ năng nào.
-        </p>
+        <button
+          type="button"
+          onClick={addSkill}
+          className="text-[0.9em] italic text-zinc-400 hover:underline text-left print:hidden"
+        >
+          Chưa có kỹ năng nào. Click vào đây để thêm.
+        </button>
       ) : (
-        <ul className="flex flex-wrap gap-2">
-          {data.skills.map((skill, index) => (
-            <BlockOverlay
-              key={index}
-              canMoveUp={index > 0}
-              canMoveDown={index < data.skills.length - 1}
-              onMoveUp={() => onReorder(index, 'up')}
-              onMoveDown={() => onReorder(index, 'down')}
-              onDelete={() => onDelete(index)}
-              ariaLabel={`Kỹ năng ${index + 1}`}
-              className="inline-flex"
-            >
-              <li
-                className="rounded-full px-3 py-0.5 text-[0.9em] text-[var(--cv-primary-color)]"
-                style={{ backgroundColor: pillBackground }}
+        <div className="flex flex-col gap-2 items-start">
+          <ul className="flex flex-wrap gap-2 w-full">
+            {data.skills.map((skill, index) => (
+              <BlockOverlay
+                key={index}
+                canMoveUp={index > 0}
+                canMoveDown={index < data.skills.length - 1}
+                onMoveUp={() => onReorder(index, 'up')}
+                onMoveDown={() => onReorder(index, 'down')}
+                onDelete={() => onDelete(index)}
+                ariaLabel={`Kỹ năng ${index + 1}`}
+                className="inline-flex"
               >
-                <InlineEditableText
-                  value={skill}
-                  onChange={(value) => updateSkill(index, value)}
-                  placeholder="[Kỹ năng]"
-                  ariaLabel={`Kỹ năng ${index + 1}`}
-                  className="min-w-[4ch]"
-                />
-              </li>
-            </BlockOverlay>
-          ))}
-        </ul>
+                <li
+                  className="rounded-full px-3 py-0.5 text-[0.9em] text-[var(--cv-primary-color)]"
+                  style={{ backgroundColor: pillBackground }}
+                >
+                  <InlineEditableText
+                    value={skill}
+                    onChange={(value) => updateSkill(index, value)}
+                    placeholder="[Kỹ năng]"
+                    ariaLabel={`Kỹ năng ${index + 1}`}
+                    className="min-w-[4ch]"
+                  />
+                </li>
+              </BlockOverlay>
+            ))}
+          </ul>
+          <button
+            type="button"
+            onClick={addSkill}
+            className="text-xs font-semibold text-[var(--cv-primary-color)] hover:underline print:hidden"
+          >
+            + Thêm kỹ năng
+          </button>
+        </div>
       )}
     </section>
   );
@@ -557,6 +632,16 @@ function ProjectsSection({
     onChange({ ...data, projects: next });
   };
 
+  const addEntry = () => {
+    const next = data.projects.slice();
+    next.push({
+      name: '',
+      description: '',
+      tech: [],
+    });
+    onChange({ ...data, projects: next });
+  };
+
   return (
     <section id="cv-section-projects" className="flex flex-col gap-3">
       <PillHeading pillBackground={pillBackground}>
@@ -564,44 +649,59 @@ function ProjectsSection({
       </PillHeading>
 
       {data.projects.length === 0 ? (
-        <p className="text-[0.9em] italic text-zinc-400">
-          Chưa có dự án nào.
-        </p>
+        <button
+          type="button"
+          onClick={addEntry}
+          className="text-[0.9em] italic text-zinc-400 hover:underline text-left print:hidden"
+        >
+          Chưa có dự án nào. Click vào đây để thêm.
+        </button>
       ) : (
-        data.projects.map((entry, index) => (
-          <BlockOverlay
-            key={index}
-            canMoveUp={index > 0}
-            canMoveDown={index < data.projects.length - 1}
-            onMoveUp={() => onReorder(index, 'up')}
-            onMoveDown={() => onReorder(index, 'down')}
-            onDelete={() => onDelete(index)}
-            ariaLabel={`Dự án ${index + 1}`}
+        <div className="flex flex-col gap-2 items-start">
+          <div className="space-y-4 w-full">
+            {data.projects.map((entry, index) => (
+              <BlockOverlay
+                key={index}
+                canMoveUp={index > 0}
+                canMoveDown={index < data.projects.length - 1}
+                onMoveUp={() => onReorder(index, 'up')}
+                onMoveDown={() => onReorder(index, 'down')}
+                onDelete={() => onDelete(index)}
+                ariaLabel={`Dự án ${index + 1}`}
+              >
+                <div className="flex flex-col gap-1 px-2 py-1">
+                  <InlineEditableText
+                    value={entry.name}
+                    onChange={(name) => updateEntry(index, { name })}
+                    placeholder="[Tên dự án]"
+                    ariaLabel="Tên dự án"
+                    className="text-[1.05em] font-semibold text-[var(--cv-primary-color)]"
+                  />
+                  <InlineEditableText
+                    type="textarea"
+                    value={entry.description ?? ''}
+                    onChange={(description) => updateEntry(index, { description })}
+                    placeholder="[Mô tả dự án]"
+                    ariaLabel="Mô tả dự án"
+                    className="text-[0.9em] leading-relaxed text-zinc-700"
+                  />
+                  {entry.tech && entry.tech.length > 0 ? (
+                    <p className="text-[0.85em] italic text-zinc-500">
+                      Tech: {entry.tech.join(', ')}
+                    </p>
+                  ) : null}
+                </div>
+              </BlockOverlay>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={addEntry}
+            className="text-xs font-semibold text-[var(--cv-primary-color)] hover:underline print:hidden"
           >
-            <div className="flex flex-col gap-1 px-2 py-1">
-              <InlineEditableText
-                value={entry.name}
-                onChange={(name) => updateEntry(index, { name })}
-                placeholder="[Tên dự án]"
-                ariaLabel="Tên dự án"
-                className="text-[1.05em] font-semibold text-[var(--cv-primary-color)]"
-              />
-              <InlineEditableText
-                type="textarea"
-                value={entry.description ?? ''}
-                onChange={(description) => updateEntry(index, { description })}
-                placeholder="[Mô tả dự án]"
-                ariaLabel="Mô tả dự án"
-                className="text-[0.9em] leading-relaxed text-zinc-700"
-              />
-              {entry.tech && entry.tech.length > 0 ? (
-                <p className="text-[0.85em] italic text-zinc-500">
-                  Tech: {entry.tech.join(', ')}
-                </p>
-              ) : null}
-            </div>
-          </BlockOverlay>
-        ))
+            + Thêm dự án
+          </button>
+        </div>
       )}
     </section>
   );
@@ -625,6 +725,12 @@ function CertificationsSection({
     onChange({ ...data, certifications: next });
   };
 
+  const addCert = () => {
+    const next = data.certifications.slice();
+    next.push('');
+    onChange({ ...data, certifications: next });
+  };
+
   return (
     <section id="cv-section-certifications" className="flex flex-col gap-3">
       <PillHeading pillBackground={pillBackground}>
@@ -632,32 +738,45 @@ function CertificationsSection({
       </PillHeading>
 
       {data.certifications.length === 0 ? (
-        <p className="text-[0.9em] italic text-zinc-400">
-          Chưa có chứng chỉ nào.
-        </p>
+        <button
+          type="button"
+          onClick={addCert}
+          className="text-[0.9em] italic text-zinc-400 hover:underline text-left print:hidden"
+        >
+          Chưa có chứng chỉ nào. Click vào đây để thêm.
+        </button>
       ) : (
-        <ul className="flex flex-col gap-1">
-          {data.certifications.map((item, index) => (
-            <BlockOverlay
-              key={index}
-              canMoveUp={index > 0}
-              canMoveDown={index < data.certifications.length - 1}
-              onMoveUp={() => onReorder(index, 'up')}
-              onMoveDown={() => onReorder(index, 'down')}
-              onDelete={() => onDelete(index)}
-              ariaLabel={`Chứng chỉ ${index + 1}`}
-            >
-              <li className="px-2 py-0.5 text-[0.9em] text-zinc-700">
-                <InlineEditableText
-                  value={item}
-                  onChange={(value) => updateItem(index, value)}
-                  placeholder="[Tên chứng chỉ]"
-                  ariaLabel={`Chứng chỉ ${index + 1}`}
-                />
-              </li>
-            </BlockOverlay>
-          ))}
-        </ul>
+        <div className="flex flex-col gap-2 items-start">
+          <ul className="flex flex-col gap-1 w-full">
+            {data.certifications.map((item, index) => (
+              <BlockOverlay
+                key={index}
+                canMoveUp={index > 0}
+                canMoveDown={index < data.certifications.length - 1}
+                onMoveUp={() => onReorder(index, 'up')}
+                onMoveDown={() => onReorder(index, 'down')}
+                onDelete={() => onDelete(index)}
+                ariaLabel={`Chứng chỉ ${index + 1}`}
+              >
+                <li className="px-2 py-0.5 text-[0.9em] text-zinc-700">
+                  <InlineEditableText
+                    value={item}
+                    onChange={(value) => updateItem(index, value)}
+                    placeholder="[Tên chứng chỉ]"
+                    ariaLabel={`Chứng chỉ ${index + 1}`}
+                  />
+                </li>
+              </BlockOverlay>
+            ))}
+          </ul>
+          <button
+            type="button"
+            onClick={addCert}
+            className="text-xs font-semibold text-[var(--cv-primary-color)] hover:underline print:hidden"
+          >
+            + Thêm chứng chỉ
+          </button>
+        </div>
       )}
     </section>
   );
@@ -679,6 +798,12 @@ function LanguagesSection({
     onChange({ ...data, languages: next });
   };
 
+  const addLang = () => {
+    const next = data.languages.slice();
+    next.push('');
+    onChange({ ...data, languages: next });
+  };
+
   return (
     <section id="cv-section-languages" className="flex flex-col gap-3">
       <PillHeading pillBackground={pillBackground}>
@@ -686,37 +811,50 @@ function LanguagesSection({
       </PillHeading>
 
       {data.languages.length === 0 ? (
-        <p className="text-[0.9em] italic text-zinc-400">
-          Chưa có ngôn ngữ nào.
-        </p>
+        <button
+          type="button"
+          onClick={addLang}
+          className="text-[0.9em] italic text-zinc-400 hover:underline text-left print:hidden"
+        >
+          Chưa có ngôn ngữ nào. Click vào đây để thêm.
+        </button>
       ) : (
-        <ul className="flex flex-wrap gap-2">
-          {data.languages.map((item, index) => (
-            <BlockOverlay
-              key={index}
-              canMoveUp={index > 0}
-              canMoveDown={index < data.languages.length - 1}
-              onMoveUp={() => onReorder(index, 'up')}
-              onMoveDown={() => onReorder(index, 'down')}
-              onDelete={() => onDelete(index)}
-              ariaLabel={`Ngôn ngữ ${index + 1}`}
-              className="inline-flex"
-            >
-              <li
-                className="rounded-full px-3 py-0.5 text-[0.9em] text-[var(--cv-primary-color)]"
-                style={{ backgroundColor: pillBackground }}
+        <div className="flex flex-col gap-2 items-start">
+          <ul className="flex flex-wrap gap-2 w-full">
+            {data.languages.map((item, index) => (
+              <BlockOverlay
+                key={index}
+                canMoveUp={index > 0}
+                canMoveDown={index < data.languages.length - 1}
+                onMoveUp={() => onReorder(index, 'up')}
+                onMoveDown={() => onReorder(index, 'down')}
+                onDelete={() => onDelete(index)}
+                ariaLabel={`Ngôn ngữ ${index + 1}`}
+                className="inline-flex"
               >
-                <InlineEditableText
-                  value={item}
-                  onChange={(value) => updateItem(index, value)}
-                  placeholder="[Ngôn ngữ]"
-                  ariaLabel={`Ngôn ngữ ${index + 1}`}
-                  className="min-w-[4ch]"
-                />
-              </li>
-            </BlockOverlay>
-          ))}
-        </ul>
+                <li
+                  className="rounded-full px-3 py-0.5 text-[0.9em] text-[var(--cv-primary-color)]"
+                  style={{ backgroundColor: pillBackground }}
+                >
+                  <InlineEditableText
+                    value={item}
+                    onChange={(value) => updateItem(index, value)}
+                    placeholder="[Ngôn ngữ]"
+                    ariaLabel={`Ngôn ngữ ${index + 1}`}
+                    className="min-w-[4ch]"
+                  />
+                </li>
+              </BlockOverlay>
+            ))}
+          </ul>
+          <button
+            type="button"
+            onClick={addLang}
+            className="text-xs font-semibold text-[var(--cv-primary-color)] hover:underline print:hidden"
+          >
+            + Thêm ngôn ngữ
+          </button>
+        </div>
       )}
     </section>
   );

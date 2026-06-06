@@ -12,6 +12,7 @@ import type { JwtPayload } from '../auth/auth.types';
 import { CreateApplicationDto } from './dto/create-application.dto';
 import { QueryApplicationsDto } from './dto/query-applications.dto';
 import { UpdateApplicationStatusDto } from './dto/update-application-status.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 import {
   ApplicationView,
   ApplicationsListResponse,
@@ -49,10 +50,31 @@ type ApplicationRecord = {
     id: string;
     title: string;
     slug: string;
-    company?: { name: string; logoUrl: string | null; iconKey: string | null } | null;
+    company?: {
+      name: string;
+      logoUrl: string | null;
+      iconKey: string | null;
+    } | null;
   };
-  candidate: { id: string; user: { name: string; email: string } };
-  cv: { id: string; fileName: string };
+  candidate: {
+    id: string;
+    userId: string;
+    phone?: string | null;
+    location?: Prisma.JsonValue | null;
+    user: {
+      id: string;
+      name: string;
+      email: string;
+      avatar?: string | null;
+    };
+  };
+  cv: {
+    id: string;
+    fileName: string;
+    source?: string | null;
+    candidateProfile: Prisma.JsonValue | null;
+    parsedData: Prisma.JsonValue | null;
+  };
 };
 
 @Injectable()
@@ -61,6 +83,7 @@ export class ApplicationsService {
     private readonly prisma: PrismaService,
     private readonly matchingService: MatchingService,
     private readonly logger: AppLogger,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async create(
@@ -224,6 +247,52 @@ export class ApplicationsService {
       },
       select: this.applicationSelect,
     });
+
+    // Send notification to the candidate
+    const candidateUserId = (updated.candidate as any).userId;
+    if (candidateUserId) {
+      const jobTitle = updated.job.title;
+      const companyName = updated.job.company?.name ?? 'Nhà tuyển dụng';
+      
+      let title = 'Cập nhật trạng thái đơn ứng tuyển';
+      let body = `Đơn ứng tuyển của bạn cho vị trí ${jobTitle} tại ${companyName} đã được cập nhật.`;
+
+      if (dto.status === ApplicationStatus.ACCEPTED) {
+        title = 'Đơn ứng tuyển được chấp nhận';
+        body = `Chúc mừng! Đơn ứng tuyển của bạn cho vị trí ${jobTitle} tại ${companyName} đã được chấp nhận.`;
+      } else if (dto.status === ApplicationStatus.REJECTED) {
+        title = 'Đơn ứng tuyển chưa phù hợp';
+        body = `Cảm ơn bạn đã quan tâm. Rất tiếc, đơn ứng tuyển của bạn cho vị trí ${jobTitle} tại ${companyName} chưa phù hợp ở thời điểm hiện tại.`;
+      } else if (dto.status === ApplicationStatus.REVIEWING) {
+        title = 'Đơn ứng tuyển đang được xem xét';
+        body = `Đơn ứng tuyển của bạn cho vị trí ${jobTitle} tại ${companyName} đã được chuyển sang trạng thái đang xem xét.`;
+      } else if (dto.status === ApplicationStatus.INTERVIEW) {
+        title = 'Lời mời phỏng vấn';
+        body = `Bạn nhận được lời mời phỏng vấn cho vị trí ${jobTitle} tại ${companyName}. Vui lòng liên hệ với nhà tuyển dụng để biết chi tiết.`;
+      } else if (dto.status === ApplicationStatus.OFFER) {
+        title = 'Lời mời nhận việc';
+        body = `Chúc mừng! Bạn đã nhận được lời mời nhận việc cho vị trí ${jobTitle} tại ${companyName}.`;
+      }
+
+      await this.notificationsService.create({
+        userId: candidateUserId,
+        title,
+        body,
+        type: 'APPLICATION_STATUS',
+        metadata: {
+          applicationId: updated.id,
+          jobId: updated.jobId,
+          status: dto.status,
+        },
+      }).catch(err => {
+        this.logger.error('failed_to_send_application_notification', {
+          applicationId: updated.id,
+          userId: candidateUserId,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      });
+    }
+
     return this.toView(updated);
   }
 
@@ -304,8 +373,17 @@ export class ApplicationsService {
         id: item.candidate.id,
         name: item.candidate.user.name,
         email: item.candidate.user.email,
+        phone: item.candidate.phone,
+        location: item.candidate.location,
+        avatar: item.candidate.user.avatar,
       },
-      cv: item.cv,
+      cv: {
+        id: item.cv.id,
+        fileName: item.cv.fileName,
+        source: item.cv.source,
+        candidateProfile: item.cv.candidateProfile as Record<string, unknown> | null,
+        parsedData: item.cv.parsedData as Record<string, unknown> | null,
+      },
     };
   }
 
@@ -357,13 +435,19 @@ export class ApplicationsService {
       candidate: {
         select: {
           id: true,
-          user: { select: { name: true, email: true } },
+          userId: true,
+          phone: true,
+          location: true,
+          user: { select: { id: true, name: true, email: true, avatar: true } },
         },
       },
       cv: {
         select: {
           id: true,
           fileName: true,
+          source: true,
+          candidateProfile: true,
+          parsedData: true,
         },
       },
     } satisfies Prisma.ApplicationSelect;

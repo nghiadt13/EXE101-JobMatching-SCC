@@ -56,17 +56,17 @@ export const CUSTOMER_TYPE_LABELS: Record<CustomerType, string> = {
 };
 
 export const SALARY_BAND_VALUES = [
-  'under_10m', '10_15m', '15_20m', '20_30m', '30_50m', 'over_50m', 'negotiable',
+  'under_10', '10_15', '15_20', '20_30', '30_50', 'over_50', 'negotiable',
 ] as const;
 export type SalaryBand = (typeof SALARY_BAND_VALUES)[number];
 
 export const SALARY_BAND_LABELS: Record<SalaryBand, string> = {
-  under_10m: 'Dưới 10 triệu',
-  '10_15m': '10 - 15 triệu',
-  '15_20m': '15 - 20 triệu',
-  '20_30m': '20 - 30 triệu',
-  '30_50m': '30 - 50 triệu',
-  over_50m: 'Trên 50 triệu',
+  under_10: 'Dưới 10 triệu',
+  '10_15': '10 - 15 triệu',
+  '15_20': '15 - 20 triệu',
+  '20_30': '20 - 30 triệu',
+  '30_50': '30 - 50 triệu',
+  over_50: 'Trên 50 triệu',
   negotiable: 'Thỏa thuận',
 };
 

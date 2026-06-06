@@ -43,7 +43,9 @@ describe('RagRetrieverService', () => {
   });
 
   it('should retrieve items using Hybrid Search', async () => {
-    (gemini.generateEmbedding as jest.Mock).mockResolvedValue(new Array(768).fill(0.1));
+    (gemini.generateEmbedding as jest.Mock).mockResolvedValue(
+      new Array(768).fill(0.1),
+    );
     (prisma.$queryRawUnsafe as jest.Mock).mockResolvedValue([
       {
         id: '1',
@@ -57,7 +59,7 @@ describe('RagRetrieverService', () => {
     ]);
 
     const result = await service.retrieve({ jdSkills: ['NestJS'] });
-    
+
     expect(gemini.generateEmbedding).toHaveBeenCalled();
     expect(prisma.$queryRawUnsafe).toHaveBeenCalled();
     expect(result.items.length).toBe(1);
@@ -66,7 +68,9 @@ describe('RagRetrieverService', () => {
   });
 
   it('should handle errors gracefully and return warnings', async () => {
-    (gemini.generateEmbedding as jest.Mock).mockRejectedValue(new Error('API Down'));
+    (gemini.generateEmbedding as jest.Mock).mockRejectedValue(
+      new Error('API Down'),
+    );
 
     const result = await service.retrieve({ jdSkills: ['NestJS'] });
     expect(result.items).toEqual([]);

@@ -98,7 +98,7 @@ export function RecommendedJobsSection({
                   tier.badge,
                 )}
               >
-                {job.matchScore}% {tier.label}
+                {tier.label}
               </span>
 
               {/* Title & company */}

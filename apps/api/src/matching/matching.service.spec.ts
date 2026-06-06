@@ -70,7 +70,9 @@ describe('MatchingService', () => {
       extract: jest.fn().mockResolvedValue('fallback extracted cv text'),
     };
     ragRetrieverService = {
-      retrieve: jest.fn().mockReturnValue({ items: [], queryTerms: [], warnings: [] }),
+      retrieve: jest
+        .fn()
+        .mockReturnValue({ items: [], queryTerms: [], warnings: [] }),
     };
     mockedReadFile.mockResolvedValue(Buffer.from('legacy pdf'));
 
@@ -156,20 +158,31 @@ describe('MatchingService', () => {
 
   it('uses schema_v2 evaluation, calls retriever with correct input, and passes formatted RAG context', async () => {
     prismaService.cV.findFirst.mockResolvedValue(
-      cvRecord({ rawText: 'raw cv with TypeScript and NestJS', skills: ['TypeScript'] }),
+      cvRecord({
+        rawText: 'raw cv with TypeScript and NestJS',
+        skills: ['TypeScript'],
+      }),
     );
     prismaService.job.findFirst.mockResolvedValue(
-      jobRecord({ 
+      jobRecord({
         title: 'Backend Engineer',
         description: 'Need NestJS',
         skills: ['NestJS'],
-        requirementsSchema: requirementsSchemaV2() 
+        requirementsSchema: requirementsSchemaV2(),
       }),
     );
     ragRetrieverService.retrieve.mockResolvedValue({
       items: [
-        { item: { kind: 'related_skill', title: 'NestJS', content: 'Node.js framework', source: 'seed' }, reason: 'match' }
-      ]
+        {
+          item: {
+            kind: 'related_skill',
+            title: 'NestJS',
+            content: 'Node.js framework',
+            source: 'seed',
+          },
+          reason: 'match',
+        },
+      ],
     });
 
     const result = await service.calculateForCvAndJob('cv-1', 'job-1', {
@@ -187,16 +200,26 @@ describe('MatchingService', () => {
     expect(jdDrivenEvaluationService.evaluate).toHaveBeenCalledWith({
       cvRawText: 'raw cv with TypeScript and NestJS',
       requirementsSchema: requirementsSchemaV2(),
-      ragContext: '- [related_skill] NestJS: Node.js framework. Source: seed. Reason: match',
+      ragContext:
+        '- [related_skill] NestJS: Node.js framework. Source: seed. Reason: match',
     });
   });
 
   it('works when schema_v2 retriever returns no items', async () => {
     prismaService.cV.findFirst.mockResolvedValue(cvRecord({ rawText: 'cv' }));
-    prismaService.job.findFirst.mockResolvedValue(jobRecord({ requirementsSchema: requirementsSchemaV2() }));
-    ragRetrieverService.retrieve.mockResolvedValue({ items: [], queryTerms: [], warnings: [] });
+    prismaService.job.findFirst.mockResolvedValue(
+      jobRecord({ requirementsSchema: requirementsSchemaV2() }),
+    );
+    ragRetrieverService.retrieve.mockResolvedValue({
+      items: [],
+      queryTerms: [],
+      warnings: [],
+    });
 
-    await service.calculateForCvAndJob('cv-1', 'job-1', { sub: 'candidate-1', role: UserRole.CANDIDATE });
+    await service.calculateForCvAndJob('cv-1', 'job-1', {
+      sub: 'candidate-1',
+      role: UserRole.CANDIDATE,
+    });
 
     expect(jdDrivenEvaluationService.evaluate).toHaveBeenCalledWith({
       cvRawText: 'cv',
@@ -207,10 +230,15 @@ describe('MatchingService', () => {
 
   it('works when schema_v2 retriever throws an error', async () => {
     prismaService.cV.findFirst.mockResolvedValue(cvRecord({ rawText: 'cv' }));
-    prismaService.job.findFirst.mockResolvedValue(jobRecord({ requirementsSchema: requirementsSchemaV2() }));
+    prismaService.job.findFirst.mockResolvedValue(
+      jobRecord({ requirementsSchema: requirementsSchemaV2() }),
+    );
     ragRetrieverService.retrieve.mockRejectedValue(new Error('RAG failure'));
 
-    await service.calculateForCvAndJob('cv-1', 'job-1', { sub: 'candidate-1', role: UserRole.CANDIDATE });
+    await service.calculateForCvAndJob('cv-1', 'job-1', {
+      sub: 'candidate-1',
+      role: UserRole.CANDIDATE,
+    });
 
     expect(jdDrivenEvaluationService.evaluate).toHaveBeenCalledWith({
       cvRawText: 'cv',

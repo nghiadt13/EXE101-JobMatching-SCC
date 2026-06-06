@@ -58,7 +58,7 @@ export default async function RecruiterJobsPage({ searchParams }: PageProps) {
       }
       redirect('/dashboard/recruiter/jobs?error=create-failed');
     }
-    revalidatePath('/dashboard/recruiter/jobs');
+    revalidatePath('/', 'layout');
   }
 
   async function uploadAction(formData: FormData) {
@@ -78,7 +78,7 @@ export default async function RecruiterJobsPage({ searchParams }: PageProps) {
       }
       redirect('/dashboard/recruiter/jobs?error=upload-failed');
     }
-    revalidatePath('/dashboard/recruiter/jobs');
+    revalidatePath('/', 'layout');
     redirect(`/dashboard/recruiter/jobs/${createdId}`);
   }
 
@@ -89,7 +89,7 @@ export default async function RecruiterJobsPage({ searchParams }: PageProps) {
     const jobId = String(formData.get('jobId') ?? '').trim();
     if (!jobId) return;
     await publishJob(currentSession.accessToken, jobId);
-    revalidatePath('/dashboard/recruiter/jobs');
+    revalidatePath('/', 'layout');
   }
 
   async function closeAction(formData: FormData) {
@@ -99,7 +99,7 @@ export default async function RecruiterJobsPage({ searchParams }: PageProps) {
     const jobId = String(formData.get('jobId') ?? '').trim();
     if (!jobId) return;
     await closeJob(currentSession.accessToken, jobId);
-    revalidatePath('/dashboard/recruiter/jobs');
+    revalidatePath('/', 'layout');
   }
 
   async function deleteAction(formData: FormData) {
@@ -109,7 +109,7 @@ export default async function RecruiterJobsPage({ searchParams }: PageProps) {
     const jobId = String(formData.get('jobId') ?? '').trim();
     if (!jobId) return;
     await deleteJob(currentSession.accessToken, jobId);
-    revalidatePath('/dashboard/recruiter/jobs');
+    revalidatePath('/', 'layout');
   }
 
   const jobs = await getJobs({ page: 1, limit: 30 }, session.accessToken);

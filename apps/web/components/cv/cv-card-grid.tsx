@@ -5,7 +5,6 @@ import { CvCardItem } from './cv-card-item';
 
 type CvCardGridProps = {
   items: CvItem[];
-  onPreview: (cvId: string) => void;
   onDelete: (cvId: string) => void;
   onSetDefault: (cvId: string) => void;
   onRename: (cvId: string, newTitle: string) => void;
@@ -13,18 +12,18 @@ type CvCardGridProps = {
 
 export function CvCardGrid({
   items,
-  onPreview,
   onDelete,
   onSetDefault,
   onRename,
 }: CvCardGridProps) {
+  if (items.length === 0) return null;
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 animate-in fade-in duration-500">
       {items.map((cv) => (
         <CvCardItem
           key={cv.id}
           cv={cv}
-          onPreview={onPreview}
           onDelete={onDelete}
           onSetDefault={onSetDefault}
           onRename={onRename}

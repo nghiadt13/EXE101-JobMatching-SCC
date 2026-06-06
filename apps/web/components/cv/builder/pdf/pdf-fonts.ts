@@ -82,16 +82,18 @@ export const ULTIMATE_FALLBACK_FONT = 'Times-Roman';
  */
 const FONT_SOURCES = {
   Inter: {
-    regular: '/fonts/Inter-Regular.ttf',
-    bold: '/fonts/Inter-Bold.ttf',
+    // Inter files are currently missing, fall back to Roboto to prevent 404 HTML parsing crash
+    regular: '/fonts/Roboto-Regular.ttf',
+    bold: '/fonts/Roboto-Bold.ttf',
   },
   Roboto: {
     regular: '/fonts/Roboto-Regular.ttf',
     bold: '/fonts/Roboto-Bold.ttf',
   },
   Outfit: {
-    regular: '/fonts/Outfit-Regular.ttf',
-    bold: '/fonts/Outfit-Bold.ttf',
+    // Outfit files are currently missing, fall back to Roboto to prevent 404 HTML parsing crash
+    regular: '/fonts/Roboto-Regular.ttf',
+    bold: '/fonts/Roboto-Bold.ttf',
   },
   'Times New Roman': {
     regular: '/fonts/TimesNewRoman-Regular.ttf',
@@ -235,7 +237,8 @@ export function useFontLoadStatus(): FontLoadStatus {
         const results = await Promise.all(
           urls.map(async (url) => {
             try {
-              const res = await fetch(url, { method: 'HEAD' });
+              // Use GET instead of HEAD because fonts.gstatic.com blocks HEAD requests via CORS policy
+              const res = await fetch(url, { method: 'GET' });
               return res.ok;
             } catch {
               return false;

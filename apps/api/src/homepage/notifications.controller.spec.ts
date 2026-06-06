@@ -27,13 +27,14 @@ describe('NotificationsController', () => {
 
   it('returns unread notification count', async () => {
     const result = await controller.getUnreadCount({
-      sub: 'user-1',
+      sub: 'mockUserId',
       role: UserRole.CANDIDATE,
+      email: 'test@example.com',
     });
 
     expect(result).toEqual({ unreadCount: 5 });
     expect(homepageService.getUnreadNotificationCount).toHaveBeenCalledWith(
-      'user-1',
+      'mockUserId',
     );
   });
 });

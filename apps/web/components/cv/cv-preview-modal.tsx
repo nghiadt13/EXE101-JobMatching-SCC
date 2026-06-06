@@ -28,6 +28,7 @@ type CvPreviewModalProps = {
   onClose: () => void;
   cv: CvItem | null;
   accessToken?: string;
+  token?: string;
 };
 
 /**
@@ -56,7 +57,10 @@ export function CvPreviewModal({
   onClose,
   cv,
   accessToken,
+  token,
 }: CvPreviewModalProps) {
+  const activeToken = accessToken || token;
+
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -83,7 +87,7 @@ export function CvPreviewModal({
       setFileStatus('idle');
       return;
     }
-    if (!accessToken) {
+    if (!activeToken) {
       setFileStatus('error');
       return;
     }
@@ -93,7 +97,7 @@ export function CvPreviewModal({
     setFileStatus('loading');
     setFileUrl(null);
 
-    getCvFileBlob(accessToken, cv.id)
+    getCvFileBlob(activeToken, cv.id)
       .then((blob) => {
         if (revoked) return;
         objectUrl = URL.createObjectURL(blob);
@@ -109,7 +113,7 @@ export function CvPreviewModal({
       revoked = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [isOpen, cv, isBuilderCv, accessToken]);
+  }, [isOpen, cv, isBuilderCv, activeToken]);
 
   // ─── Builder structured data ────────────────────────────────────────────
   const builderData = useMemo<CvBuilderData | null>(() => {
