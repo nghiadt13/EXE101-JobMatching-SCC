@@ -67,8 +67,10 @@ export function CvCardItem({
         {/* Banner Preview Area */}
         <div
           className={cn(
-            "h-32 bg-slate-50 dark:bg-slate-950 rounded-xl relative overflow-hidden border border-slate-100 dark:border-slate-800/80 flex items-center justify-center",
-            cv.parseStatus === 'pending_apply' ? "cursor-wait" : "cursor-pointer"
+            'h-32 bg-slate-50 dark:bg-slate-950 rounded-xl relative overflow-hidden border border-slate-100 dark:border-slate-800/80 flex items-center justify-center',
+            cv.parseStatus === 'pending_apply'
+              ? 'cursor-wait'
+              : 'cursor-pointer',
           )}
           onClick={navigateToEdit}
         >
@@ -150,17 +152,17 @@ export function CvCardItem({
               className="w-full rounded border border-brand-500 bg-white dark:bg-slate-900 px-2 py-1 text-sm font-bold text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-brand-500/20"
             />
           ) : (
-              <h4
-                className={cn(
-                  "font-bold text-sm text-slate-800 dark:text-slate-100 transition-colors line-clamp-1",
-                  cv.parseStatus === 'pending_apply' 
-                    ? "cursor-wait opacity-70" 
-                    : "group-hover:text-brand-600 dark:group-hover:text-brand-400 cursor-pointer"
-                )}
-                onClick={navigateToEdit}
-              >
-                {title}
-              </h4>
+            <h4
+              className={cn(
+                'font-bold text-sm text-slate-800 dark:text-slate-100 transition-colors line-clamp-1',
+                cv.parseStatus === 'pending_apply'
+                  ? 'cursor-wait opacity-70'
+                  : 'group-hover:text-brand-600 dark:group-hover:text-brand-400 cursor-pointer',
+              )}
+              onClick={navigateToEdit}
+            >
+              {title}
+            </h4>
           )}
           <div className="flex items-center gap-2 text-[10px] text-slate-400 dark:text-slate-500">
             <span className="flex items-center gap-0.5">

@@ -404,13 +404,15 @@ const SUGGESTED_SEARCH_TAGS = [
 type HomepageMainProps = {
   initialData: HomepageResponse | null;
   accessToken: string | null;
-  isAuthenticated: boolean;
+  isAuthenticated?: boolean;
+  role?: string;
 };
 
 export function HomepageMain({
   initialData,
   accessToken,
-  isAuthenticated,
+  isAuthenticated = false,
+  role,
 }: HomepageMainProps) {
   const [homepageData, setHomepageData] = useState<HomepageResponse>(
     initialData ?? FALLBACK_HOMEPAGE,
@@ -639,6 +641,7 @@ export function HomepageMain({
       <SiteHeader
         isAuthenticated={isAuthenticated}
         unreadCount={unreadCount}
+        role={role}
         user={{
           name: homepageData.currentUser?.name,
           email: undefined,

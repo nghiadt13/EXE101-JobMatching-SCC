@@ -8,6 +8,7 @@ export type ApplicationStatus =
   | 'REVIEWING'
   | 'INTERVIEW'
   | 'OFFER'
+  | 'ACCEPTED'
   | 'REJECTED'
   | 'WITHDRAWN';
 

@@ -24,10 +24,14 @@ export type ApplicationView = {
     id: string;
     name: string;
     email: string;
+    phone?: string | null;
+    location?: any | null;
+    avatar?: string | null;
   };
   cv: {
     id: string;
     fileName: string;
+    source?: string | null;
     candidateProfile?: Record<string, unknown> | null;
     parsedData?: Record<string, unknown> | null;
   };

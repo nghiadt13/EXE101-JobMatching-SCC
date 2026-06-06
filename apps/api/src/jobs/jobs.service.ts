@@ -263,7 +263,13 @@ export class JobsService {
               salaryMin: null,
               salaryMax: null,
               employmentType: draft.employmentType,
-              workingDayStatus: 'not_mentioned',
+              workingDayStatus: draft.workingDayStatus ?? 'not_mentioned',
+              experienceLevel: draft.experienceLevel ?? 'no_required',
+              minExperienceMonths: draft.minExperienceMonths ?? null,
+              companyIndustryKey: draft.companyIndustryKey ?? null,
+              jobFieldKey: draft.jobFieldKey ?? null,
+              jobLevel: draft.jobLevel ?? null,
+              salesModel: draft.salesModel ?? null,
               salaryNegotiable: true,
               status: JobStatus.DRAFT,
             },
@@ -2128,6 +2134,13 @@ export class JobsService {
     description: string;
     skills: string[];
     employmentType: string;
+    workingDayStatus?: string;
+    experienceLevel?: string;
+    minExperienceMonths?: number | null;
+    companyIndustryKey?: string;
+    jobFieldKey?: string;
+    jobLevel?: string;
+    salesModel?: string;
   } {
     const fallbackTitle = this.buildFallbackTitle(originalName);
     const title =
@@ -2142,6 +2155,13 @@ export class JobsService {
       skills: this.normalizeSkills(profile.skills),
       employmentType:
         this.clampString(profile.jobMeta?.employmentType, 50) || 'FULL_TIME',
+      workingDayStatus: this.clampString(profile.jobMeta?.workingDayStatus, 50) || 'not_mentioned',
+      experienceLevel: this.clampString(profile.jobMeta?.experienceLevel, 50) || 'no_required',
+      minExperienceMonths: profile.jobMeta?.minExperienceMonths ?? null,
+      companyIndustryKey: this.clampString(profile.jobMeta?.companyIndustryKey, 50) || undefined,
+      jobFieldKey: this.clampString(profile.jobMeta?.jobFieldKey, 50) || undefined,
+      jobLevel: this.clampString(profile.jobMeta?.jobLevel, 50) || undefined,
+      salesModel: this.clampString(profile.jobMeta?.salesModel, 50) || undefined,
     };
   }
 

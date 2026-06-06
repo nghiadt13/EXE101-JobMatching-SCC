@@ -56,8 +56,23 @@ type ApplicationRecord = {
       iconKey: string | null;
     } | null;
   };
-  candidate: { id: string; user: { name: string; email: string } };
-  cv: { id: string; fileName: string };
+  candidate: {
+    id: string;
+    phone?: string | null;
+    location?: Prisma.JsonValue | null;
+    user: {
+      name: string;
+      email: string;
+      avatar?: string | null;
+    };
+  };
+  cv: {
+    id: string;
+    fileName: string;
+    source?: string | null;
+    candidateProfile: Prisma.JsonValue | null;
+    parsedData: Prisma.JsonValue | null;
+  };
 };
 
 @Injectable()
@@ -309,8 +324,17 @@ export class ApplicationsService {
         id: item.candidate.id,
         name: item.candidate.user.name,
         email: item.candidate.user.email,
+        phone: item.candidate.phone,
+        location: item.candidate.location,
+        avatar: item.candidate.user.avatar,
       },
-      cv: item.cv,
+      cv: {
+        id: item.cv.id,
+        fileName: item.cv.fileName,
+        source: item.cv.source,
+        candidateProfile: item.cv.candidateProfile as Record<string, unknown> | null,
+        parsedData: item.cv.parsedData as Record<string, unknown> | null,
+      },
     };
   }
 
@@ -362,13 +386,16 @@ export class ApplicationsService {
       candidate: {
         select: {
           id: true,
-          user: { select: { name: true, email: true } },
+          phone: true,
+          location: true,
+          user: { select: { name: true, email: true, avatar: true } },
         },
       },
       cv: {
         select: {
           id: true,
           fileName: true,
+          source: true,
           candidateProfile: true,
           parsedData: true,
         },

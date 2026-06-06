@@ -38,6 +38,13 @@ export interface JobMetaBlock {
   requirements: string[];
   benefits: string[];
   employmentType: string;
+  workingDayStatus?: string;
+  experienceLevel?: string;
+  minExperienceMonths?: number;
+  companyIndustryKey?: string;
+  jobFieldKey?: string;
+  jobLevel?: string;
+  salesModel?: string;
 }
 
 export interface NormalizedProfile {
