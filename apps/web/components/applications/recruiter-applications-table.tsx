@@ -160,12 +160,16 @@ export function RecruiterApplicationsTable({ items, action, token }: RecruiterAp
             
             {item.status === 'APPLIED' && (
               <>
+                <Button type="submit" name="status" value="APPLIED" size="sm" variant="outline">Lưu ghi chú</Button>
                 <Button type="submit" name="status" value="ACCEPTED" size="sm" className="bg-green-600 hover:bg-green-700 text-white">Chấp nhận</Button>
                 <Button type="submit" name="status" value="REJECTED" size="sm" variant="danger">Từ chối</Button>
               </>
             )}
             {item.status === 'ACCEPTED' && (
-              <Button type="submit" name="status" value="REJECTED" size="sm" variant="danger">Từ chối</Button>
+              <>
+                <Button type="submit" name="status" value="ACCEPTED" size="sm" variant="outline">Lưu ghi chú</Button>
+                <Button type="submit" name="status" value="REJECTED" size="sm" variant="danger">Từ chối</Button>
+              </>
             )}
           </form>
         </article>

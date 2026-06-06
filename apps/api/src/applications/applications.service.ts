@@ -22,17 +22,33 @@ const RECRUITER_TRANSITIONS = new Map<ApplicationStatus, ApplicationStatus[]>([
   [ApplicationStatus.PENDING_MATCHING, [ApplicationStatus.REJECTED]],
   [
     ApplicationStatus.APPLIED,
-    [ApplicationStatus.REVIEWING, ApplicationStatus.REJECTED],
+    [
+      ApplicationStatus.REVIEWING,
+      ApplicationStatus.ACCEPTED,
+      ApplicationStatus.REJECTED,
+    ],
   ],
   [
     ApplicationStatus.REVIEWING,
-    [ApplicationStatus.INTERVIEW, ApplicationStatus.REJECTED],
+    [
+      ApplicationStatus.INTERVIEW,
+      ApplicationStatus.ACCEPTED,
+      ApplicationStatus.REJECTED,
+    ],
   ],
   [
     ApplicationStatus.INTERVIEW,
-    [ApplicationStatus.OFFER, ApplicationStatus.REJECTED],
+    [
+      ApplicationStatus.OFFER,
+      ApplicationStatus.ACCEPTED,
+      ApplicationStatus.REJECTED,
+    ],
   ],
-  [ApplicationStatus.OFFER, [ApplicationStatus.REJECTED]],
+  [
+    ApplicationStatus.OFFER,
+    [ApplicationStatus.ACCEPTED, ApplicationStatus.REJECTED],
+  ],
+  [ApplicationStatus.ACCEPTED, [ApplicationStatus.REJECTED]],
 ]);
 
 type ApplicationRecord = {

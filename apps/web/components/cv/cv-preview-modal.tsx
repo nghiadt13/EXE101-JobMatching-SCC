@@ -75,7 +75,7 @@ export function CvPreviewModal({
   }, [isOpen, handleKeyDown]);
 
   const isBuilderCv = cv?.source === 'builder';
-  const isPdf = cv?.mimeType === 'application/pdf' || cv?.fileName?.toLowerCase().endsWith('.pdf');
+  const isPdf = !!(cv?.mimeType === 'application/pdf' || cv?.fileName?.toLowerCase().endsWith('.pdf'));
 
   // ─── Uploaded file (PDF/DOCX) blob loading ──────────────────────────────
   const [fileUrl, setFileUrl] = useState<string | null>(null);
