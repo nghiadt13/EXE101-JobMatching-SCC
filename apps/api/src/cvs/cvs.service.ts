@@ -6,7 +6,8 @@ import {
   PayloadTooLargeException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, UserRole } from '@prisma/client';
+import type { JwtPayload } from '../auth/auth.types';
 import {
   CV_MAX_ACTIVE_PER_CANDIDATE,
   CV_MAX_FILE_SIZE_BYTES,
@@ -425,11 +426,58 @@ export class CvsService {
   }
 
   async getFileInfo(
-    userId: string,
+    actor: JwtPayload,
     cvId: string,
   ): Promise<{ absolutePath: string; mimeType: string; fileName: string }> {
-    const candidate = await this.getCandidateOrThrow(userId);
-    const cv = await this.ensureCvOwnership(candidate.id, cvId);
+    let cv;
+    if (actor.role === UserRole.CANDIDATE) {
+      const candidate = await this.getCandidateOrThrow(actor.sub);
+      cv = await this.ensureCvOwnership(candidate.id, cvId);
+    } else if (actor.role === UserRole.RECRUITER) {
+      const cvExists = await this.prisma.cV.findFirst({
+        where: { id: cvId, deletedAt: null },
+      });
+      if (!cvExists) {
+        throw new NotFoundException(
+          buildErrorPayload(ERROR_CODES.notFound, 'CV not found'),
+        );
+      }
+      const hasApplication = await this.prisma.application.findFirst({
+        where: {
+          cvId,
+          job: {
+            recruiterId: actor.sub,
+            deletedAt: null,
+          },
+        },
+      });
+      if (!hasApplication) {
+        throw new ForbiddenException(
+          buildErrorPayload(
+            ERROR_CODES.forbidden,
+            'You do not have permission to access this CV',
+          ),
+        );
+      }
+      cv = cvExists;
+    } else if (actor.role === UserRole.ADMIN) {
+      const cvExists = await this.prisma.cV.findFirst({
+        where: { id: cvId, deletedAt: null },
+      });
+      if (!cvExists) {
+        throw new NotFoundException(
+          buildErrorPayload(ERROR_CODES.notFound, 'CV not found'),
+        );
+      }
+      cv = cvExists;
+    } else {
+      throw new ForbiddenException(
+        buildErrorPayload(
+          ERROR_CODES.forbidden,
+          'You do not have permission to access this CV',
+        ),
+      );
+    }
 
     if (!cv.filePath) {
       throw new NotFoundException('CV file not found');

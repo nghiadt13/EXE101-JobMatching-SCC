@@ -8,6 +8,7 @@ import {
   getApplications,
   updateApplicationStatus,
 } from '@/lib/applications-client';
+import { ApiError } from '@/lib/api-client';
 
 const RECRUITER_TRANSITIONS: Record<string, ApplicationStatus[]> = {
   APPLIED: ['ACCEPTED', 'REJECTED'],
@@ -56,16 +57,50 @@ export default async function RecruiterApplicationsPage({
   const statusParam = typeof params.status === 'string' ? params.status : 'APPLIED';
   const filterStatus = isRecruiterStatus(statusParam) ? (statusParam as ApplicationStatus) : 'APPLIED';
 
-  const applications = await getApplications(session.accessToken, {
-    page: 1,
-    limit: 50,
-    status: filterStatus,
-  });
+  let applications;
+  try {
+    applications = await getApplications(session.accessToken, {
+      page: 1,
+      limit: 100,
+    });
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) redirect('/api/auth/logout');
+    applications = { items: [], pagination: { page: 1, limit: 100, totalItems: 0, totalPages: 0 } };
+  }
+
+  // Calculate counts for each tab
+  const pendingCount = applications.items.filter(item => 
+    ['APPLIED', 'PENDING_MATCHING', 'REVIEWING'].includes(item.status)
+  ).length;
+
+  const acceptedCount = applications.items.filter(item => 
+    ['ACCEPTED', 'INTERVIEW', 'OFFER'].includes(item.status)
+  ).length;
+
+  const rejectedCount = applications.items.filter(item => 
+    ['REJECTED', 'WITHDRAWN'].includes(item.status)
+  ).length;
+
+  // Filter items based on active tab
+  let filteredItems: typeof applications.items = [];
+  if (filterStatus === 'APPLIED') {
+    filteredItems = applications.items.filter(item => 
+      ['APPLIED', 'PENDING_MATCHING', 'REVIEWING'].includes(item.status)
+    );
+  } else if (filterStatus === 'ACCEPTED') {
+    filteredItems = applications.items.filter(item => 
+      ['ACCEPTED', 'INTERVIEW', 'OFFER'].includes(item.status)
+    );
+  } else if (filterStatus === 'REJECTED') {
+    filteredItems = applications.items.filter(item => 
+      ['REJECTED', 'WITHDRAWN'].includes(item.status)
+    );
+  }
 
   const TABS = [
-    { label: 'Chưa review', value: 'APPLIED' },
-    { label: 'Đã chấp nhận', value: 'ACCEPTED' },
-    { label: 'Đã từ chối', value: 'REJECTED' },
+    { label: `Chưa review (${pendingCount})`, value: 'APPLIED' },
+    { label: `Đã chấp nhận (${acceptedCount})`, value: 'ACCEPTED' },
+    { label: `Đã từ chối (${rejectedCount})`, value: 'REJECTED' },
   ];
 
   return (
@@ -89,7 +124,7 @@ export default async function RecruiterApplicationsPage({
             return (
               <a
                 key={tab.value}
-                href={tab.value ? `?status=${tab.value}` : '?'}
+                href={`/dashboard/recruiter/applications?status=${tab.value}`}
                 className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
                   isActive
                     ? 'border-brand-600 text-brand-600'
@@ -104,7 +139,7 @@ export default async function RecruiterApplicationsPage({
         </nav>
       </div>
 
-      <RecruiterApplicationsTable items={applications.items} action={updateStatusAction} token={session.accessToken} />
+      <RecruiterApplicationsTable items={filteredItems} action={updateStatusAction} token={session.accessToken} />
     </DashboardShell>
   );
 }

@@ -31,6 +31,19 @@ export default async function CandidateApplicationsPage({ searchParams }: PagePr
     applications = { items: [], pagination: { page: 1, limit: 100, totalItems: 0, totalPages: 0 } };
   }
 
+  // Calculate counts for each tab
+  const pendingCount = applications.items.filter(item => 
+    ['PENDING_MATCHING', 'APPLIED', 'REVIEWING'].includes(item.status)
+  ).length;
+
+  const acceptedCount = applications.items.filter(item => 
+    ['ACCEPTED', 'INTERVIEW', 'OFFER'].includes(item.status)
+  ).length;
+
+  const rejectedCount = applications.items.filter(item => 
+    ['REJECTED', 'WITHDRAWN'].includes(item.status)
+  ).length;
+
   // Filter items based on active tab
   let filteredItems: typeof applications.items = [];
   if (filterStatus === 'PENDING') {
@@ -48,9 +61,9 @@ export default async function CandidateApplicationsPage({ searchParams }: PagePr
   }
 
   const TABS = [
-    { label: 'Đang chờ xem xét', value: 'PENDING' },
-    { label: 'Đã được nhận', value: 'ACCEPTED' },
-    { label: 'Đã bị từ chối', value: 'REJECTED' },
+    { label: `Đang chờ xem xét (${pendingCount})`, value: 'PENDING' },
+    { label: `Đã được nhận (${acceptedCount})`, value: 'ACCEPTED' },
+    { label: `Đã bị từ chối (${rejectedCount})`, value: 'REJECTED' },
   ];
 
   return (

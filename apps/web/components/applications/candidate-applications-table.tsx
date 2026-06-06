@@ -53,7 +53,7 @@ const STATUS_CONFIG: Record<string, StatusConfig> = {
     badgeVariant: 'warning',
   },
   APPLIED: {
-    label: 'Đã nộp',
+    label: 'Chưa review',
     icon: <Briefcase className="h-3.5 w-3.5" />,
     badgeVariant: 'default',
   },
@@ -72,8 +72,13 @@ const STATUS_CONFIG: Record<string, StatusConfig> = {
     icon: <Trophy className="h-3.5 w-3.5" />,
     badgeVariant: 'success',
   },
+  ACCEPTED: {
+    label: 'Đã chấp nhận',
+    icon: <CheckCircle2 className="h-3.5 w-3.5" />,
+    badgeVariant: 'success',
+  },
   REJECTED: {
-    label: 'Không phù hợp',
+    label: 'Đã từ chối',
     icon: <XCircle className="h-3.5 w-3.5" />,
     badgeVariant: 'danger',
   },
@@ -507,9 +512,6 @@ export function CandidateApplicationsTable({ items: initialItems, allItems }: Ca
 
   return (
     <div className="space-y-6">
-      {/* Stats summary */}
-      <StatsSummary items={allItems || items} />
-
       {/* Application cards */}
       <div className="space-y-3">
         {items.map((item, index) => (

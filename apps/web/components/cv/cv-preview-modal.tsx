@@ -201,8 +201,8 @@ export function CvPreviewModal({ isOpen, onClose, cv, token }: CvPreviewModalPro
         }}
       >
         {/* Preview Header */}
-        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0 glass bg-white/90 dark:bg-slate-900/90">
-          <div className="space-y-0.5">
+        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0 glass bg-white/90 dark:bg-slate-900/90 gap-4">
+          <div className="space-y-0.5 min-w-0 flex-1">
             <span className="text-[10px] text-brand-600 dark:text-brand-400 font-bold uppercase tracking-wider block">
               Chế độ xem trước thời gian thực
             </span>
@@ -210,7 +210,7 @@ export function CvPreviewModal({ isOpen, onClose, cv, token }: CvPreviewModalPro
               {cv.fileName || 'CV Preview'}
             </h4>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={() => window.print()}
               className="p-2 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-300 transition-all cursor-pointer bg-transparent"

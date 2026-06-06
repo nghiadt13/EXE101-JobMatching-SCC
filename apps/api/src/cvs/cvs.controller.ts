@@ -18,6 +18,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { UserRole } from '@prisma/client';
 import { createReadStream } from 'node:fs';
 import { memoryStorage } from 'multer';
+import type { JwtPayload } from '../auth/auth.types';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -82,13 +83,14 @@ export class CvsController {
   }
 
   @Get(':id/file')
+  @Roles(UserRole.CANDIDATE, UserRole.RECRUITER)
   async getFile(
-    @CurrentUser() user: { sub: string },
+    @CurrentUser() user: JwtPayload,
     @Param('id') id: string,
     @Res({ passthrough: true }) res: any,
   ): Promise<StreamableFile> {
     const { absolutePath, mimeType, fileName } =
-      await this.cvsService.getFileInfo(user.sub, id);
+      await this.cvsService.getFileInfo(user, id);
 
     res.set({
       'Content-Type': mimeType,
