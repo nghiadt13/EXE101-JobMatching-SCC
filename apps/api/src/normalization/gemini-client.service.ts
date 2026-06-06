@@ -5,11 +5,22 @@ import { LlmClient } from './llm-client.interface';
 export class GeminiClientService implements LlmClient {
   readonly provider = 'gemini' as const;
 
-  getModelName(): string {
-    return process.env['GEMINI_MODEL'] ?? 'gemini-3.1-flash-lite-preview';
+  getModelName(tier: 'fast' | 'pro' = 'fast'): string {
+    if (tier === 'pro') {
+      return process.env['GEMINI_PRO_MODEL'] ?? 'gemini-1.5-pro';
+    }
+    return (
+      process.env['GEMINI_FAST_MODEL'] ??
+      process.env['GEMINI_MODEL'] ??
+      'gemini-1.5-flash'
+    );
   }
 
-  async generateText(prompt: string, timeoutMs = 60000): Promise<string> {
+  async generateText(
+    prompt: string,
+    timeoutMs = 60000,
+    tier: 'fast' | 'pro' = 'fast',
+  ): Promise<string> {
     const apiKey = process.env['GEMINI_API_KEY'];
     if (!apiKey) {
       throw new Error('GEMINI_API_KEY is required');
@@ -17,7 +28,7 @@ export class GeminiClientService implements LlmClient {
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
-    const model = this.getModelName();
+    const model = this.getModelName(tier);
 
     try {
       const response = await fetch(
@@ -99,14 +110,18 @@ export class GeminiClientService implements LlmClient {
 
     const payload = (await response.json()) as Record<string, unknown>;
     if (!response.ok) {
-      const errorMsg = this.asRecord(payload['error'])?.['message'] || 'Embedding request failed';
+      const errorMsg =
+        this.asRecord(payload['error'])?.['message'] ||
+        'Embedding request failed';
       throw new Error(`Gemini embedding failed: ${errorMsg}`);
     }
 
     const embedding = this.asRecord(payload['embedding']);
     const values = embedding?.['values'];
     if (!Array.isArray(values)) {
-      throw new Error('Failed to extract embedding values from Gemini response');
+      throw new Error(
+        'Failed to extract embedding values from Gemini response',
+      );
     }
 
     return values as number[];

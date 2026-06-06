@@ -125,6 +125,48 @@ export const ProfessionalTemplate = memo(function ProfessionalTemplate({
     onChange({ ...data, [key]: next });
   };
 
+  const addExperience = () => {
+    const next = data.experience.slice();
+    next.push({
+      role: '',
+      company: '',
+      startDate: '',
+      endDate: '',
+      description: '',
+      tech: [],
+    });
+    onChange({ ...data, experience: next });
+  };
+
+  const addEducation = () => {
+    const next = data.education.slice();
+    next.push({
+      school: '',
+      degree: '',
+      field: '',
+      startDate: '',
+      endDate: '',
+      gpa: '',
+    });
+    onChange({ ...data, education: next });
+  };
+
+  const addProject = () => {
+    const next = data.projects.slice();
+    next.push({
+      name: '',
+      description: '',
+      tech: [],
+    });
+    onChange({ ...data, projects: next });
+  };
+
+  const addStringItem = (key: 'skills' | 'certifications' | 'languages') => {
+    const next = data[key].slice();
+    next.push('');
+    onChange({ ...data, [key]: next });
+  };
+
   return (
     <div
       className="flex flex-col gap-0"
@@ -202,30 +244,45 @@ export const ProfessionalTemplate = memo(function ProfessionalTemplate({
           >
             <SidebarHeading id="cv-section-skills-title">Kỹ năng</SidebarHeading>
             {data.skills.length === 0 ? (
-              <EmptyHint label="[Thêm kỹ năng nổi bật]" />
+              <button
+                type="button"
+                onClick={() => addStringItem('skills')}
+                className="text-xs italic text-zinc-400 hover:underline print:hidden text-left"
+              >
+                [Thêm kỹ năng nổi bật]
+              </button>
             ) : (
-              <ul className="space-y-1.5">
-                {data.skills.map((skill, index) => (
-                  <BlockOverlay
-                    key={`skill-${index}`}
-                    onMoveUp={() => move('skills', index, 'up')}
-                    onMoveDown={() => move('skills', index, 'down')}
-                    onDelete={() => remove('skills', index)}
-                    canMoveUp={index > 0}
-                    canMoveDown={index < data.skills.length - 1}
-                    ariaLabel={`Kỹ năng ${index + 1}`}
-                  >
-                    <li className="px-1 text-sm text-zinc-800">
-                      <InlineEditableText
-                        value={skill}
-                        onChange={(value) => replaceStringAt('skills', index, value)}
-                        placeholder="[Tên kỹ năng]"
-                        ariaLabel={`Kỹ năng ${index + 1}`}
-                      />
-                    </li>
-                  </BlockOverlay>
-                ))}
-              </ul>
+              <div className="flex flex-col gap-2 items-start">
+                <ul className="space-y-1.5 w-full">
+                  {data.skills.map((skill, index) => (
+                    <BlockOverlay
+                      key={`skill-${index}`}
+                      onMoveUp={() => move('skills', index, 'up')}
+                      onMoveDown={() => move('skills', index, 'down')}
+                      onDelete={() => remove('skills', index)}
+                      canMoveUp={index > 0}
+                      canMoveDown={index < data.skills.length - 1}
+                      ariaLabel={`Kỹ năng ${index + 1}`}
+                    >
+                      <li className="px-1 text-sm text-zinc-800">
+                        <InlineEditableText
+                          value={skill}
+                          onChange={(value) => replaceStringAt('skills', index, value)}
+                          placeholder="[Tên kỹ năng]"
+                          ariaLabel={`Kỹ năng ${index + 1}`}
+                        />
+                      </li>
+                    </BlockOverlay>
+                  ))}
+                </ul>
+                <button
+                  type="button"
+                  onClick={() => addStringItem('skills')}
+                  className="text-xs font-semibold text-[var(--cv-primary-color)] hover:underline print:hidden"
+                >
+                  + Thêm kỹ năng
+                </button>
+              </div>
             )}
           </section>
 
@@ -237,32 +294,47 @@ export const ProfessionalTemplate = memo(function ProfessionalTemplate({
           >
             <SidebarHeading id="cv-section-languages-title">Ngôn ngữ</SidebarHeading>
             {data.languages.length === 0 ? (
-              <EmptyHint label="[Thêm ngôn ngữ]" />
+              <button
+                type="button"
+                onClick={() => addStringItem('languages')}
+                className="text-xs italic text-zinc-400 hover:underline print:hidden text-left"
+              >
+                [Thêm ngôn ngữ]
+              </button>
             ) : (
-              <ul className="space-y-1.5">
-                {data.languages.map((language, index) => (
-                  <BlockOverlay
-                    key={`language-${index}`}
-                    onMoveUp={() => move('languages', index, 'up')}
-                    onMoveDown={() => move('languages', index, 'down')}
-                    onDelete={() => remove('languages', index)}
-                    canMoveUp={index > 0}
-                    canMoveDown={index < data.languages.length - 1}
-                    ariaLabel={`Ngôn ngữ ${index + 1}`}
-                  >
-                    <li className="px-1 text-sm text-zinc-800">
-                      <InlineEditableText
-                        value={language}
-                        onChange={(value) =>
-                          replaceStringAt('languages', index, value)
-                        }
-                        placeholder="[Tên ngôn ngữ]"
-                        ariaLabel={`Ngôn ngữ ${index + 1}`}
-                      />
-                    </li>
-                  </BlockOverlay>
-                ))}
-              </ul>
+              <div className="flex flex-col gap-2 items-start">
+                <ul className="space-y-1.5 w-full">
+                  {data.languages.map((language, index) => (
+                    <BlockOverlay
+                      key={`language-${index}`}
+                      onMoveUp={() => move('languages', index, 'up')}
+                      onMoveDown={() => move('languages', index, 'down')}
+                      onDelete={() => remove('languages', index)}
+                      canMoveUp={index > 0}
+                      canMoveDown={index < data.languages.length - 1}
+                      ariaLabel={`Ngôn ngữ ${index + 1}`}
+                    >
+                      <li className="px-1 text-sm text-zinc-800">
+                        <InlineEditableText
+                          value={language}
+                          onChange={(value) =>
+                            replaceStringAt('languages', index, value)
+                          }
+                          placeholder="[Tên ngôn ngữ]"
+                          ariaLabel={`Ngôn ngữ ${index + 1}`}
+                        />
+                      </li>
+                    </BlockOverlay>
+                  ))}
+                </ul>
+                <button
+                  type="button"
+                  onClick={() => addStringItem('languages')}
+                  className="text-xs font-semibold text-[var(--cv-primary-color)] hover:underline print:hidden"
+                >
+                  + Thêm ngôn ngữ
+                </button>
+              </div>
             )}
           </section>
 
@@ -276,32 +348,47 @@ export const ProfessionalTemplate = memo(function ProfessionalTemplate({
               Chứng chỉ
             </SidebarHeading>
             {data.certifications.length === 0 ? (
-              <EmptyHint label="[Thêm chứng chỉ]" />
+              <button
+                type="button"
+                onClick={() => addStringItem('certifications')}
+                className="text-xs italic text-zinc-400 hover:underline print:hidden text-left"
+              >
+                [Thêm chứng chỉ]
+              </button>
             ) : (
-              <ul className="space-y-1.5">
-                {data.certifications.map((cert, index) => (
-                  <BlockOverlay
-                    key={`certification-${index}`}
-                    onMoveUp={() => move('certifications', index, 'up')}
-                    onMoveDown={() => move('certifications', index, 'down')}
-                    onDelete={() => remove('certifications', index)}
-                    canMoveUp={index > 0}
-                    canMoveDown={index < data.certifications.length - 1}
-                    ariaLabel={`Chứng chỉ ${index + 1}`}
-                  >
-                    <li className="px-1 text-sm text-zinc-800">
-                      <InlineEditableText
-                        value={cert}
-                        onChange={(value) =>
-                          replaceStringAt('certifications', index, value)
-                        }
-                        placeholder="[Tên chứng chỉ]"
-                        ariaLabel={`Chứng chỉ ${index + 1}`}
-                      />
-                    </li>
-                  </BlockOverlay>
-                ))}
-              </ul>
+              <div className="flex flex-col gap-2 items-start">
+                <ul className="space-y-1.5 w-full">
+                  {data.certifications.map((cert, index) => (
+                    <BlockOverlay
+                      key={`certification-${index}`}
+                      onMoveUp={() => move('certifications', index, 'up')}
+                      onMoveDown={() => move('certifications', index, 'down')}
+                      onDelete={() => remove('certifications', index)}
+                      canMoveUp={index > 0}
+                      canMoveDown={index < data.certifications.length - 1}
+                      ariaLabel={`Chứng chỉ ${index + 1}`}
+                    >
+                      <li className="px-1 text-sm text-zinc-800">
+                        <InlineEditableText
+                          value={cert}
+                          onChange={(value) =>
+                            replaceStringAt('certifications', index, value)
+                          }
+                          placeholder="[Tên chứng chỉ]"
+                          ariaLabel={`Chứng chỉ ${index + 1}`}
+                        />
+                      </li>
+                    </BlockOverlay>
+                  ))}
+                </ul>
+                <button
+                  type="button"
+                  onClick={() => addStringItem('certifications')}
+                  className="text-xs font-semibold text-[var(--cv-primary-color)] hover:underline print:hidden"
+                >
+                  + Thêm chứng chỉ
+                </button>
+              </div>
             )}
           </section>
         </aside>
@@ -317,7 +404,13 @@ export const ProfessionalTemplate = memo(function ProfessionalTemplate({
           >
             <MainHeading id="cv-section-experience-title">Kinh nghiệm</MainHeading>
             {data.experience.length === 0 ? (
-              <EmptyHint label="[Thêm kinh nghiệm làm việc]" />
+              <button
+                type="button"
+                onClick={addExperience}
+                className="text-sm italic text-zinc-400 hover:underline print:hidden text-left"
+              >
+                [Thêm kinh nghiệm làm việc]
+              </button>
             ) : (
               <div className="space-y-4">
                 {data.experience.map((entry, index) => (
@@ -386,6 +479,13 @@ export const ProfessionalTemplate = memo(function ProfessionalTemplate({
                     </article>
                   </BlockOverlay>
                 ))}
+                <button
+                  type="button"
+                  onClick={addExperience}
+                  className="text-xs font-semibold text-[var(--cv-primary-color)] hover:underline print:hidden"
+                >
+                  + Thêm kinh nghiệm làm việc
+                </button>
               </div>
             )}
           </section>
@@ -397,7 +497,13 @@ export const ProfessionalTemplate = memo(function ProfessionalTemplate({
           >
             <MainHeading id="cv-section-education-title">Học vấn</MainHeading>
             {data.education.length === 0 ? (
-              <EmptyHint label="[Thêm thông tin học vấn]" />
+              <button
+                type="button"
+                onClick={addEducation}
+                className="text-sm italic text-zinc-400 hover:underline print:hidden text-left"
+              >
+                [Thêm thông tin học vấn]
+              </button>
             ) : (
               <div className="space-y-4">
                 {data.education.map((entry, index) => (
@@ -467,6 +573,13 @@ export const ProfessionalTemplate = memo(function ProfessionalTemplate({
                     </article>
                   </BlockOverlay>
                 ))}
+                <button
+                  type="button"
+                  onClick={addEducation}
+                  className="text-xs font-semibold text-[var(--cv-primary-color)] hover:underline print:hidden"
+                >
+                  + Thêm thông tin học vấn
+                </button>
               </div>
             )}
           </section>
@@ -478,7 +591,13 @@ export const ProfessionalTemplate = memo(function ProfessionalTemplate({
           >
             <MainHeading id="cv-section-projects-title">Dự án</MainHeading>
             {data.projects.length === 0 ? (
-              <EmptyHint label="[Thêm dự án nổi bật]" />
+              <button
+                type="button"
+                onClick={addProject}
+                className="text-sm italic text-zinc-400 hover:underline print:hidden text-left"
+              >
+                [Thêm dự án nổi bật]
+              </button>
             ) : (
               <div className="space-y-4">
                 {data.projects.map((project, index) => (
@@ -514,6 +633,13 @@ export const ProfessionalTemplate = memo(function ProfessionalTemplate({
                     </article>
                   </BlockOverlay>
                 ))}
+                <button
+                  type="button"
+                  onClick={addProject}
+                  className="text-xs font-semibold text-[var(--cv-primary-color)] hover:underline print:hidden"
+                >
+                  + Thêm dự án
+                </button>
               </div>
             )}
           </section>

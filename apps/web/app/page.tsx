@@ -26,6 +26,7 @@ export default async function HomePage() {
       initialData={homepageData}
       accessToken={token ?? null}
       isAuthenticated={Boolean(token)}
+      role={session?.user?.role}
     />
   );
 }

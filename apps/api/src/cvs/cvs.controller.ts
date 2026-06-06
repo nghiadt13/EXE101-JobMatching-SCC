@@ -13,11 +13,14 @@ import {
   UploadedFile,
   UseGuards,
   UseInterceptors,
+  Res,
+  StreamableFile,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import { createReadStream } from 'node:fs';
 import { UserRole } from '@prisma/client';
+import { createReadStream } from 'node:fs';
 import { memoryStorage } from 'multer';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';

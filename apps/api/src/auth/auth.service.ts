@@ -172,8 +172,7 @@ export class AuthService {
           password: dummyPasswordHash,
           role,
           avatar: dto.avatar,
-          candidates:
-            role === UserRole.CANDIDATE ? { create: {} } : undefined,
+          candidates: role === UserRole.CANDIDATE ? { create: {} } : undefined,
         },
         select: {
           id: true,

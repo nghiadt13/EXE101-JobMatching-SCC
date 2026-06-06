@@ -59,19 +59,59 @@ describe('AiNormalizationService', () => {
       geminiClient as unknown as GeminiClientService,
       kimiClient as unknown as KimiClientService,
       deepseekClient as unknown as DeepseekClientService,
+      {
+        jobCategory: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+      } as any,
     );
     process.env.GEMINI_API_KEY = 'test-key';
     delete process.env.LLM_PROVIDER;
     delete process.env.LLM_FALLBACK_PROVIDER;
+    delete process.env.CV_PARSE_LLM_PROVIDER;
   });
 
   afterEach(() => {
     delete process.env.GEMINI_API_KEY;
     delete process.env.LLM_PROVIDER;
     delete process.env.LLM_FALLBACK_PROVIDER;
+    delete process.env.CV_PARSE_LLM_PROVIDER;
   });
 
-  it('repairs malformed LLM output into a normalized profile', async () => {
+  it('uses DeepSeek fast by default for CV normalization', async () => {
+    deepseekClient.generateText.mockResolvedValue(
+      JSON.stringify({
+        schemaVersion: 'candidate_job_profile_v1',
+        language: 'en',
+        title: 'Backend Engineer',
+        summary: 'Build APIs',
+        skills: ['TypeScript', 'Node.js'],
+        experience: [],
+        education: [],
+        certifications: [],
+        projects: [],
+        languages: ['English'],
+        location: { city: 'Hanoi', country: 'Vietnam' },
+        rawQuality: {
+          score: 82,
+          needsManualReview: false,
+          reason: '',
+        },
+      }),
+    );
+
+    const result = await service.normalizeCv('TypeScript Node.js engineer');
+
+    expect(deepseekClient.generateText).toHaveBeenCalledTimes(1);
+    expect(deepseekClient.getModelName).toHaveBeenCalledWith();
+    expect(result.telemetry.provider).toBe('deepseek');
+    expect(result.telemetry.model).toBe('deepseek-v4-flash');
+    expect(result.profile.skills).toEqual(['TypeScript', 'Node.js']);
+    expect(geminiClient.generateText).not.toHaveBeenCalled();
+  });
+
+  it('repairs malformed CV LLM output using the configured CV parse provider', async () => {
+    process.env.CV_PARSE_LLM_PROVIDER = 'gemini';
     geminiClient.generateText
       .mockResolvedValueOnce('not valid json')
       .mockResolvedValueOnce(
@@ -113,8 +153,8 @@ describe('AiNormalizationService', () => {
     ).rejects.toBeInstanceOf(AiNormalizationError);
   });
 
-  it('uses the Kimi client when configured', async () => {
-    process.env.LLM_PROVIDER = 'kimi';
+  it('uses the Kimi client for CV normalization when configured', async () => {
+    process.env.CV_PARSE_LLM_PROVIDER = 'kimi';
     kimiClient.generateText.mockResolvedValue(
       JSON.stringify({
         schemaVersion: 'candidate_job_profile_v1',
@@ -146,7 +186,7 @@ describe('AiNormalizationService', () => {
   });
 
   it('uses the DeepSeek client when configured', async () => {
-    process.env.LLM_PROVIDER = 'deepseek';
+    process.env.CV_PARSE_LLM_PROVIDER = 'deepseek';
     deepseekClient.generateText.mockResolvedValue(
       JSON.stringify({
         schemaVersion: 'candidate_job_profile_v1',
@@ -176,6 +216,7 @@ describe('AiNormalizationService', () => {
   });
 
   it('falls back to DeepSeek when the primary provider fails', async () => {
+    process.env.CV_PARSE_LLM_PROVIDER = 'gemini';
     process.env.LLM_FALLBACK_PROVIDER = 'deepseek';
     geminiClient.generateText.mockRejectedValue(new Error('quota exceeded'));
     deepseekClient.generateText.mockResolvedValue(
@@ -207,6 +248,7 @@ describe('AiNormalizationService', () => {
   });
 
   it('classifies timeout failures with retryable details', async () => {
+    process.env.CV_PARSE_LLM_PROVIDER = 'gemini';
     geminiClient.generateText.mockRejectedValue(
       new Error('Timeout after 60000ms'),
     );
@@ -231,7 +273,7 @@ describe('AiNormalizationService', () => {
   });
 
   it('classifies 429 failures with upstream metadata', async () => {
-    process.env.LLM_PROVIDER = 'kimi';
+    process.env.CV_PARSE_LLM_PROVIDER = 'kimi';
     kimiClient.generateText.mockRejectedValue(
       Object.assign(new Error('Rate limit exceeded'), {
         status: 429,
@@ -351,10 +393,10 @@ describe('AiNormalizationService', () => {
     expect(prompt).toContain('## Retrieved Context (Advisory Knowledge)');
     expect(prompt).toContain('ReactJS is commonly used as an alias for React.');
     expect(prompt).toContain(
-      'Treat retrieved context as background knowledge, not candidate evidence.',
+      'Candidate evidence must still be grounded in the CV text — do not fabricate skills.',
     );
     expect(prompt).toContain(
-      'Candidate evidence must still come from the Candidate CV Text section.',
+      'Use retrieved context to make your analysis MORE insightful, not to inflate scores.',
     );
   });
 });

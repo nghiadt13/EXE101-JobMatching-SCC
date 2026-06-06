@@ -30,6 +30,7 @@ import {
 import { CvStorageService } from './services/cv-storage.service';
 import { CvTextExtractorService } from './services/cv-text-extractor.service';
 import { VectorSyncService } from '../matching/rag/vector-sync.service';
+import { CvAiParserService } from './services/cv-ai-parser.service';
 
 @Injectable()
 export class CvsService {
@@ -41,6 +42,7 @@ export class CvsService {
     private readonly candidateProfileService: CandidateProfileService,
     private readonly skillStorageAdapter: SkillStorageAdapterService,
     private readonly vectorSync: VectorSyncService,
+    private readonly cvAiParser: CvAiParserService,
   ) {}
 
   async upload(userId: string, file: Express.Multer.File): Promise<CvView> {
@@ -123,7 +125,16 @@ export class CvsService {
         fileName: file.originalname,
         rawTextLength: rawText.length,
       });
-      this.vectorSync.syncCv(created.id).catch(err => this.logger.error('cv_vector_sync_failed', err));
+      this.vectorSync
+        .syncCv(created.id)
+        .catch((err) => this.logger.error('cv_vector_sync_failed', err));
+      this.parseCvInBackground(created.id, rawText).catch((err) =>
+        this.logger.error(
+          'cv_background_parse_unhandled',
+          { cvId: created.id },
+          err,
+        ),
+      );
       return this.toView(created);
     } catch (error) {
       this.logger.error(
@@ -173,7 +184,7 @@ export class CvsService {
         candidateId: candidate.id,
         source: 'builder',
         templateId: dto.templateId ?? 'simple',
-        fileName: `${dto.profile.name} - CV`,
+        fileName: `${dto.profile.name} - CV.pdf`,
         filePath: '',
         fileSize: 0,
         mimeType: 'application/json',
@@ -201,7 +212,9 @@ export class CvsService {
       templateId: dto.templateId ?? 'simple',
     });
 
-    this.vectorSync.syncCv(created.id).catch(err => this.logger.error('cv_vector_sync_failed', err));
+    this.vectorSync
+      .syncCv(created.id)
+      .catch((err) => this.logger.error('cv_vector_sync_failed', err));
     return this.toView(created);
   }
 
@@ -213,16 +226,7 @@ export class CvsService {
     const candidate = await this.getCandidateOrThrow(userId);
     const current = await this.ensureCvOwnership(candidate.id, cvId);
 
-    // Only builder CVs can be updated via this endpoint
-    if (current.source !== 'builder') {
-      throw new BadRequestException(
-        buildErrorPayload(
-          ERROR_CODES.cvLimitReached, // reuse existing error code
-          'Only builder CVs can be updated via this endpoint',
-        ),
-      );
-    }
-
+    // Allow CVs to be updated (including uploaded CVs being converted to builder CVs)
     const parsedData = this.buildNormalizedParsedData(dto);
     const rawText = this.generateRawText(dto);
     const normalizedSkills = this.skillStorageAdapter.toStoredSkills(
@@ -238,7 +242,6 @@ export class CvsService {
       where: { id: cvId },
       data: {
         templateId: dto.templateId ?? 'simple',
-        fileName: `${dto.profile.name} - CV`,
         parsedData: parsedData as unknown as Prisma.InputJsonValue,
         skills: normalizedSkills.skills as Prisma.InputJsonValue,
         skillAtoms:
@@ -262,7 +265,9 @@ export class CvsService {
       templateId: dto.templateId ?? 'simple',
     });
 
-    this.vectorSync.syncCv(updated.id).catch(err => this.logger.error('cv_vector_sync_failed', err));
+    await this.vectorSync
+      .syncCv(updated.id)
+      .catch((err) => this.logger.error('cv_vector_sync_failed', err));
     return this.toView(updated);
   }
 
@@ -308,6 +313,7 @@ export class CvsService {
     const normalizedProfile: NormalizedProfile = {
       schemaVersion: NORMALIZED_SCHEMA_VERSION,
       language: 'vi',
+      candidateName: dto.profile.name,
       title,
       summary: dto.profile.summary ?? '',
       skills: dto.skills,
@@ -316,6 +322,7 @@ export class CvsService {
         company: exp.company,
         startDate: exp.startDate,
         endDate: exp.endDate ?? null,
+        description: exp.description,
         tech: exp.tech ?? [],
       })),
       education: dto.education.map((edu) => ({
@@ -522,11 +529,14 @@ export class CvsService {
       ? this.buildCandidateProfile(mergedParsedData, effectiveSkills)
       : null;
     const shouldWriteCvDerivedFields =
-      dto.parsedData !== undefined || normalizedSkillsPayload !== null;
+      dto.parsedData !== undefined ||
+      normalizedSkillsPayload !== null ||
+      dto.fileName !== undefined;
 
     const updated = await this.prisma.cV.update({
       where: { id: cvId },
       data: {
+        ...(dto.fileName !== undefined ? { fileName: dto.fileName } : {}),
         ...(shouldWriteCvDerivedFields
           ? { parsedData: mergedParsedData as Prisma.InputJsonValue }
           : {}),
@@ -553,7 +563,9 @@ export class CvsService {
       select: this.cvViewSelect,
     });
 
-    this.vectorSync.syncCv(updated.id).catch(err => this.logger.error('cv_vector_sync_failed', err));
+    this.vectorSync
+      .syncCv(updated.id)
+      .catch((err) => this.logger.error('cv_vector_sync_failed', err));
     return this.toView(updated);
   }
 
@@ -568,6 +580,10 @@ export class CvsService {
           deletedAt: new Date(),
           isPrimary: false,
         },
+      });
+
+      await transaction.recommendationScan.deleteMany({
+        where: { cvId },
       });
 
       if (target.isPrimary) {
@@ -643,6 +659,7 @@ export class CvsService {
     parsedData: Prisma.JsonValue;
     skills: Prisma.JsonValue;
     source: string;
+    fileName: string;
   }> {
     // Look up the CV by id only (without candidate scoping) so we can
     // distinguish between "does not exist" (404) and "exists but not owned
@@ -660,6 +677,7 @@ export class CvsService {
         parsedData: true,
         skills: true,
         source: true,
+        fileName: true,
       },
     });
 
@@ -684,6 +702,7 @@ export class CvsService {
       parsedData: cv.parsedData,
       skills: cv.skills,
       source: cv.source,
+      fileName: cv.fileName,
     };
   }
 
@@ -717,6 +736,15 @@ export class CvsService {
     isPrimary: boolean;
     createdAt: Date;
     updatedAt: Date;
+    candidate?: {
+      phone: string | null;
+      location: Prisma.JsonValue;
+      user: {
+        name: string;
+        email: string;
+        avatar: string | null;
+      };
+    } | null;
   }): CvView {
     const parsedData = this.asRecord(
       item.parsedData,
@@ -768,6 +796,17 @@ export class CvsService {
         Object.keys(parseTelemetry).length > 0
           ? (parseTelemetry as unknown as CvView['parseTelemetry'])
           : null,
+      candidate: item.candidate
+        ? {
+            phone: item.candidate.phone,
+            location: item.candidate.location,
+            user: {
+              name: item.candidate.user.name,
+              email: item.candidate.user.email,
+              avatar: item.candidate.user.avatar,
+            },
+          }
+        : null,
       source: item.source,
       templateId: item.templateId,
       isPrimary: item.isPrimary,
@@ -792,9 +831,59 @@ export class CvsService {
       createdAt: true,
       updatedAt: true,
       filePath: true,
+      candidate: {
+        select: {
+          phone: true,
+          location: true,
+          user: {
+            select: {
+              name: true,
+              email: true,
+              avatar: true,
+            },
+          },
+        },
+      },
       // rawText intentionally excluded — too large for list/detail responses.
       // MatchingService reads rawText via a separate targeted query.
     } satisfies Prisma.CVSelect;
+  }
+  private async parseCvInBackground(
+    cvId: string,
+    rawText: string,
+  ): Promise<void> {
+    try {
+      this.logger.info('background_cv_parse_started', { cvId });
+      const parsed = (await this.cvAiParser.parse(rawText)) as any;
+
+      const normalizedSkills = this.skillStorageAdapter.toStoredSkills(
+        parsed.skills || [],
+        'cv_parsed',
+      );
+
+      const candidateProfile = this.buildCandidateProfile(
+        parsed,
+        normalizedSkills.skills,
+      );
+
+      await this.prisma.cV.update({
+        where: { id: cvId },
+        data: {
+          parsedData: parsed as Prisma.InputJsonValue,
+          skills: normalizedSkills.skills as Prisma.InputJsonValue,
+          skillAtoms:
+            normalizedSkills.skillAtoms as unknown as Prisma.InputJsonValue,
+          candidateProfile:
+            candidateProfile as unknown as Prisma.InputJsonValue,
+          candidateProfileVersion: candidateProfile?.version ?? null,
+        },
+      });
+
+      this.logger.info('background_cv_parse_completed', { cvId });
+      // We explicitly skip vectorSync here so the user can review and edit their parsed CV first.
+    } catch (error) {
+      this.logger.error('background_cv_parse_failed', { cvId }, error);
+    }
   }
 
   private buildCandidateProfile(

@@ -80,20 +80,21 @@ export class MatchingService {
 
     if (isV2) {
       const cvRawText = await this.getCvRawText(cv);
-      
+
       let ragContextStr: string | undefined = undefined;
       try {
         const jdSkills = Array.isArray(job.skills)
           ? job.skills.map(String)
           : [];
-        
-        const reqSchema = requirementsSchema as RequirementsSchemaV2;
-        const reqLabelsAndKeywords = reqSchema.requirements.flatMap(r => [r.label, ...(r.keywords || [])]);
-        
-        const cvSkills = Array.isArray(cv.skills)
-          ? cv.skills.map(String)
-          : [];
-          
+
+        const reqSchema = requirementsSchema;
+        const reqLabelsAndKeywords = reqSchema.requirements.flatMap((r) => [
+          r.label,
+          ...(r.keywords || []),
+        ]);
+
+        const cvSkills = Array.isArray(cv.skills) ? cv.skills.map(String) : [];
+
         const jdText = [job.title, job.description].filter(Boolean).join('\n');
 
         const ragContextResult = await this.ragRetrieverService.retrieve({
@@ -105,7 +106,10 @@ export class MatchingService {
 
         if (ragContextResult.items.length > 0) {
           ragContextStr = ragContextResult.items
-            .map((i) => `- [${i.item.kind}] ${i.item.title}: ${i.item.content}. Source: ${i.item.source}. Reason: ${i.reason}`)
+            .map(
+              (i) =>
+                `- [${i.item.kind}] ${i.item.title}: ${i.item.content}. Source: ${i.item.source}. Reason: ${i.reason}`,
+            )
             .join('\n');
         }
       } catch (error) {

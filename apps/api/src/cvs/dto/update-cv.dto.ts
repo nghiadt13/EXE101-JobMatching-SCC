@@ -18,4 +18,9 @@ export class UpdateCvDto {
   @IsOptional()
   @IsObject()
   parsedData?: Record<string, unknown>;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  fileName?: string;
 }

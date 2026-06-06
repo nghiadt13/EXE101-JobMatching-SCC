@@ -72,8 +72,18 @@ describe('JdDrivenEvaluationService', () => {
     aiNormalizationService.evaluateCvAgainstJd.mockResolvedValue(
       evaluation({
         constraintEvaluations: [
-          { constraintId: 'constraint-degree', label: '', met: false, evidence: 'No degree listed' },
-          { constraintId: 'constraint-language', label: '', met: true, evidence: 'English listed' },
+          {
+            constraintId: 'constraint-degree',
+            label: '',
+            met: false,
+            evidence: 'No degree listed',
+          },
+          {
+            constraintId: 'constraint-language',
+            label: '',
+            met: true,
+            evidence: 'English listed',
+          },
         ],
       }),
     );

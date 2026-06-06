@@ -40,11 +40,12 @@ export type CvItem = {
   mimeType: string;
   parseStatus: 'parsed_ok' | 'needs_review' | 'pending_apply';
   parseTelemetry: {
-    provider: 'gemini' | 'openai';
+    provider: 'gemini' | 'openai' | 'kimi' | 'deepseek';
     model: string;
     latencyMs: number;
   } | null;
   normalizedProfile: {
+    candidateName?: string;
     title: string;
     summary: string;
     skills: string[];
@@ -61,6 +62,15 @@ export type CvItem = {
   } | null;
   candidateProfile: CandidateProfile | null;
   candidateProfileVersion: string | null;
+  candidate?: {
+    phone: string | null;
+    location: any;
+    user: {
+      name: string;
+      email: string;
+      avatar: string | null;
+    };
+  } | null;
   parsedData: {
     skills: string[];
     summary?: string;
@@ -178,7 +188,7 @@ export function updateBuilderCv(token: string, cvId: string, data: CvBuilderData
 export function updateCv(
   token: string,
   cvId: string,
-  payload: { skills?: string[]; parsedData?: Record<string, unknown> },
+  payload: { skills?: string[]; parsedData?: Record<string, unknown>; fileName?: string },
 ) {
   return apiRequest<CvItem>(token, `/cvs/${cvId}`, {
     method: 'PATCH',
@@ -230,4 +240,17 @@ export function suggestCv(token: string, cvId: string, jobId: string) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ jobId }),
   });
+}
+
+export async function fetchCvFile(token: string, cvId: string): Promise<Blob> {
+  const res = await fetch(`${API_BASE_URL}/cvs/${cvId}/file`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw createApiError(res.status, body);
+  }
+  return res.blob();
 }

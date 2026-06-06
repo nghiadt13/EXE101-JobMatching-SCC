@@ -9,27 +9,25 @@ import {
   updateApplicationStatus,
 } from '@/lib/applications-client';
 
-const RECRUITER_TRANSITIONS: Record<ApplicationStatus, ApplicationStatus[]> = {
-  PENDING_MATCHING: ['APPLIED', 'REJECTED'],
-  APPLIED: ['REVIEWING', 'REJECTED'],
-  REVIEWING: ['INTERVIEW', 'REJECTED'],
-  INTERVIEW: ['OFFER', 'REJECTED'],
-  OFFER: ['REJECTED'],
+const RECRUITER_TRANSITIONS: Record<string, ApplicationStatus[]> = {
+  APPLIED: ['ACCEPTED', 'REJECTED'],
+  ACCEPTED: ['REJECTED'],
   REJECTED: [],
-  WITHDRAWN: [],
 };
 
 function isRecruiterStatus(value: string): value is Exclude<ApplicationStatus, 'WITHDRAWN'> {
   return (
     value === 'APPLIED' ||
-    value === 'REVIEWING' ||
-    value === 'INTERVIEW' ||
-    value === 'OFFER' ||
+    value === 'ACCEPTED' ||
     value === 'REJECTED'
   );
 }
 
-export default async function RecruiterApplicationsPage() {
+export default async function RecruiterApplicationsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   const session = await auth();
   if (!session?.user || !session.accessToken) redirect('/login');
   if (session.user.role !== 'RECRUITER') redirect('/dashboard');
@@ -54,7 +52,21 @@ export default async function RecruiterApplicationsPage() {
     revalidatePath('/dashboard/recruiter/applications');
   }
 
-  const applications = await getApplications(session.accessToken, { page: 1, limit: 50 });
+  const params = await searchParams;
+  const statusParam = typeof params.status === 'string' ? params.status : 'APPLIED';
+  const filterStatus = isRecruiterStatus(statusParam) ? (statusParam as ApplicationStatus) : 'APPLIED';
+
+  const applications = await getApplications(session.accessToken, {
+    page: 1,
+    limit: 50,
+    status: filterStatus,
+  });
+
+  const TABS = [
+    { label: 'Chưa review', value: 'APPLIED' },
+    { label: 'Đã chấp nhận', value: 'ACCEPTED' },
+    { label: 'Đã từ chối', value: 'REJECTED' },
+  ];
 
   return (
     <DashboardShell
@@ -70,6 +82,28 @@ export default async function RecruiterApplicationsPage() {
         { label: 'Đơn ứng tuyển' },
       ]}
     >
+      <div className="mb-6 border-b border-md-outline-variant/30 overflow-x-auto">
+        <nav className="flex space-x-6 min-w-max px-1" aria-label="Tabs">
+          {TABS.map((tab) => {
+            const isActive = filterStatus === tab.value;
+            return (
+              <a
+                key={tab.value}
+                href={tab.value ? `?status=${tab.value}` : '?'}
+                className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  isActive
+                    ? 'border-brand-600 text-brand-600'
+                    : 'border-transparent text-md-on-surface-variant hover:text-md-on-surface hover:border-md-outline-variant'
+                }`}
+                aria-current={isActive ? 'page' : undefined}
+              >
+                {tab.label}
+              </a>
+            );
+          })}
+        </nav>
+      </div>
+
       <RecruiterApplicationsTable items={applications.items} action={updateStatusAction} />
     </DashboardShell>
   );

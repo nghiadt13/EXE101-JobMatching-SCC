@@ -10,6 +10,7 @@ export interface NormalizedExperience {
   company: string;
   startDate: string | null;
   endDate: string | null;
+  description?: string;
   tech: string[];
 }
 
@@ -37,14 +38,23 @@ export interface JobMetaBlock {
   requirements: string[];
   benefits: string[];
   employmentType: string;
+  workingDayStatus?: string;
+  experienceLevel?: string;
+  minExperienceMonths?: number;
+  companyIndustryKey?: string;
+  jobFieldKey?: string;
+  jobLevel?: string;
+  salesModel?: string;
 }
 
 export interface NormalizedProfile {
   schemaVersion: typeof NORMALIZED_SCHEMA_VERSION;
   language: 'vi' | 'en' | 'mixed';
+  candidateName?: string;
   title: string;
-  summary: string;
+  summary: string | null;
   skills: string[];
+  jobCategorySlugs?: string[];
   experience: NormalizedExperience[];
   education: NormalizedEducation[];
   certifications: string[];

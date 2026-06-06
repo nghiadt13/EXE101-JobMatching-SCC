@@ -86,6 +86,7 @@ export class CvSuggestionService {
       const rawResponse = await client.generateText(
         prompt,
         SUGGESTION_TIMEOUT_MS,
+        'pro',
       );
 
       // 5. Parse + normalize

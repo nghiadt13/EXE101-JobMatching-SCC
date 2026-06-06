@@ -19,7 +19,10 @@ export class RagRetrieverService {
 
   async retrieve(input: RagRetrievalInput): Promise<RetrievedRagContext> {
     const warnings: string[] = [];
-    const maxItems = Math.max(1, Math.min(input.maxItems ?? DEFAULT_MAX_ITEMS, 20));
+    const maxItems = Math.max(
+      1,
+      Math.min(input.maxItems ?? DEFAULT_MAX_ITEMS, 20),
+    );
 
     // Combine all inputs into a single text block to generate an embedding
     const queryText = [
@@ -27,7 +30,9 @@ export class RagRetrieverService {
       ...(input.cvSkills ?? []),
       (input.jdText ?? '').slice(0, MAX_TEXT_CHARS),
       (input.cvText ?? '').slice(0, MAX_TEXT_CHARS),
-    ].filter(Boolean).join(' ');
+    ]
+      .filter(Boolean)
+      .join(' ');
 
     if (!queryText.trim()) {
       return {
@@ -44,7 +49,9 @@ export class RagRetrieverService {
 
       // 2. Perform Hybrid Search using RRF (Reciprocal Rank Fusion)
       // Combines vector similarity (<=>) with Full-Text Search (websearch_to_tsquery)
-      const ftsQuery = (input.jdSkills || []).concat(input.cvSkills || []).join(' ');
+      const ftsQuery = (input.jdSkills || [])
+        .concat(input.cvSkills || [])
+        .join(' ');
 
       const results = await this.prisma.$queryRawUnsafe<any[]>(
         `
@@ -79,10 +86,10 @@ export class RagRetrieverService {
         `,
         vectorString,
         ftsQuery || queryText.slice(0, 500),
-        maxItems
+        maxItems,
       );
 
-      const items: RetrievedRagItem[] = results.map(row => ({
+      const items: RetrievedRagItem[] = results.map((row) => ({
         item: {
           id: row.id,
           kind: row.kind,
@@ -101,9 +108,10 @@ export class RagRetrieverService {
         queryTerms: [],
         warnings,
       };
-
     } catch (error) {
-      warnings.push(`RAG Search Failed: ${error instanceof Error ? error.message : String(error)}`);
+      warnings.push(
+        `RAG Search Failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
       return {
         items: [],
         queryTerms: [],

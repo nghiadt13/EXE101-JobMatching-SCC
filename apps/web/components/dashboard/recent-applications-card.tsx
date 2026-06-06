@@ -20,6 +20,7 @@ const STATUS_LABELS: Record<ApplicationStatus, string> = {
   REVIEWING: 'Đang xem xét',
   INTERVIEW: 'Phỏng vấn',
   OFFER: 'Nhận offer',
+  ACCEPTED: 'Đã được nhận',
   REJECTED: 'Bị từ chối',
   WITHDRAWN: 'Đã rút hồi',
 };
@@ -30,6 +31,7 @@ const STATUS_STYLES: Record<ApplicationStatus, string> = {
   REVIEWING: 'bg-md-tertiary-container text-md-on-tertiary-container',
   INTERVIEW: 'bg-md-surface-container-high text-md-on-surface',
   OFFER: 'bg-green-100 text-green-800',
+  ACCEPTED: 'bg-green-100 text-green-800',
   REJECTED: 'bg-md-error-container text-md-on-error-container',
   WITHDRAWN: 'bg-md-surface-container text-md-on-surface-variant',
 };

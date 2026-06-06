@@ -179,14 +179,12 @@ export function CvList({
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                {isBuilder && (
-                  <Link
-                    href={`/dashboard/candidate/cvs/${cv.id}/edit`}
-                    className="h-9 rounded-lg border border-primary-300 bg-primary-50 px-3 text-sm font-medium text-primary-700 hover:bg-primary-100 flex items-center transition-colors"
-                  >
-                    ✏️ Chỉnh sửa
-                  </Link>
-                )}
+                <Link
+                  href={`/dashboard/candidate/cvs/${cv.id}/edit`}
+                  className="h-9 rounded-lg border border-primary-300 bg-primary-50 px-3 text-sm font-medium text-primary-700 hover:bg-primary-100 flex items-center transition-colors"
+                >
+                  ✏️ Chỉnh sửa
+                </Link>
                 <form action={setPrimaryAction}>
                   <input type="hidden" name="cvId" value={cv.id} />
                   <button

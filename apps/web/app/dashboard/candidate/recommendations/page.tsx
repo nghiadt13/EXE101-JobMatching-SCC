@@ -127,11 +127,6 @@ function ScanHistoryCard({
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Badge variant={config.variant}>{config.label}</Badge>
-            {scan.topScore !== null ? (
-              <span className="text-sm font-medium">
-                Điểm cao nhất: {Math.round(scan.topScore)}%
-              </span>
-            ) : null}
           </div>
           <p className="text-sm text-muted-foreground">
             {scan.resultCount} kết quả từ {scan.totalJobs} việc làm

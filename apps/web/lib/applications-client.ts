@@ -8,6 +8,7 @@ export type ApplicationStatus =
   | 'REVIEWING'
   | 'INTERVIEW'
   | 'OFFER'
+  | 'ACCEPTED'
   | 'REJECTED'
   | 'WITHDRAWN';
 
@@ -125,6 +126,8 @@ export type ApplicationItem = {
   cv: {
     id: string;
     fileName: string;
+    candidateProfile?: any;
+    parsedData?: any;
   };
 };
 

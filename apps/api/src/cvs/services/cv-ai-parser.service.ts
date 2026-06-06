@@ -20,6 +20,7 @@ export class CvAiParserService {
           languages: result.profile.languages,
           location: result.profile.location,
         },
+        candidateName: result.profile.candidateName,
         summary: result.profile.summary,
         normalizedProfile: result.profile,
         parseStatus: result.status,

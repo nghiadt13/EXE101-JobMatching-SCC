@@ -19,6 +19,7 @@ export class VectorSyncService {
     try {
       const job = await this.prisma.job.findUnique({
         where: { id: jobId },
+        include: { category: true },
       });
 
       if (!job) {
@@ -29,10 +30,14 @@ export class VectorSyncService {
       // Prepare text to embed
       const skillsArray = Array.isArray(job.skills) ? job.skills : [];
       const textToEmbed = [
+        job.category ? 'Industry/Category: ' + job.category.name : '',
         'Title: ' + job.title,
-        'Description: ' + (job.shortDescription || job.description).slice(0, 1000),
+        'Description: ' +
+          (job.shortDescription || job.description).slice(0, 1000),
         'Skills: ' + (skillsArray as string[]).join(', '),
-      ].filter(Boolean).join('. ');
+      ]
+        .filter(Boolean)
+        .join('. ');
 
       const embedding = await this.gemini.generateEmbedding(textToEmbed);
       const vectorString = '[' + embedding.join(',') + ']';
@@ -64,16 +69,28 @@ export class VectorSyncService {
         return;
       }
 
-      const parsed = typeof cv.parsedData === 'object' && cv.parsedData !== null ? cv.parsedData : {};
-      const title = (parsed as any).title || (parsed as any).headline || '';
-      const summary = (parsed as any).summary || '';
-      
+      const parsed =
+        typeof cv.parsedData === 'object' && cv.parsedData !== null
+          ? cv.parsedData
+          : {};
+
+      const normalizedProfile = (parsed as any).normalizedProfile || {};
+      const title =
+        normalizedProfile.title ||
+        (parsed as any).title ||
+        (parsed as any).headline ||
+        '';
+      const summary =
+        normalizedProfile.summary || (parsed as any).summary || '';
+
       const skillsArray = Array.isArray(cv.skills) ? cv.skills : [];
       const textToEmbed = [
         title ? 'Role: ' + title : '',
         summary ? 'Summary: ' + summary.slice(0, 1000) : '',
         'Skills: ' + (skillsArray as string[]).join(', '),
-      ].filter(Boolean).join('. ');
+      ]
+        .filter(Boolean)
+        .join('. ');
 
       const embedding = await this.gemini.generateEmbedding(textToEmbed);
       const vectorString = '[' + embedding.join(',') + ']';

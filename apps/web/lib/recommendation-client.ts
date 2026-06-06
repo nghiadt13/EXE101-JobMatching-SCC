@@ -9,7 +9,7 @@ export const MATCH_TIER_CONFIG: Record<
   { label: string; emoji: string; color: string; bg: string; border: string }
 > = {
   excellent: {
-    label: 'Rất phù hợp',
+    label: 'Phù hợp nhất với bạn',
     emoji: '🟢',
     color: 'text-emerald-700',
     bg: 'bg-emerald-50 border-emerald-200',
