@@ -165,9 +165,17 @@ function CollapsibleSection({
 function ScoreBar({ label, value }: { label: string; value: number }) {
   const rounded = Math.round(value ?? 0) || 0;
   const color =
-    rounded >= 70 ? 'bg-emerald-500' : rounded >= 40 ? 'bg-amber-500' : 'bg-red-500';
+    rounded >= 70
+      ? 'bg-emerald-500'
+      : rounded >= 40
+        ? 'bg-amber-500'
+        : 'bg-red-500';
   const textColor =
-    rounded >= 70 ? 'text-emerald-600' : rounded >= 40 ? 'text-amber-600' : 'text-red-600';
+    rounded >= 70
+      ? 'text-emerald-600'
+      : rounded >= 40
+        ? 'text-amber-600'
+        : 'text-red-600';
 
   return (
     <div>
@@ -201,7 +209,12 @@ export function MatchingSnapshotV2View({ snapshot }: MatchingSnapshotV2Props) {
     relevantExperienceMonths: 0,
     skills: [],
     location: null,
-    projectRelevance: { totalProjects: 0, relevantProjects: 0, relevanceScore: 0, highlights: [] },
+    projectRelevance: {
+      totalProjects: 0,
+      relevantProjects: 0,
+      relevanceScore: 0,
+      highlights: [],
+    },
   };
 
   // Safe array defaults — incoming data may omit these fields entirely
@@ -217,7 +230,8 @@ export function MatchingSnapshotV2View({ snapshot }: MatchingSnapshotV2Props) {
   const sortedRequirements = [...requirements]
     .filter((r) => r.status !== 'not_applicable')
     .sort((a, b) => {
-      const statusDiff = (STATUS_ORDER[a.status] ?? 3) - (STATUS_ORDER[b.status] ?? 3);
+      const statusDiff =
+        (STATUS_ORDER[a.status] ?? 3) - (STATUS_ORDER[b.status] ?? 3);
       if (statusDiff !== 0) return statusDiff;
       return (
         (IMPORTANCE_ORDER[a.importance ?? 'medium'] ?? 2) -
@@ -238,7 +252,9 @@ export function MatchingSnapshotV2View({ snapshot }: MatchingSnapshotV2Props) {
   return (
     <div className="mt-3 space-y-3">
       {/* ── Section 1: Overall Fit Summary ──────────────────── */}
-      <div className={`overflow-hidden rounded-xl border ${fit.border} ${fit.bg}`}>
+      <div
+        className={`overflow-hidden rounded-xl border ${fit.border} ${fit.bg}`}
+      >
         <div className="p-4">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
@@ -284,7 +300,9 @@ export function MatchingSnapshotV2View({ snapshot }: MatchingSnapshotV2Props) {
             <p className="mt-3 flex items-start gap-1.5 text-xs text-zinc-500">
               <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
               <span>
-                <span className="font-semibold text-zinc-600">Cần làm rõ thêm: </span>
+                <span className="font-semibold text-zinc-600">
+                  Cần làm rõ thêm:{' '}
+                </span>
                 {gaps.slice(0, 3).join(', ')}
               </span>
             </p>
@@ -296,7 +314,9 @@ export function MatchingSnapshotV2View({ snapshot }: MatchingSnapshotV2Props) {
             <p className="flex items-start gap-2 text-sm text-zinc-600">
               <Quote className="mt-0.5 h-3.5 w-3.5 shrink-0 text-zinc-400" />
               <span>
-                <span className="font-semibold text-zinc-700">Bằng chứng nổi bật: </span>
+                <span className="font-semibold text-zinc-700">
+                  Bằng chứng nổi bật:{' '}
+                </span>
                 {bestEvidence}
               </span>
             </p>
@@ -319,13 +339,17 @@ export function MatchingSnapshotV2View({ snapshot }: MatchingSnapshotV2Props) {
           {candidateSummary.relevantExperienceMonths > 0 && (
             <span className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-xs text-blue-700">
               <Clock className="h-3.5 w-3.5" />
-              {formatMonths(candidateSummary.relevantExperienceMonths)} liên quan
+              {formatMonths(candidateSummary.relevantExperienceMonths)} liên
+              quan
             </span>
           )}
           {candidateSummary.location && (
             <span className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-xs text-zinc-600">
               <MapPin className="h-3.5 w-3.5 text-zinc-400" />
-              {[candidateSummary.location.city, candidateSummary.location.country]
+              {[
+                candidateSummary.location.city,
+                candidateSummary.location.country,
+              ]
                 .filter(Boolean)
                 .join(', ')}
             </span>
@@ -348,14 +372,17 @@ export function MatchingSnapshotV2View({ snapshot }: MatchingSnapshotV2Props) {
         <div className="space-y-3">
           <ScoreBar label="Kỹ năng" value={scoreBreakdown.skillScore} />
           <ScoreBar label="Điều kiện" value={scoreBreakdown.constraintScore} />
-          <ScoreBar label="Kinh nghiệm" value={scoreBreakdown.experienceBonus} />
+          <ScoreBar
+            label="Kinh nghiệm"
+            value={scoreBreakdown.experienceBonus}
+          />
           <ScoreBar label="Dự án" value={scoreBreakdown.projectBonus} />
         </div>
       </CollapsibleSection>
 
       {/* ── Section 3: Why This Looks Relevant ─────────────── */}
       <CollapsibleSection
-        title="Vì sao bạn phù hợp với vị trí này"
+        title="Phân tích mức độ đáp ứng yêu cầu"
         subtitle="Đối chiếu giữa yêu cầu công việc và hồ sơ của bạn"
         defaultOpen={false}
       >
@@ -390,7 +417,9 @@ export function MatchingSnapshotV2View({ snapshot }: MatchingSnapshotV2Props) {
 
                 {req.evidence?.length > 0 ? (
                   <div className="mt-1 text-sm text-zinc-600">
-                    <span className="font-medium text-zinc-700">Bằng chứng từ CV: </span>
+                    <span className="font-medium text-zinc-700">
+                      Bằng chứng từ CV:{' '}
+                    </span>
                     <ul className="mt-1 list-none space-y-1 pl-0">
                       {req.evidence.map((e, ei) => (
                         <li key={ei} className="flex items-start gap-1.5">
@@ -418,7 +447,9 @@ export function MatchingSnapshotV2View({ snapshot }: MatchingSnapshotV2Props) {
       </CollapsibleSection>
 
       {/* ── Constraint Flags (unchanged) ───────────────────── */}
-      {constraintsFailed.length > 0 && <ConstraintFlags failed={constraintsFailed} />}
+      {constraintsFailed.length > 0 && (
+        <ConstraintFlags failed={constraintsFailed} />
+      )}
 
       {/* ── Warnings ───────────────────────────────────────── */}
       {warnings.length > 0 && (

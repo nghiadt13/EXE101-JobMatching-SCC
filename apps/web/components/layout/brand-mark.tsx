@@ -9,6 +9,7 @@ type SCCBrandLogoProps = {
   className?: string;
   iconClassName?: string;
   textClassName?: string;
+  showText?: boolean;
 };
 
 export function SCCBrandIcon({ className }: SCCBrandIconProps) {
@@ -36,13 +37,21 @@ export function SCCBrandLogo({
   className,
   iconClassName,
   textClassName,
+  showText = true,
 }: SCCBrandLogoProps) {
   return (
     <span className={cn('flex items-center gap-1', className)}>
       <SCCBrandIcon className={cn('h-20 w-20', iconClassName)} />
-      <span className={cn('text-2xl font-bold tracking-tight text-slate-800', textClassName)}>
-        SCC
-      </span>
+      {showText && (
+        <span
+          className={cn(
+            'text-2xl font-bold tracking-tight text-slate-800',
+            textClassName,
+          )}
+        >
+          SCC
+        </span>
+      )}
     </span>
   );
 }

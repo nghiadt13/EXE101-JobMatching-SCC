@@ -5,6 +5,7 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { ApplicationsModule } from './applications/applications.module';
 import { CommonModule } from './common/common.module';
+import { CompaniesModule } from './companies/companies.module';
 import { CvsModule } from './cvs/cvs.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { JobsModule } from './jobs/jobs.module';
@@ -24,6 +25,7 @@ import { NormalizationModule } from './normalization/normalization.module';
     NormalizationModule,
     PrismaModule,
     AuthModule,
+    CompaniesModule,
     ApplicationsModule,
     UsersModule,
     ProfileModule,

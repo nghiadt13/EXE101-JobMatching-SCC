@@ -31,6 +31,8 @@ import {
   Sparkles,
   CheckCircle2,
   AlertTriangle,
+  ClipboardCheck,
+  ListChecks,
 } from 'lucide-react';
 
 type CandidateApplicationsTableProps = {
@@ -85,44 +87,62 @@ const STATUS_CONFIG: Record<string, StatusConfig> = {
 
 /* ── Match Score Ring ──────────────────────────────────── */
 
-function MatchScoreRing({ score, pending }: { score: number; pending?: boolean }) {
-  const radius = 20;
+function MatchScoreRing({
+  score,
+  pending,
+}: {
+  score: number;
+  pending?: boolean;
+}) {
+  const radius = 24;
   const circumference = 2 * Math.PI * radius;
   const progress = pending ? 0 : Math.min(score, 100);
   const strokeDashoffset = circumference - (progress / 100) * circumference;
   const color = score >= 70 ? '#10b981' : score >= 40 ? '#f59e0b' : '#ef4444';
 
   return (
-    <div className="relative flex h-14 w-14 items-center justify-center shrink-0">
-      <svg className="-rotate-90" width="56" height="56" viewBox="0 0 56 56">
-        <circle cx="28" cy="28" r={radius} fill="none" stroke="#f1f5f9" strokeWidth="5" />
-        {!pending && (
+    <div className="flex w-[72px] shrink-0 flex-col items-center gap-1">
+      <div className="relative flex h-16 w-16 items-center justify-center">
+        <svg className="-rotate-90" width="64" height="64" viewBox="0 0 64 64">
           <circle
-            cx="28"
-            cy="28"
+            cx="32"
+            cy="32"
             r={radius}
             fill="none"
-            stroke={color}
-            strokeWidth="5"
-            strokeDasharray={circumference}
-            strokeDashoffset={strokeDashoffset}
-            strokeLinecap="round"
-            className="transition-all duration-700"
+            stroke="#eef2f7"
+            strokeWidth="6"
           />
-        )}
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        {pending ? (
-          <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
-        ) : (
-          <>
-            <span className="text-xs font-bold leading-none" style={{ color }}>
+          {!pending && (
+            <circle
+              cx="32"
+              cy="32"
+              r={radius}
+              fill="none"
+              stroke={color}
+              strokeWidth="6"
+              strokeDasharray={circumference}
+              strokeDashoffset={strokeDashoffset}
+              strokeLinecap="round"
+              className="transition-all duration-700"
+            />
+          )}
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          {pending ? (
+            <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
+          ) : (
+            <span
+              className="text-sm font-extrabold leading-none"
+              style={{ color }}
+            >
               {Math.round(score)}%
             </span>
-            <span className="text-[9px] text-zinc-400 leading-none mt-0.5">phù hợp</span>
-          </>
-        )}
+          )}
+        </div>
       </div>
+      <span className="text-[10px] font-semibold leading-none text-zinc-500">
+        phù hợp
+      </span>
     </div>
   );
 }
@@ -151,7 +171,9 @@ function normalizeIconClass(iconKey: string | null | undefined): string {
   ) {
     return iconKey;
   }
-  return iconKey.startsWith('fa-') ? `fa-solid ${iconKey}` : `fa-solid fa-${iconKey}`;
+  return iconKey.startsWith('fa-')
+    ? `fa-solid ${iconKey}`
+    : `fa-solid fa-${iconKey}`;
 }
 
 function CompanyAvatar({
@@ -220,7 +242,10 @@ function StatsSummary({ items }: { items: ApplicationItem[] }) {
   const scoredItems = items.filter((i) => i.status !== 'PENDING_MATCHING');
   const avgScore =
     scoredItems.length > 0
-      ? Math.round(scoredItems.reduce((sum, i) => sum + i.matchScore, 0) / scoredItems.length)
+      ? Math.round(
+          scoredItems.reduce((sum, i) => sum + i.matchScore, 0) /
+            scoredItems.length,
+        )
       : 0;
 
   const stats = [
@@ -262,15 +287,24 @@ function StatsSummary({ items }: { items: ApplicationItem[] }) {
   ];
 
   return (
-    <div className="grid grid-cols-2 divide-zinc-100 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm sm:grid-cols-3 lg:grid-cols-5 lg:divide-x">
+    <div className="grid grid-cols-2 gap-2 rounded-2xl border border-zinc-200 bg-white p-2 shadow-sm sm:grid-cols-3">
       {stats.map((stat) => (
-        <div key={stat.label} className="flex items-center gap-3 p-4">
-          <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${stat.bg} ${stat.color}`}>
+        <div
+          key={stat.label}
+          className="flex items-center gap-3 rounded-xl bg-zinc-50/70 p-3"
+        >
+          <div
+            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${stat.bg} ${stat.color}`}
+          >
             {stat.icon}
           </div>
           <div className="min-w-0">
-            <p className="truncate text-[11px] font-medium text-zinc-500 leading-none">{stat.label}</p>
-            <p className="mt-1.5 text-xl font-bold leading-none text-zinc-800">{stat.value}</p>
+            <p className="truncate text-[11px] font-medium text-zinc-500 leading-none">
+              {stat.label}
+            </p>
+            <p className="mt-1.5 text-xl font-bold leading-none text-zinc-800">
+              {stat.value}
+            </p>
           </div>
         </div>
       ))}
@@ -278,9 +312,202 @@ function StatsSummary({ items }: { items: ApplicationItem[] }) {
   );
 }
 
+/* ── Desktop Insight Sidebar ───────────────────────────── */
+
+function ApplicationsInsightSidebar({ items }: { items: ApplicationItem[] }) {
+  const goodMatchThreshold = 70;
+  const total = items.length;
+  const reviewing = items.filter((i) => i.status === 'REVIEWING').length;
+  const interviews = items.filter((i) => i.status === 'INTERVIEW').length;
+  const offers = items.filter((i) => i.status === 'OFFER').length;
+  const pending = items.filter((i) => i.status === 'PENDING_MATCHING').length;
+  const scoredItems = items.filter((i) => i.status !== 'PENDING_MATCHING');
+  const avgScore =
+    scoredItems.length > 0
+      ? Math.round(
+          scoredItems.reduce((sum, i) => sum + i.matchScore, 0) /
+            scoredItems.length,
+        )
+      : 0;
+  const rankedItems = [...scoredItems]
+    .sort((a, b) => b.matchScore - a.matchScore)
+    .slice(0, 3);
+  const hasGoodMatches = rankedItems.some(
+    (item) => item.matchScore >= goodMatchThreshold,
+  );
+  const sidebarTitle = hasGoodMatches
+    ? 'Top vị trí phù hợp'
+    : 'Cần cải thiện độ phù hợp';
+
+  const statusItems = [
+    {
+      label: 'Đang xem xét',
+      value: reviewing,
+      icon: <Clock className="h-4 w-4" />,
+      color: 'text-blue-600',
+      bg: 'bg-blue-50',
+    },
+    {
+      label: 'Phỏng vấn',
+      value: interviews,
+      icon: <CalendarCheck className="h-4 w-4" />,
+      color: 'text-violet-600',
+      bg: 'bg-violet-50',
+    },
+    {
+      label: 'Offer',
+      value: offers,
+      icon: <Trophy className="h-4 w-4" />,
+      color: 'text-emerald-600',
+      bg: 'bg-emerald-50',
+    },
+  ];
+
+  return (
+    <aside className="hidden xl:block">
+      <div className="sticky top-24 space-y-4">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50 text-primary-600">
+              <ClipboardCheck className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">
+                Tổng quan ứng tuyển
+              </h3>
+              <p className="text-xs text-slate-500">
+                {total} vị trí đã nộp hồ sơ
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5 rounded-xl bg-slate-50 p-4">
+            <p className="text-xs font-medium text-slate-500">
+              Điểm phù hợp trung bình
+            </p>
+            <div className="mt-2 flex items-end justify-between gap-3">
+              <span className="text-3xl font-extrabold leading-none text-slate-900">
+                {avgScore}%
+              </span>
+              <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-500">
+                {scoredItems.length}/{total} đã phân tích
+              </span>
+            </div>
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-white">
+              <div
+                className="h-full rounded-full bg-primary-600 transition-all duration-700"
+                style={{ width: `${Math.min(avgScore, 100)}%` }}
+              />
+            </div>
+          </div>
+
+          <div className="mt-4 space-y-2">
+            {statusItems.map((status) => (
+              <div
+                key={status.label}
+                className="flex items-center justify-between rounded-xl border border-slate-100 px-3 py-2.5"
+              >
+                <div className="flex items-center gap-2.5">
+                  <span
+                    className={`flex h-8 w-8 items-center justify-center rounded-lg ${status.bg} ${status.color}`}
+                  >
+                    {status.icon}
+                  </span>
+                  <span className="text-sm font-medium text-slate-700">
+                    {status.label}
+                  </span>
+                </div>
+                <span className="text-sm font-bold text-slate-900">
+                  {status.value}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {pending > 0 && (
+            <div className="mt-4 flex items-start gap-2 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2.5 text-xs text-amber-800">
+              <Sparkles className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                {pending} đơn đang được hệ thống phân tích điểm phù hợp.
+              </span>
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center gap-2">
+            {hasGoodMatches ? (
+              <ListChecks className="h-4 w-4 text-primary-600" />
+            ) : (
+              <AlertTriangle className="h-4 w-4 text-amber-500" />
+            )}
+            <h3 className="text-sm font-bold text-slate-900">{sidebarTitle}</h3>
+          </div>
+
+          <div className="mt-4 space-y-3">
+            {rankedItems.length > 0 ? (
+              <>
+                {!hasGoodMatches && (
+                  <p className="rounded-xl border border-amber-100 bg-amber-50 p-3 text-xs leading-relaxed text-amber-800">
+                    Chưa có vị trí nào đạt mức phù hợp tốt. Bạn có thể mở phần
+                    phân tích để xem các yêu cầu còn thiếu và bổ sung CV.
+                  </p>
+                )}
+                {rankedItems.map((item, index) => (
+                  <div key={item.id} className="rounded-xl bg-slate-50 p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex min-w-0 gap-2">
+                        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white text-[10px] font-bold text-slate-500">
+                          {index + 1}
+                        </span>
+                        <p className="line-clamp-2 text-xs font-semibold leading-relaxed text-slate-800">
+                          {item.job.title}
+                        </p>
+                      </div>
+                      <span
+                        className={`shrink-0 rounded-full bg-white px-2 py-0.5 text-xs font-bold ${
+                          item.matchScore >= goodMatchThreshold
+                            ? 'text-primary-700'
+                            : item.matchScore >= 40
+                              ? 'text-amber-700'
+                              : 'text-red-600'
+                        }`}
+                      >
+                        {Math.round(item.matchScore)}%
+                      </span>
+                    </div>
+                    <p className="mt-1 truncate text-[11px] text-slate-500">
+                      {item.job.companyName ?? 'Công ty'}
+                    </p>
+                    <p className="mt-2 text-[11px] font-medium text-slate-500">
+                      {item.matchScore >= goodMatchThreshold
+                        ? 'Mức phù hợp tốt'
+                        : 'Điểm hiện tại'}
+                    </p>
+                  </div>
+                ))}
+              </>
+            ) : (
+              <p className="rounded-xl bg-slate-50 p-3 text-xs leading-relaxed text-slate-500">
+                Chưa có đủ dữ liệu phân tích để đề xuất vị trí nổi bật.
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
 /* ── Application Card ──────────────────────────────────── */
 
-function ApplicationCard({ item, index }: { item: ApplicationItem; index: number }) {
+function ApplicationCard({
+  item,
+  index,
+}: {
+  item: ApplicationItem;
+  index: number;
+}) {
   const [expanded, setExpanded] = useState(false);
   const config = STATUS_CONFIG[item.status] ?? STATUS_CONFIG['APPLIED'];
   const isPending = item.status === 'PENDING_MATCHING';
@@ -288,8 +515,12 @@ function ApplicationCard({ item, index }: { item: ApplicationItem; index: number
   const hasSnapshot = !!item.matchingSnapshot && !isPending;
 
   // Quick preview: strengths from snapshot (collapsed state)
-  const previewStrengths = hasSnapshot ? (item.matchingSnapshot?.strengths ?? []).slice(0, 2) : [];
-  const previewGaps = hasSnapshot ? (item.matchingSnapshot?.gaps ?? []).slice(0, 1) : [];
+  const previewStrengths = hasSnapshot
+    ? (item.matchingSnapshot?.strengths ?? []).slice(0, 2)
+    : [];
+  const previewGaps = hasSnapshot
+    ? (item.matchingSnapshot?.gaps ?? []).slice(0, 1)
+    : [];
 
   return (
     <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm transition-all duration-200 hover:border-zinc-300 hover:shadow-md">
@@ -315,7 +546,9 @@ function ApplicationCard({ item, index }: { item: ApplicationItem; index: number
                     {item.job.title}
                   </Link>
                 ) : (
-                  <p className="truncate text-base font-bold text-zinc-900">{item.job.title}</p>
+                  <p className="truncate text-base font-bold text-zinc-900">
+                    {item.job.title}
+                  </p>
                 )}
                 <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
                   <span className="flex items-center gap-1 text-xs text-zinc-500">
@@ -338,14 +571,19 @@ function ApplicationCard({ item, index }: { item: ApplicationItem; index: number
 
             {/* Status badge + CV chip */}
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <Badge variant={config.badgeVariant} className="flex items-center gap-1">
+              <Badge
+                variant={config.badgeVariant}
+                className="flex min-h-7 items-center gap-1 px-3"
+              >
                 {config.icon}
                 {config.label}
               </Badge>
 
-              <span className="flex items-center gap-1.5 rounded-full border border-zinc-100 bg-zinc-50 px-2.5 py-1 text-[11px] text-zinc-500">
+              <span className="flex min-h-7 items-center gap-1.5 rounded-full border border-zinc-100 bg-zinc-50 px-3 py-1 text-[11px] text-zinc-500">
                 <FileText className="h-3 w-3 shrink-0 text-rose-400" />
-                <span className="max-w-[200px] truncate">{item.cv.fileName}</span>
+                <span className="max-w-[200px] truncate">
+                  {item.cv.fileName}
+                </span>
               </span>
 
               {isPending && (
@@ -357,28 +595,30 @@ function ApplicationCard({ item, index }: { item: ApplicationItem; index: number
             </div>
 
             {/* Quick preview pills (only when collapsed) */}
-            {!expanded && hasSnapshot && (previewStrengths.length > 0 || previewGaps.length > 0) && (
-              <div className="mt-2.5 flex flex-wrap gap-1.5">
-                {previewStrengths.map((s, i) => (
-                  <span
-                    key={`s-${i}`}
-                    className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700"
-                  >
-                    <CheckCircle2 className="h-2.5 w-2.5" />
-                    {s}
-                  </span>
-                ))}
-                {previewGaps.map((g, i) => (
-                  <span
-                    key={`g-${i}`}
-                    className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700"
-                  >
-                    <AlertTriangle className="h-2.5 w-2.5" />
-                    {g}
-                  </span>
-                ))}
-              </div>
-            )}
+            {!expanded &&
+              hasSnapshot &&
+              (previewStrengths.length > 0 || previewGaps.length > 0) && (
+                <div className="mt-2.5 flex flex-wrap gap-1.5">
+                  {previewStrengths.map((s, i) => (
+                    <span
+                      key={`s-${i}`}
+                      className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700"
+                    >
+                      <CheckCircle2 className="h-2.5 w-2.5" />
+                      {s}
+                    </span>
+                  ))}
+                  {previewGaps.map((g, i) => (
+                    <span
+                      key={`g-${i}`}
+                      className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700"
+                    >
+                      <AlertTriangle className="h-2.5 w-2.5" />
+                      {g}
+                    </span>
+                  ))}
+                </div>
+              )}
           </div>
         </div>
 
@@ -389,8 +629,14 @@ function ApplicationCard({ item, index }: { item: ApplicationItem; index: number
             className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-xl border border-zinc-100 bg-zinc-50 py-2 text-xs font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700"
           >
             <Target className="h-3.5 w-3.5" />
-            {expanded ? 'Ẩn phân tích phù hợp' : 'Xem phân tích phù hợp chi tiết'}
-            {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            {expanded
+              ? 'Ẩn phân tích phù hợp'
+              : 'Xem phân tích phù hợp chi tiết'}
+            {expanded ? (
+              <ChevronUp className="h-3.5 w-3.5" />
+            ) : (
+              <ChevronDown className="h-3.5 w-3.5" />
+            )}
           </button>
         )}
       </div>
@@ -460,7 +706,9 @@ function ApplicationCard({ item, index }: { item: ApplicationItem; index: number
 
 const POLL_INTERVAL_MS = 5_000;
 
-export function CandidateApplicationsTable({ items: initialItems }: CandidateApplicationsTableProps) {
+export function CandidateApplicationsTable({
+  items: initialItems,
+}: CandidateApplicationsTableProps) {
   const [items, setItems] = useState<ApplicationItem[]>(initialItems);
   const router = useRouter();
 
@@ -499,15 +747,20 @@ export function CandidateApplicationsTable({ items: initialItems }: CandidateApp
   return (
     <div className="space-y-6">
       {/* Stats summary */}
-      <StatsSummary items={items} />
+      <div className="xl:hidden">
+        <StatsSummary items={items} />
+      </div>
 
-      {/* Application cards */}
-      <div className="space-y-3">
-        {items.map((item, index) => (
-          <ApplicationCard key={item.id} item={item} index={index} />
-        ))}
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+        {/* Application cards */}
+        <div className="space-y-3">
+          {items.map((item, index) => (
+            <ApplicationCard key={item.id} item={item} index={index} />
+          ))}
+        </div>
+
+        <ApplicationsInsightSidebar items={items} />
       </div>
     </div>
   );
 }
-

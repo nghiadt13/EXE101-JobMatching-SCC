@@ -6,9 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
 }
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
@@ -213,21 +211,32 @@ model Skill {
 }
 
 model Company {
-  id          String   @id @default(cuid())
-  name        String
-  slug        String?  @unique
-  logoUrl     String?
-  iconKey     String?
-  isTrusted   Boolean  @default(false)
-  companyType String?  @default("normal")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id               String   @id @default(cuid())
+  name             String
+  slug             String?  @unique
+  logoUrl          String?
+  iconKey          String?
+  website          String?
+  taxCode          String?
+  size             String?
+  industry         String?
+  location         String?
+  shortDescription String?
+  description      Json?
+  highlights       Json?
+  isTrusted        Boolean  @default(false)
+  companyType      String?  @default("normal")
+  priorityRank     Int      @default(1000)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   // Relations
   jobs Job[]
 
   @@index([isTrusted])
   @@index([companyType])
+  @@index([priorityRank])
+  @@index([industry])
 }
 
 model JobCategory {
