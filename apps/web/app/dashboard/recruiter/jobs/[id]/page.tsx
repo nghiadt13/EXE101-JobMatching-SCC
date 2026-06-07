@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { ApiError } from '@/lib/api-client';
 import { buildErrorRedirectPath, resolveRouteError } from '@/lib/errors/backend-error-state';
 import { composeJobDescription, getJobFormInitialValues, parseMultilineList } from '@/lib/job-description-format';
-import { getJobDetail, updateJob, type RequirementsSchema } from '@/lib/jobs-client';
+import { getJobDetail, updateJob } from '@/lib/jobs-client';
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -32,38 +32,7 @@ function getParseMessage(parseStatus: string, inputMode: 'manual' | 'file_upload
   return 'Bản nháp này cần duyệt thủ công trước khi đăng tuyển. Xác minh kỹ các trường.';
 }
 
-function splitRequirementGroups(schema: RequirementsSchema | null) {
-  if (!schema) {
-    return {
-      mustHaves: [] as Array<{ id: string; label: string }>,
-      niceToHaves: [] as Array<{ id: string; label: string }>,
-      locationPreference: null as RequirementsSchema['locationPreference'],
-    };
-  }
 
-  if (schema.version === 'requirements_schema_v1') {
-    return {
-      mustHaves: schema.mustHaves,
-      niceToHaves: schema.niceToHaves,
-      locationPreference: schema.locationPreference,
-    };
-  }
-
-  const mustHaves = schema.requirements.filter(
-    (item) => item.importance === 'critical' || item.importance === 'high',
-  );
-  const niceToHaves = schema.requirements.filter(
-    (item) =>
-      item.importance === 'medium' ||
-      item.importance === 'low' ||
-      item.importance === 'very_low',
-  );
-  return {
-    mustHaves,
-    niceToHaves,
-    locationPreference: schema.locationPreference,
-  };
-}
 
 export default async function RecruiterJobDetailPage({ params, searchParams }: PageProps) {
   const session = await auth();
@@ -89,6 +58,7 @@ export default async function RecruiterJobDetailPage({ params, searchParams }: P
         title: String(formData.get('title') ?? '').trim(),
         description: composeJobDescription({ summary, requirements, benefits }),
         skills: parseSkills(String(formData.get('skills') ?? '')),
+        certifications: parseSkills(String(formData.get('certifications') ?? '')),
         employmentType: String(formData.get('employmentType') ?? '').trim(),
         salaryMin: parseOptionalNumber(String(formData.get('salaryMin') ?? '')),
         salaryMax: parseOptionalNumber(String(formData.get('salaryMax') ?? '')),
@@ -110,7 +80,6 @@ export default async function RecruiterJobDetailPage({ params, searchParams }: P
   });
 
   const parseBadgeVariant = job.parseStatus === 'parsed_ok' ? 'success' as const : 'warning' as const;
-  const requirementGroups = splitRequirementGroups(job.requirementsSchema);
 
   return (
     <DashboardShell
@@ -141,66 +110,6 @@ export default async function RecruiterJobDetailPage({ params, searchParams }: P
         ) : null}
       </section>
 
-      <section className="mt-6 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-        <h2 className="text-sm font-semibold uppercase tracking-[0.08em] text-zinc-600">Xem trước phân tích AI</h2>
-        <p className="mt-3 text-sm text-zinc-700">{job.normalizedProfile?.summary || 'Chưa có tóm tắt phân tích.'}</p>
-        {job.normalizedProfile?.skills?.length ? (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {job.normalizedProfile.skills.slice(0, 12).map((skill) => (
-              <Badge key={`${job.id}-${skill}`} variant="outline">{skill}</Badge>
-            ))}
-          </div>
-        ) : null}
-        {job.normalizedProfile?.jobMeta?.requirements?.length ? (
-          <div className="mt-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">Yêu cầu</p>
-            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-zinc-700">
-              {job.normalizedProfile.jobMeta.requirements.slice(0, 8).map((item) => (
-                <li key={`${job.id}-req-${item}`}>{item}</li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-        {job.normalizedProfile?.jobMeta?.benefits?.length ? (
-          <div className="mt-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">Quyền lợi</p>
-            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-zinc-700">
-              {job.normalizedProfile.jobMeta.benefits.slice(0, 8).map((item) => (
-                <li key={`${job.id}-benefit-${item}`}>{item}</li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-        {job.requirementsSchema ? (
-          <div className="mt-5 grid gap-4 border-t border-zinc-200 pt-4 md:grid-cols-2">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">Bắt buộc có</p>
-              <ul className="mt-2 space-y-1 text-sm text-zinc-700">
-                {requirementGroups.mustHaves.slice(0, 8).map((item) => (
-                  <li key={item.id}>• {item.label}</li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">Ưu tiên có</p>
-              <ul className="mt-2 space-y-1 text-sm text-zinc-700">
-                {requirementGroups.niceToHaves.slice(0, 8).map((item) => (
-                  <li key={item.id}>• {item.label}</li>
-                ))}
-              </ul>
-              {requirementGroups.locationPreference ? (
-                <p className="mt-3 text-xs text-zinc-500">
-                  Địa điểm: {[
-                    requirementGroups.locationPreference.city,
-                    requirementGroups.locationPreference.country,
-                    requirementGroups.locationPreference.remote ? 'Remote' : '',
-                  ].filter(Boolean).join(' · ')}
-                </p>
-              ) : null}
-            </div>
-          </div>
-        ) : null}
-      </section>
     </DashboardShell>
   );
 }

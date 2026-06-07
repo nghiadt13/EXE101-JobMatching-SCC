@@ -8,13 +8,17 @@ type RecruiterJobsTableProps = {
   jobs: JobItem[];
   totalItems: number;
   visibleItems: number;
+  currentPage: number;
+  totalPages: number;
+  currentStatus?: string;
+  currentSearch?: string;
   publishAction: (formData: FormData) => Promise<void>;
   closeAction: (formData: FormData) => Promise<void>;
   deleteAction: (formData: FormData) => Promise<void>;
 };
 
 export function RecruiterJobsTable({
-  jobs, totalItems, visibleItems, publishAction, closeAction, deleteAction,
+  jobs, totalItems, visibleItems, currentPage, totalPages, currentStatus, currentSearch, publishAction, closeAction, deleteAction,
 }: RecruiterJobsTableProps) {
   const lifecycleVariant: Record<JobItem['status'], 'primary' | 'success' | 'default'> = {
     DRAFT: 'primary',
@@ -33,29 +37,90 @@ export function RecruiterJobsTable({
     needs_review: 'Needs Review',
   };
 
-  if (!jobs.length) {
-    return (
-      <EmptyState
-        title="No jobs yet"
-        description="Start with a JD upload or create a draft manually. Uploaded JDs will create structured drafts automatically."
-      />
-    );
-  }
-
   return (
     <section className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
-      <div className="flex flex-col gap-3 border-b border-zinc-200 px-6 py-5 md:flex-row md:items-end md:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500">Your job list</p>
-          <h2 className="mt-2 text-xl font-semibold text-zinc-950">Active recruiter workspace</h2>
-        </div>
-        <div className="text-sm text-zinc-500">
-          {visibleItems < totalItems ? `Showing ${visibleItems} of ${totalItems} jobs` : `${totalItems} jobs`}
+      <div className="border-b border-zinc-200 px-6 py-5">
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500">Danh sách việc làm</p>
+        <h2 className="mt-2 text-xl font-semibold text-zinc-950">Quản lý tin tuyển dụng</h2>
+
+        <form method="GET" action="" className="mt-4 flex items-center gap-3">
+          {currentStatus && <input type="hidden" name="status" value={currentStatus} />}
+          <div className="relative flex-1 min-w-0">
+            <svg
+              className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+            <input
+              type="search"
+              name="q"
+              defaultValue={currentSearch || ''}
+              placeholder="Tìm kiếm việc làm..."
+              className="h-10 w-full rounded-lg border border-zinc-300 bg-zinc-50 pl-10 pr-3 text-sm placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 focus:bg-white transition-all"
+            />
+          </div>
+          <button
+            type="submit"
+            className="h-10 shrink-0 rounded-lg bg-zinc-900 px-5 text-sm font-medium text-white hover:bg-zinc-800 shadow-sm transition-all"
+          >
+            Tìm kiếm
+          </button>
+          {currentSearch && (
+            <Link
+              href={`?${new URLSearchParams({ ...(currentStatus ? { status: currentStatus } : {}) }).toString()}`}
+              className="shrink-0 text-sm text-zinc-500 hover:text-red-500 whitespace-nowrap underline transition-colors"
+              title="Xóa tìm kiếm"
+            >
+              Xóa
+            </Link>
+          )}
+        </form>
+
+        <div className="mt-5 flex items-center justify-between">
+          <div className="flex gap-6 text-sm font-medium">
+            <Link
+              href={`?${new URLSearchParams({ ...(currentSearch ? { q: currentSearch } : {}) }).toString()}`}
+              className={!currentStatus ? 'text-blue-600 underline underline-offset-[12px] decoration-2 font-semibold' : 'text-zinc-500 hover:text-zinc-800'}
+            >
+              Tất cả
+            </Link>
+            <Link
+              href={`?${new URLSearchParams({ status: 'PUBLISHED', ...(currentSearch ? { q: currentSearch } : {}) }).toString()}`}
+              className={currentStatus === 'PUBLISHED' ? 'text-blue-600 underline underline-offset-[12px] decoration-2 font-semibold' : 'text-zinc-500 hover:text-zinc-800'}
+            >
+              Đã đăng
+            </Link>
+            <Link
+              href={`?${new URLSearchParams({ status: 'DRAFT', ...(currentSearch ? { q: currentSearch } : {}) }).toString()}`}
+              className={currentStatus === 'DRAFT' ? 'text-blue-600 underline underline-offset-[12px] decoration-2 font-semibold' : 'text-zinc-500 hover:text-zinc-800'}
+            >
+              Bản nháp
+            </Link>
+          </div>
+          <div className="text-sm text-zinc-500">
+            {totalItems > 0 ? (visibleItems < totalItems ? `Hiển thị ${visibleItems} / ${totalItems} việc làm` : `Tổng cộng: ${totalItems} việc làm`) : ''}
+          </div>
         </div>
       </div>
 
-      <div className="divide-y divide-zinc-200">
-        {jobs.map((job) => {
+      {!jobs.length ? (
+        <div className="py-12">
+          <EmptyState
+            title="Chưa có việc làm nào"
+            description="Hãy bắt đầu bằng cách tạo một việc làm mới hoặc tải lên JD."
+          />
+        </div>
+      ) : (
+        <div className="divide-y divide-zinc-200">
+          {jobs.map((job) => {
           const salaryLabel = formatSalary(job.salaryMin, job.salaryMax);
           const summary = getSummaryPreview(job);
           const tags = job.skills.slice(0, 3);
@@ -116,6 +181,31 @@ export function RecruiterJobsTable({
           );
         })}
       </div>
+      )}
+
+      {totalPages > 1 ? (
+        <div className="flex items-center justify-between border-t border-zinc-200 px-6 py-4 text-sm text-zinc-600 bg-zinc-50/50 rounded-b-2xl">
+          <div>Trang {currentPage} / {totalPages}</div>
+          <div className="flex gap-2">
+            {currentPage > 1 ? (
+              <Link
+                href={`?${new URLSearchParams({ ...(currentStatus ? { status: currentStatus } : {}), ...(currentSearch ? { q: currentSearch } : {}), page: String(currentPage - 1) }).toString()}`}
+                className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 hover:bg-zinc-50 shadow-sm transition-all"
+              >
+                Trang trước
+              </Link>
+            ) : null}
+            {currentPage < totalPages ? (
+              <Link
+                href={`?${new URLSearchParams({ ...(currentStatus ? { status: currentStatus } : {}), ...(currentSearch ? { q: currentSearch } : {}), page: String(currentPage + 1) }).toString()}`}
+                className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 hover:bg-zinc-50 shadow-sm transition-all"
+              >
+                Trang sau
+              </Link>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }

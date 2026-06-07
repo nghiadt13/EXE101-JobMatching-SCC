@@ -108,6 +108,7 @@ export class JobsService {
       title: dto.title,
       description: dto.description,
       skills: storedSkills.skills,
+      certifications: dto.certifications ?? [],
       location,
     });
 
@@ -121,6 +122,7 @@ export class JobsService {
           skills: storedSkills.skills as Prisma.InputJsonValue,
           skillAtoms:
             storedSkills.skillAtoms as unknown as Prisma.InputJsonValue,
+          certifications: (dto.certifications ?? []) as Prisma.InputJsonValue,
           location,
           requirementsSchema:
             requirementsSchema as unknown as Prisma.InputJsonValue,
@@ -234,6 +236,7 @@ export class JobsService {
       title: draft.title,
       description: draft.description,
       skills: storedSkills.skills,
+      certifications: draft.certifications ?? [],
       location,
     });
     const storedPath = await this.documentStorageService.save(
@@ -256,6 +259,7 @@ export class JobsService {
               skills: storedSkills.skills as Prisma.InputJsonValue,
               skillAtoms:
                 storedSkills.skillAtoms as unknown as Prisma.InputJsonValue,
+              certifications: (draft.certifications ?? []) as Prisma.InputJsonValue,
               location: this.withStoredDocumentPath(location, storedPath),
               requirementsSchema:
                 requirementsSchema as unknown as Prisma.InputJsonValue,
@@ -494,6 +498,7 @@ export class JobsService {
       dto.title !== undefined ||
       dto.description !== undefined ||
       dto.skills !== undefined ||
+      dto.certifications !== undefined ||
       dto.employmentType !== undefined;
     const shouldRefreshRequirementsSchema =
       shouldRenormalize || dto.location !== undefined;
@@ -548,6 +553,10 @@ export class JobsService {
           title: nextTitle,
           description: nextDescription,
           skills: nextSkillPayload.skills,
+          certifications:
+            dto.certifications !== undefined
+              ? dto.certifications
+              : this.readJsonStringArray(existing.certifications),
           location: nextLocation ?? existing.location,
         })
       : null;
@@ -564,6 +573,9 @@ export class JobsService {
                 skills: nextSkillPayload.skills as Prisma.InputJsonValue,
                 skillAtoms:
                   nextSkillPayload.skillAtoms as unknown as Prisma.InputJsonValue,
+                certifications: (dto.certifications !== undefined
+                  ? dto.certifications
+                  : (existing.certifications as string[] ?? [])) as Prisma.InputJsonValue,
               }
             : {}),
           ...(nextLocation !== undefined ? { location: nextLocation } : {}),
@@ -667,6 +679,9 @@ export class JobsService {
                   skills: nextSkillPayload.skills as Prisma.InputJsonValue,
                   skillAtoms:
                     nextSkillPayload.skillAtoms as unknown as Prisma.InputJsonValue,
+                  certifications: (dto.certifications !== undefined
+                    ? dto.certifications
+                    : (existing.certifications as string[] ?? [])) as Prisma.InputJsonValue,
                 }
               : {}),
             ...(nextLocation !== undefined ? { location: nextLocation } : {}),
@@ -870,6 +885,7 @@ export class JobsService {
         title: true,
         description: true,
         skills: true,
+        certifications: true,
         skillAtoms: true,
         location: true,
         requirementsSchema: true,
@@ -1687,6 +1703,7 @@ export class JobsService {
     slug: string;
     description: string;
     skills: Prisma.JsonValue;
+    certifications: Prisma.JsonValue;
     location: Prisma.JsonValue | null;
     requirementsSchema: Prisma.JsonValue | null;
     requirementsSchemaVersion: string | null;
@@ -1734,6 +1751,7 @@ export class JobsService {
               item.skills,
               item.location,
             ),
+            certifications: this.readJsonStringArray(item.certifications),
             location: item.location,
           });
 
@@ -1794,6 +1812,7 @@ export class JobsService {
       slug: true,
       description: true,
       skills: true,
+      certifications: true,
       skillAtoms: true,
       location: true,
       requirementsSchema: true,
@@ -1859,6 +1878,7 @@ export class JobsService {
     title: string;
     description: string;
     skills: string[];
+    certifications: string[];
     location: unknown;
   }) {
     const locationValue = input.location as
@@ -1875,6 +1895,7 @@ export class JobsService {
           ? normalizedProfile['summary']
           : '',
       skills: input.skills,
+      certifications: input.certifications,
       description: input.description,
       normalizedProfile:
         Object.keys(normalizedProfile).length > 0
@@ -2133,6 +2154,7 @@ export class JobsService {
     title: string;
     description: string;
     skills: string[];
+    certifications: string[];
     employmentType: string;
     workingDayStatus?: string;
     experienceLevel?: string;
@@ -2153,8 +2175,8 @@ export class JobsService {
       title,
       description,
       skills: this.normalizeSkills(profile.skills),
-      employmentType:
-        this.clampString(profile.jobMeta?.employmentType, 50) || 'FULL_TIME',
+      certifications: this.normalizeSkills(profile.certifications),
+      employmentType: this.normalizeEmploymentType(profile.jobMeta?.employmentType),
       workingDayStatus: this.clampString(profile.jobMeta?.workingDayStatus, 50) || 'not_mentioned',
       experienceLevel: this.clampString(profile.jobMeta?.experienceLevel, 50) || 'no_required',
       minExperienceMonths: profile.jobMeta?.minExperienceMonths ?? null,
@@ -2163,6 +2185,20 @@ export class JobsService {
       jobLevel: this.clampString(profile.jobMeta?.jobLevel, 50) || undefined,
       salesModel: this.clampString(profile.jobMeta?.salesModel, 50) || undefined,
     };
+  }
+
+  private normalizeEmploymentType(value: string | null | undefined): string {
+    const raw = (value ?? '').trim().toUpperCase().replace(/[-_]/g, ' ');
+    if (raw.includes('FULL') || raw.includes('TOÀN THỜI GIAN')) {
+      return 'FULL_TIME';
+    }
+    if (raw.includes('PART') || raw.includes('BÁN THỜI GIAN')) {
+      return 'PART_TIME';
+    }
+    if (raw.includes('INTERN') || raw.includes('THỰC TẬP')) {
+      return 'INTERN';
+    }
+    return 'OTHER';
   }
 
   private buildDraftDescription(

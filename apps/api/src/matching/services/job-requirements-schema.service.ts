@@ -19,6 +19,7 @@ export class JobRequirementsSchemaService {
     title: string;
     summary: string;
     skills: string[];
+    certifications?: string[];
     description: string;
     normalizedProfile: NormalizedProfile | null;
     location: Record<string, unknown> | null;
@@ -32,9 +33,44 @@ export class JobRequirementsSchemaService {
     ];
 
     for (const skill of input.skills) {
-      const item = this.createRequirement(skill, 'skill', 'must_have');
+      let importance: RequirementImportance = 'must_have';
+      let cleanSkill = skill;
+      if (skill.endsWith('(Ưu tiên)') || skill.endsWith('(ưu tiên)')) {
+        importance = 'nice_to_have';
+        cleanSkill = skill.replace(/\s*\(Ưu tiên\)/i, '').trim();
+      } else if (skill.endsWith('(Bắt buộc)') || skill.endsWith('(bắt buộc)')) {
+        importance = 'must_have';
+        cleanSkill = skill.replace(/\s*\(Bắt buộc\)/i, '').trim();
+      }
+      const item = this.createRequirement(cleanSkill, 'skill', importance);
       if (this.acceptRequirement(item, seen)) {
-        mustHaves.push(item);
+        if (importance === 'nice_to_have') {
+          niceToHaves.push(item);
+        } else {
+          mustHaves.push(item);
+        }
+      }
+    }
+
+    if (input.certifications) {
+      for (const cert of input.certifications) {
+        let importance: RequirementImportance = 'must_have';
+        let cleanCert = cert;
+        if (cert.endsWith('(Ưu tiên)') || cert.endsWith('(ưu tiên)')) {
+          importance = 'nice_to_have';
+          cleanCert = cert.replace(/\s*\(Ưu tiên\)/i, '').trim();
+        } else if (cert.endsWith('(Bắt buộc)') || cert.endsWith('(bắt buộc)')) {
+          importance = 'must_have';
+          cleanCert = cert.replace(/\s*\(Bắt buộc\)/i, '').trim();
+        }
+        const item = this.createRequirement(cleanCert, 'certification', importance);
+        if (this.acceptRequirement(item, seen)) {
+          if (importance === 'nice_to_have') {
+            niceToHaves.push(item);
+          } else {
+            mustHaves.push(item);
+          }
+        }
       }
     }
 
@@ -72,6 +108,7 @@ export class JobRequirementsSchemaService {
     title: string;
     summary: string;
     skills: string[];
+    certifications?: string[];
     description: string;
     normalizedProfile: NormalizedProfile | null;
     location: Record<string, unknown> | null;
@@ -84,11 +121,39 @@ export class JobRequirementsSchemaService {
       ...this.extractFallbackRequirements(input.description),
     ];
 
-    // Skills → critical importance requirements
+    // Skills → critical/medium/low importance requirements
     for (const skill of input.skills) {
-      const item = this.createRequirementV2(skill, 'skill', 'critical');
+      let importance: ImportanceLevel = 'critical';
+      let cleanSkill = skill;
+      if (skill.endsWith('(Ưu tiên)') || skill.endsWith('(ưu tiên)')) {
+        importance = 'medium';
+        cleanSkill = skill.replace(/\s*\(Ưu tiên\)/i, '').trim();
+      } else if (skill.endsWith('(Bắt buộc)') || skill.endsWith('(bắt buộc)')) {
+        importance = 'critical';
+        cleanSkill = skill.replace(/\s*\(Bắt buộc\)/i, '').trim();
+      }
+      const item = this.createRequirementV2(cleanSkill, 'skill', importance);
       if (this.acceptRequirementV2(item, seen)) {
         requirements.push(item);
+      }
+    }
+
+    // Certifications → high/medium/critical importance requirements
+    if (input.certifications) {
+      for (const cert of input.certifications) {
+        let importance: ImportanceLevel = 'high';
+        let cleanCert = cert;
+        if (cert.endsWith('(Ưu tiên)') || cert.endsWith('(ưu tiên)')) {
+          importance = 'medium';
+          cleanCert = cert.replace(/\s*\(Ưu tiên\)/i, '').trim();
+        } else if (cert.endsWith('(Bắt buộc)') || cert.endsWith('(bắt buộc)')) {
+          importance = 'critical';
+          cleanCert = cert.replace(/\s*\(Bắt buộc\)/i, '').trim();
+        }
+        const item = this.createRequirementV2(cleanCert, 'certification', importance);
+        if (this.acceptRequirementV2(item, seen)) {
+          requirements.push(item);
+        }
       }
     }
 

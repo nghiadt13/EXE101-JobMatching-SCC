@@ -12,6 +12,7 @@ type JobFormInitialValues = {
   requirements?: string[];
   benefits?: string[];
   skills?: string[];
+  certifications?: string[];
   employmentType?: string;
   salaryMin?: number | null;
   salaryMax?: number | null;
@@ -65,6 +66,7 @@ export function getJobFormInitialValues(job: JobItem): JobFormInitialValues {
         ? fallback.benefits
         : (job.normalizedProfile?.jobMeta?.benefits ?? []),
     skills: job.skills,
+    certifications: job.certifications ?? [],
     employmentType: job.employmentType,
     salaryMin: job.salaryMin,
     salaryMax: job.salaryMax,

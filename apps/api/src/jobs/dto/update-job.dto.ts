@@ -15,6 +15,7 @@ import {
 } from 'class-validator';
 import {
   CUSTOMER_TYPE_VALUES,
+  EMPLOYMENT_TYPE_VALUES,
   EXPERIENCE_LEVEL_VALUES,
   JOB_LEVEL_VALUES,
   SALES_MODEL_VALUES,
@@ -57,8 +58,14 @@ export class UpdateJobDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(50)
+  @IsIn(EMPLOYMENT_TYPE_VALUES)
   employmentType?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @MaxLength(100, { each: true })
+  certifications?: string[];
 
   // Filter metadata fields
   @IsOptional()

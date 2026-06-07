@@ -29,12 +29,16 @@ export class VectorSyncService {
 
       // Prepare text to embed
       const skillsArray = Array.isArray(job.skills) ? job.skills : [];
+      const certificationsArray = Array.isArray(job.certifications) ? job.certifications : [];
       const textToEmbed = [
         job.category ? 'Industry/Category: ' + job.category.name : '',
         'Title: ' + job.title,
         'Description: ' +
           (job.shortDescription || job.description).slice(0, 1000),
         'Skills: ' + (skillsArray as string[]).join(', '),
+        certificationsArray.length > 0
+          ? 'Certifications: ' + (certificationsArray as string[]).join(', ')
+          : '',
       ]
         .filter(Boolean)
         .join('. ');
@@ -84,10 +88,20 @@ export class VectorSyncService {
         normalizedProfile.summary || (parsed as any).summary || '';
 
       const skillsArray = Array.isArray(cv.skills) ? cv.skills : [];
+      const certificationsArray =
+        Array.isArray(normalizedProfile.certifications)
+          ? normalizedProfile.certifications
+          : Array.isArray((parsed as any).certifications)
+            ? (parsed as any).certifications
+            : [];
+
       const textToEmbed = [
         title ? 'Role: ' + title : '',
         summary ? 'Summary: ' + summary.slice(0, 1000) : '',
         'Skills: ' + (skillsArray as string[]).join(', '),
+        certificationsArray.length > 0
+          ? 'Certifications: ' + (certificationsArray as string[]).join(', ')
+          : '',
       ]
         .filter(Boolean)
         .join('. ');

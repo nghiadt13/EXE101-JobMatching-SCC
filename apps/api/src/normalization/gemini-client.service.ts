@@ -21,7 +21,7 @@ export class GeminiClientService implements LlmClient {
     timeoutMs = 60000,
     tier: 'fast' | 'pro' = 'fast',
   ): Promise<string> {
-    const apiKey = process.env['GEMINI_API_KEY'];
+    const apiKey = process.env['GEMINI_API_KEY']?.trim();
     if (!apiKey) {
       throw new Error('GEMINI_API_KEY is required');
     }
@@ -88,7 +88,7 @@ export class GeminiClientService implements LlmClient {
   }
 
   async generateEmbedding(text: string): Promise<number[]> {
-    const apiKey = process.env['GEMINI_API_KEY'];
+    const apiKey = process.env['GEMINI_API_KEY']?.trim();
     if (!apiKey) {
       throw new Error('GEMINI_API_KEY is required');
     }

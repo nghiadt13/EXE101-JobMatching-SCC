@@ -69,6 +69,7 @@ export type JobItem = {
   slug: string;
   description: string;
   skills: string[];
+  certifications?: string[];
   inputMode: 'manual' | 'file_upload';
   parseStatus: 'parsed_ok' | 'needs_review';
   parseTelemetry: {
@@ -280,6 +281,7 @@ export function createJob(
     title: string;
     description: string;
     skills: string[];
+    certifications?: string[];
     employmentType: string;
     salaryMin?: number;
     salaryMax?: number;
@@ -318,6 +320,7 @@ export function updateJob(
     title: string;
     description: string;
     skills: string[];
+    certifications: string[];
     employmentType: string;
     salaryMin: number;
     salaryMax: number;

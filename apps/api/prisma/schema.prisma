@@ -121,6 +121,7 @@ model Job {
   slug                      String    @unique
   description               String
   skills                    Json
+  certifications            Json?
   location                  Json?
   salaryMin                 Int?
   salaryMax                 Int?

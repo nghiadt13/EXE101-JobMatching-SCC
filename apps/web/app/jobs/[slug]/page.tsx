@@ -239,8 +239,8 @@ export default async function JobDetailPage({ params, searchParams }: PageProps)
                   </p>
                 </section>
 
-                {job.skills?.length > 0 ? (
-                  <RequirementsSection skills={job.skills} />
+                {(job.skills?.length > 0 || (job.certifications?.length ?? 0) > 0) ? (
+                  <RequirementsSection skills={job.skills ?? []} certifications={job.certifications} />
                 ) : (
                   <RequirementsFallbackSection />
                 )}

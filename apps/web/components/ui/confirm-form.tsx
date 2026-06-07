@@ -40,7 +40,7 @@ export function ConfirmForm({
       </Button>
       <dialog
         ref={dialogRef}
-        className="w-full max-w-sm rounded-2xl border border-primary-100 bg-white p-6 shadow-xl backdrop:bg-primary-900/30"
+        className="m-auto w-full max-w-sm rounded-2xl border border-primary-100 bg-white p-6 shadow-xl backdrop:bg-primary-900/30"
         onClick={(e) => {
           if (e.target === dialogRef.current) dialogRef.current?.close();
         }}

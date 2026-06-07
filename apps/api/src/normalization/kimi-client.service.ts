@@ -19,7 +19,7 @@ export class KimiClientService implements LlmClient {
     timeoutMs = 60000,
     tier: 'fast' | 'pro' = 'fast',
   ): Promise<string> {
-    const apiKey = process.env['KIMI_API_KEY'];
+    const apiKey = process.env['KIMI_API_KEY']?.trim();
     if (!apiKey) {
       throw new Error('KIMI_API_KEY is required');
     }

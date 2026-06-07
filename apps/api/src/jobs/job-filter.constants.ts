@@ -1,3 +1,12 @@
+// Employment type options
+export const EMPLOYMENT_TYPE_VALUES = [
+  'FULL_TIME',
+  'PART_TIME',
+  'INTERN',
+  'OTHER',
+] as const;
+export type EmploymentType = (typeof EMPLOYMENT_TYPE_VALUES)[number];
+
 // Working day status options
 export const WORKING_DAY_STATUS_VALUES = [
   'saturday_working',
@@ -118,6 +127,13 @@ export const SALARY_BAND_RANGES: Record<
 };
 
 // Label maps for Vietnamese display
+export const EMPLOYMENT_TYPE_LABELS: Record<EmploymentType, string> = {
+  FULL_TIME: 'Toàn thời gian',
+  PART_TIME: 'Bán thời gian',
+  INTERN: 'Thực tập sinh',
+  OTHER: 'Khác',
+};
+
 export const WORKING_DAY_STATUS_LABELS: Record<WorkingDayStatus, string> = {
   saturday_working: 'Làm thứ 7',
   saturday_off: 'Nghỉ thứ 7',
