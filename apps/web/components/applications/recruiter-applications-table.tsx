@@ -7,6 +7,7 @@ import {
   ApplicationStatus,
   ApplicationItem,
   isMatchingSnapshotV2,
+  getApplications,
 } from '@/lib/applications-client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,7 @@ type RecruiterApplicationsTableProps = {
   items: ApplicationItem[];
   action: (formData: FormData) => Promise<void>;
   token: string;
+  filterStatus?: string;
 };
 
 const RECRUITER_TRANSITIONS: Record<string, ApplicationStatus[]> = {
@@ -55,21 +57,52 @@ const statusVariant: Record<string, 'default' | 'success' | 'warning' | 'info' |
   WITHDRAWN: 'danger',
 };
 
-export function RecruiterApplicationsTable({ items, action, token }: RecruiterApplicationsTableProps) {
+export function RecruiterApplicationsTable({ items, action, token, filterStatus = 'APPLIED' }: RecruiterApplicationsTableProps) {
   const [selectedCv, setSelectedCv] = useState<CvItem | null>(null);
   const router = useRouter();
+  const [localItems, setLocalItems] = useState<ApplicationItem[]>(items);
 
-  const hasPending = items.some((i) => i.status === 'PENDING_MATCHING');
+  useEffect(() => {
+    setLocalItems(items);
+  }, [items]);
+
+  const hasPending = localItems.some((i) => i.status === 'PENDING_MATCHING');
 
   useEffect(() => {
     if (!hasPending) return;
 
-    const intervalId = setInterval(() => {
-      router.refresh();
+    let isMounted = true;
+    const intervalId = setInterval(async () => {
+      try {
+        const res = await getApplications(token, { page: 1, limit: 100 });
+        if (!isMounted) return;
+
+        let filtered = res.items;
+        if (filterStatus === 'APPLIED') {
+          filtered = res.items.filter(item => 
+            ['APPLIED', 'PENDING_MATCHING', 'REVIEWING'].includes(item.status)
+          );
+        } else if (filterStatus === 'ACCEPTED') {
+          filtered = res.items.filter(item => 
+            ['ACCEPTED', 'INTERVIEW', 'OFFER'].includes(item.status)
+          );
+        } else if (filterStatus === 'REJECTED') {
+          filtered = res.items.filter(item => 
+            ['REJECTED', 'WITHDRAWN'].includes(item.status)
+          );
+        }
+
+        setLocalItems(filtered as any);
+      } catch (err) {
+        console.error('Error polling applications:', err);
+      }
     }, 5000);
 
-    return () => clearInterval(intervalId);
-  }, [hasPending, router]);
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+    };
+  }, [hasPending, token, filterStatus]);
 
   const handleAction = async (formData: FormData) => {
     try {
@@ -80,7 +113,7 @@ export function RecruiterApplicationsTable({ items, action, token }: RecruiterAp
     }
   };
 
-  if (!items.length) {
+  if (!localItems.length) {
     return (
       <EmptyState
         title="Chưa có đơn ứng tuyển nào"
@@ -101,7 +134,7 @@ export function RecruiterApplicationsTable({ items, action, token }: RecruiterAp
 
   return (
     <div className="space-y-3">
-      {items.map((item) => {
+      {localItems.map((item) => {
         const statusOptions = getStatusOptions(item.status);
         return (
         <article key={item.id} className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm transition-colors hover:border-zinc-300">

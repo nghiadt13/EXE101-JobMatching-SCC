@@ -139,7 +139,12 @@ export default async function RecruiterApplicationsPage({
         </nav>
       </div>
 
-      <RecruiterApplicationsTable items={filteredItems} action={updateStatusAction} token={session.accessToken} />
+      <RecruiterApplicationsTable
+        items={filteredItems}
+        action={updateStatusAction}
+        token={session.accessToken}
+        filterStatus={filterStatus}
+      />
     </DashboardShell>
   );
 }
