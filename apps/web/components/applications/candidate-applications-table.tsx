@@ -594,6 +594,18 @@ function ApplicationCard({
               )}
             </div>
 
+            {/* Recruiter Notes */}
+            {item.notes && (
+              <div className="mt-3 rounded-xl bg-zinc-50 border border-zinc-200/80 p-3 text-xs text-zinc-600">
+                <span className="font-bold text-zinc-800 block mb-1">
+                  Phản hồi từ nhà tuyển dụng:
+                </span>
+                <p className="whitespace-pre-line leading-relaxed">
+                  {item.notes}
+                </p>
+              </div>
+            )}
+
             {/* Quick preview pills (only when collapsed) */}
             {!expanded &&
               hasSnapshot &&

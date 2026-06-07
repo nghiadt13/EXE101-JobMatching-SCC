@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 type RecruiterApplicationsTableProps = {
   items: ApplicationItem[];
   action: (formData: FormData) => Promise<void>;
+  token: string;
 };
 
 const RECRUITER_TRANSITIONS: Record<string, ApplicationStatus[]> = {
@@ -44,14 +45,16 @@ function getStatusOptions(current: ApplicationStatus): ApplicationStatus[] {
 
 const statusVariant: Record<string, 'default' | 'success' | 'warning' | 'info' | 'danger'> = {
   APPLIED: 'default',
+  PENDING_MATCHING: 'warning',
   REVIEWING: 'info',
   INTERVIEW: 'success',
   OFFER: 'success',
   ACCEPTED: 'success',
   REJECTED: 'danger',
+  WITHDRAWN: 'danger',
 };
 
-export function RecruiterApplicationsTable({ items, action }: RecruiterApplicationsTableProps) {
+export function RecruiterApplicationsTable({ items, action, token }: RecruiterApplicationsTableProps) {
   const [selectedCv, setSelectedCv] = useState<CvItem | null>(null);
 
   const handleAction = async (formData: FormData) => {
@@ -88,8 +91,8 @@ export function RecruiterApplicationsTable({ items, action }: RecruiterApplicati
         const statusOptions = getStatusOptions(item.status);
         return (
         <article key={item.id} className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm transition-colors hover:border-zinc-300">
-          <div className="mb-3 flex items-start justify-between gap-3">
-            <div>
+          <div className="mb-3 flex items-start justify-between gap-3 min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-zinc-900">{item.candidate.name}</p>
               <p className="text-xs text-zinc-500">{item.candidate.email}</p>
               <p className="mt-1 text-xs text-zinc-600">
@@ -113,7 +116,7 @@ export function RecruiterApplicationsTable({ items, action }: RecruiterApplicati
                 </>
               ) : null}
             </div>
-            <Badge variant={statusVariant[item.status] ?? 'default'}>{STATUS_LABELS[item.status] || item.status}</Badge>
+            <Badge variant={statusVariant[item.status] ?? 'default'} className="shrink-0">{STATUS_LABELS[item.status] || item.status}</Badge>
           </div>
 
           <form action={handleAction} className="flex flex-wrap items-center gap-2">
@@ -157,19 +160,23 @@ export function RecruiterApplicationsTable({ items, action }: RecruiterApplicati
             
             {item.status === 'APPLIED' && (
               <>
+                <Button type="submit" name="status" value="APPLIED" size="sm" variant="outline">Lưu ghi chú</Button>
                 <Button type="submit" name="status" value="ACCEPTED" size="sm" className="bg-green-600 hover:bg-green-700 text-white">Chấp nhận</Button>
                 <Button type="submit" name="status" value="REJECTED" size="sm" variant="danger">Từ chối</Button>
               </>
             )}
             {item.status === 'ACCEPTED' && (
-              <Button type="submit" name="status" value="REJECTED" size="sm" variant="danger">Từ chối</Button>
+              <>
+                <Button type="submit" name="status" value="ACCEPTED" size="sm" variant="outline">Lưu ghi chú</Button>
+                <Button type="submit" name="status" value="REJECTED" size="sm" variant="danger">Từ chối</Button>
+              </>
             )}
           </form>
         </article>
         );
       })}
       
-      <CvPreviewModal isOpen={!!selectedCv} onClose={() => setSelectedCv(null)} cv={selectedCv} />
+      <CvPreviewModal isOpen={!!selectedCv} onClose={() => setSelectedCv(null)} cv={selectedCv} token={token} />
     </div>
   );
 }

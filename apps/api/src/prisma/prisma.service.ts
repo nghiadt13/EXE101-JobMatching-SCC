@@ -1,6 +1,7 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
+import { Pool } from 'pg';
 import { AppLogger } from '../common/logging/app-logger.service';
 
 const REQUIRED_SCHEMA_COLUMNS = [
@@ -19,8 +20,9 @@ export class PrismaService
       process.env['DATABASE_URL'] ??
       'postgresql://postgres:postgres@localhost:5432/postgres';
 
+    const pool = new Pool({ connectionString });
     super({
-      adapter: new PrismaPg({ connectionString }),
+      adapter: new PrismaPg(pool),
     });
   }
 

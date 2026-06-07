@@ -126,6 +126,7 @@ export type ApplicationItem = {
   cv: {
     id: string;
     fileName: string;
+    source?: string | null;
     candidateProfile?: any;
     parsedData?: any;
   };

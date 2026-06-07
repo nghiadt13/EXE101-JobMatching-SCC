@@ -22,17 +22,33 @@ const RECRUITER_TRANSITIONS = new Map<ApplicationStatus, ApplicationStatus[]>([
   [ApplicationStatus.PENDING_MATCHING, [ApplicationStatus.REJECTED]],
   [
     ApplicationStatus.APPLIED,
-    [ApplicationStatus.REVIEWING, ApplicationStatus.REJECTED],
+    [
+      ApplicationStatus.REVIEWING,
+      ApplicationStatus.ACCEPTED,
+      ApplicationStatus.REJECTED,
+    ],
   ],
   [
     ApplicationStatus.REVIEWING,
-    [ApplicationStatus.INTERVIEW, ApplicationStatus.REJECTED],
+    [
+      ApplicationStatus.INTERVIEW,
+      ApplicationStatus.ACCEPTED,
+      ApplicationStatus.REJECTED,
+    ],
   ],
   [
     ApplicationStatus.INTERVIEW,
-    [ApplicationStatus.OFFER, ApplicationStatus.REJECTED],
+    [
+      ApplicationStatus.OFFER,
+      ApplicationStatus.ACCEPTED,
+      ApplicationStatus.REJECTED,
+    ],
   ],
-  [ApplicationStatus.OFFER, [ApplicationStatus.REJECTED]],
+  [
+    ApplicationStatus.OFFER,
+    [ApplicationStatus.ACCEPTED, ApplicationStatus.REJECTED],
+  ],
+  [ApplicationStatus.ACCEPTED, [ApplicationStatus.REJECTED]],
 ]);
 
 type ApplicationRecord = {
@@ -58,9 +74,11 @@ type ApplicationRecord = {
   };
   candidate: {
     id: string;
+    userId: string;
     phone?: string | null;
     location?: Prisma.JsonValue | null;
     user: {
+      id: string;
       name: string;
       email: string;
       avatar?: string | null;
@@ -81,6 +99,7 @@ export class ApplicationsService {
     private readonly prisma: PrismaService,
     private readonly matchingService: MatchingService,
     private readonly logger: AppLogger,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async create(
@@ -244,6 +263,52 @@ export class ApplicationsService {
       },
       select: this.applicationSelect,
     });
+
+    // Send notification to the candidate
+    const candidateUserId = (updated.candidate as any).userId;
+    if (candidateUserId) {
+      const jobTitle = updated.job.title;
+      const companyName = updated.job.company?.name ?? 'Nhà tuyển dụng';
+      
+      let title = 'Cập nhật trạng thái đơn ứng tuyển';
+      let body = `Đơn ứng tuyển của bạn cho vị trí ${jobTitle} tại ${companyName} đã được cập nhật.`;
+
+      if (dto.status === ApplicationStatus.ACCEPTED) {
+        title = 'Đơn ứng tuyển được chấp nhận';
+        body = `Chúc mừng! Đơn ứng tuyển của bạn cho vị trí ${jobTitle} tại ${companyName} đã được chấp nhận.`;
+      } else if (dto.status === ApplicationStatus.REJECTED) {
+        title = 'Đơn ứng tuyển chưa phù hợp';
+        body = `Cảm ơn bạn đã quan tâm. Rất tiếc, đơn ứng tuyển của bạn cho vị trí ${jobTitle} tại ${companyName} chưa phù hợp ở thời điểm hiện tại.`;
+      } else if (dto.status === ApplicationStatus.REVIEWING) {
+        title = 'Đơn ứng tuyển đang được xem xét';
+        body = `Đơn ứng tuyển của bạn cho vị trí ${jobTitle} tại ${companyName} đã được chuyển sang trạng thái đang xem xét.`;
+      } else if (dto.status === ApplicationStatus.INTERVIEW) {
+        title = 'Lời mời phỏng vấn';
+        body = `Bạn nhận được lời mời phỏng vấn cho vị trí ${jobTitle} tại ${companyName}. Vui lòng liên hệ với nhà tuyển dụng để biết chi tiết.`;
+      } else if (dto.status === ApplicationStatus.OFFER) {
+        title = 'Lời mời nhận việc';
+        body = `Chúc mừng! Bạn đã nhận được lời mời nhận việc cho vị trí ${jobTitle} tại ${companyName}.`;
+      }
+
+      await this.notificationsService.create({
+        userId: candidateUserId,
+        title,
+        body,
+        type: 'APPLICATION_STATUS',
+        metadata: {
+          applicationId: updated.id,
+          jobId: updated.jobId,
+          status: dto.status,
+        },
+      }).catch(err => {
+        this.logger.error('failed_to_send_application_notification', {
+          applicationId: updated.id,
+          userId: candidateUserId,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      });
+    }
+
     return this.toView(updated);
   }
 
@@ -386,9 +451,10 @@ export class ApplicationsService {
       candidate: {
         select: {
           id: true,
+          userId: true,
           phone: true,
           location: true,
-          user: { select: { name: true, email: true, avatar: true } },
+          user: { select: { id: true, name: true, email: true, avatar: true } },
         },
       },
       cv: {

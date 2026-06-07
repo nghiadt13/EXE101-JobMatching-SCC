@@ -5,6 +5,7 @@ import { MatchingService } from '../matching/matching.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AppLogger } from '../common/logging/app-logger.service';
 import { ApplicationsService } from './applications.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 describe('ApplicationsService', () => {
   let service: ApplicationsService;
@@ -71,6 +72,12 @@ describe('ApplicationsService', () => {
             info: jest.fn(),
             warn: jest.fn(),
             error: jest.fn(),
+          },
+        },
+        {
+          provide: NotificationsService,
+          useValue: {
+            create: jest.fn().mockResolvedValue({}),
           },
         },
       ],
