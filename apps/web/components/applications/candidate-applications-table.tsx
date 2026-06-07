@@ -37,6 +37,7 @@ import {
 
 type CandidateApplicationsTableProps = {
   items: ApplicationItem[];
+  allItems?: ApplicationItem[];
 };
 
 /* ── Status config ─────────────────────────────────────── */
@@ -720,6 +721,7 @@ const POLL_INTERVAL_MS = 5_000;
 
 export function CandidateApplicationsTable({
   items: initialItems,
+  allItems,
 }: CandidateApplicationsTableProps) {
   const [items, setItems] = useState<ApplicationItem[]>(initialItems);
   const router = useRouter();
@@ -756,11 +758,13 @@ export function CandidateApplicationsTable({
     );
   }
 
+  const statsItems = allItems ?? items;
+
   return (
     <div className="space-y-6">
       {/* Stats summary */}
       <div className="xl:hidden">
-        <StatsSummary items={items} />
+        <StatsSummary items={statsItems} />
       </div>
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
@@ -771,7 +775,7 @@ export function CandidateApplicationsTable({
           ))}
         </div>
 
-        <ApplicationsInsightSidebar items={items} />
+        <ApplicationsInsightSidebar items={statsItems} />
       </div>
     </div>
   );

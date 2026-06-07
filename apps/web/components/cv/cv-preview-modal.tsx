@@ -28,6 +28,7 @@ type CvPreviewModalProps = {
   onClose: () => void;
   cv: CvItem | null;
   accessToken?: string;
+  token?: string;
 };
 
 /**
@@ -56,7 +57,9 @@ export function CvPreviewModal({
   onClose,
   cv,
   accessToken,
+  token,
 }: CvPreviewModalProps) {
+  const activeToken = accessToken || token;
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -83,12 +86,16 @@ export function CvPreviewModal({
 
   useEffect(() => {
     // Only uploaded CVs have a real file to stream.
-    if (!shouldLoadUploadedFile || !cv || !accessToken) return;
+    if (!shouldLoadUploadedFile || !cv || !activeToken) return;
 
     let revoked = false;
     let objectUrl: string | null = null;
 
-    getCvFileBlob(accessToken, cv.id)
+    // We cache the URL in state so that we don't clear the iframe
+    // while loading a new file.
+    setFileState((prev) => ({ ...prev, cvId: cv.id, error: false }));
+
+    getCvFileBlob(activeToken, cv.id)
       .then((blob) => {
         if (revoked) return;
         objectUrl = URL.createObjectURL(blob);
