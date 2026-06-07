@@ -21,6 +21,7 @@ import { UserRole } from '@prisma/client';
 import { memoryStorage } from 'multer';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
+import type { JwtPayload } from '../auth/auth.types';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { CV_MAX_FILE_SIZE_BYTES } from './cvs.constants';
@@ -83,13 +84,14 @@ export class CvsController {
   }
 
   @Get(':id/file')
+  @Roles(UserRole.CANDIDATE, UserRole.RECRUITER)
   async downloadFile(
-    @CurrentUser() user: { sub: string },
+    @CurrentUser() user: JwtPayload,
     @Param('id') id: string,
     @Res({ passthrough: true }) res: Response,
   ): Promise<StreamableFile> {
     const { absolutePath, fileName, mimeType } =
-      await this.cvsService.getFileForDownload(user.sub, id);
+      await this.cvsService.getFileForDownload(user, id);
 
     // `inline` lets browsers render PDFs in an <iframe>/<embed> while still
     // suggesting the original filename when the user chooses to save.

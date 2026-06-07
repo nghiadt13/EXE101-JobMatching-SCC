@@ -6,7 +6,8 @@ import {
   PayloadTooLargeException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, UserRole } from '@prisma/client';
+import type { JwtPayload } from '../auth/auth.types';
 import {
   CV_MAX_ACTIVE_PER_CANDIDATE,
   CV_MAX_FILE_SIZE_BYTES,
@@ -433,19 +434,51 @@ export class CvsService {
    * reject them with 404 to keep the contract explicit.
    */
   async getFileForDownload(
-    userId: string,
+    actor: JwtPayload,
     cvId: string,
   ): Promise<{ absolutePath: string; fileName: string; mimeType: string }> {
-    const candidate = await this.getCandidateOrThrow(userId);
     const cv = await this.prisma.cV.findFirst({
-      where: { id: cvId, candidateId: candidate.id, deletedAt: null },
-      select: { filePath: true, fileName: true, mimeType: true, source: true },
+      where: { id: cvId, deletedAt: null },
+      select: { filePath: true, fileName: true, mimeType: true, source: true, candidateId: true },
     });
     if (!cv || !cv.filePath || cv.source === 'builder') {
       throw new NotFoundException(
         buildErrorPayload(ERROR_CODES.notFound, 'CV file not found'),
       );
     }
+
+    if (actor.role === UserRole.CANDIDATE) {
+      const candidate = await this.prisma.candidate.findFirst({
+        where: { userId: actor.sub },
+        select: { id: true },
+      });
+      if (!candidate || cv.candidateId !== candidate.id) {
+        throw new NotFoundException(
+          buildErrorPayload(ERROR_CODES.notFound, 'CV file not found'),
+        );
+      }
+    } else if (actor.role === UserRole.RECRUITER) {
+      const application = await this.prisma.application.findFirst({
+        where: {
+          cvId: cvId,
+          job: {
+            recruiterId: actor.sub,
+            deletedAt: null,
+          },
+        },
+        select: { id: true },
+      });
+      if (!application) {
+        throw new NotFoundException(
+          buildErrorPayload(ERROR_CODES.notFound, 'CV file not found'),
+        );
+      }
+    } else if (actor.role !== UserRole.ADMIN) {
+      throw new NotFoundException(
+        buildErrorPayload(ERROR_CODES.notFound, 'CV file not found'),
+      );
+    }
+
     return {
       absolutePath: this.cvStorageService.getAbsolutePath(cv.filePath),
       fileName: cv.fileName,

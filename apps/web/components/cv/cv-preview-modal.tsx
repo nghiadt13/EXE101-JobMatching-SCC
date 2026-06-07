@@ -189,11 +189,11 @@ export function CvPreviewModal({
       >
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0 glass bg-white/90 dark:bg-slate-900/90">
-          <div className="space-y-0.5 min-w-0">
+          <div className="space-y-0.5 min-w-0 flex-1">
             <span className="text-[10px] text-brand-600 dark:text-brand-400 font-bold uppercase tracking-wider block">
               {isBuilderCv ? 'Hồ sơ tạo trên hệ thống' : 'Tài liệu đã tải lên'}
             </span>
-            <h4 className="text-base font-extrabold text-slate-800 dark:text-slate-100 truncate max-w-[300px] sm:max-w-md">
+            <h4 className="text-base font-extrabold text-slate-800 dark:text-slate-100 truncate">
               {cv.fileName || 'CV Preview'}
             </h4>
           </div>
