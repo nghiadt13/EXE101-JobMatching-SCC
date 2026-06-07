@@ -88,7 +88,10 @@ export default async function CandidateNotificationsPage() {
               const isUnread = !notification.isRead;
               
               let href = '#';
-              if (notification.type === 'APPLICATION_STATUS_UPDATE') {
+              if (
+                notification.type === 'APPLICATION_STATUS' ||
+                notification.type === 'APPLICATION_STATUS_UPDATE'
+              ) {
                 href = '/dashboard/candidate/applications';
               }
 

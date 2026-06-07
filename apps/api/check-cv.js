@@ -10,10 +10,15 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  const cvs = await prisma.cV.findMany({
-    select: { id: true, source: true, fileName: true, mimeType: true }
+  const job = await prisma.job.findUnique({
+    where: { id: 'cmq0hlajs000ic4ji054y8esv' },
+    select: { recruiterId: true }
   });
-  console.log('CVs in database:', cvs);
+  console.log('Job recruiterId:', job);
+  const users = await prisma.user.findMany({
+    select: { id: true, email: true, role: true }
+  });
+  console.log('All Users:', users);
 }
 main().catch(console.error).finally(() => {
   prisma.$disconnect();

@@ -5,6 +5,9 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { signOut } from 'next-auth/react';
 import { SCCBrandLogo } from './brand-mark';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+import { getNotifications } from '@/lib/notifications-client';
 
 const FALLBACK_AVATAR =
   'https://lh3.googleusercontent.com/aida-public/AB6AXuDJWS7D-glrmKnFu1VhcuuzOu_7JGrK2arpYsJhWT1gTvdQviF_WOQofU7PVeH7WcAnTep-bGy3eDxC-u5JWJ6btQ_PpU8N7RLp6ze8iuUAyxMNaPvh7vsNqNncmWtgpXqIkFfN-CwD9wvu3QBjNDz0P-aYmdSzPgd5pPKYsFLSoGF3ETtkfmQJmnIBQiJXzHR3C5WIeRcyyfW5do8LWB-YCjSE7LC6BWr8-hHiTUWfuLW5jH4sd6yFney9N9Bx4mjD9jH2lhNszDE';
@@ -83,6 +86,101 @@ export function SiteHeader({
     };
   }, []);
 
+  const router = useRouter();
+  const [unreadCountState, setUnreadCountState] = useState(unreadCount);
+  const seenIdsRef = useRef<Set<string>>(new Set());
+  const tokenRef = useRef<string | null>(null);
+
+  // Sync with prop if it changes
+  useEffect(() => {
+    setUnreadCountState(unreadCount);
+  }, [unreadCount]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    let isMounted = true;
+    let intervalId: NodeJS.Timeout;
+
+    const fetchSessionAndPoll = async () => {
+      try {
+        const sessionRes = await fetch('/api/auth/session');
+        if (!sessionRes.ok) return;
+        const session = await sessionRes.json();
+        const token = session?.accessToken;
+        if (!token) return;
+
+        tokenRef.current = token;
+
+        // Initial fetch to load seen notifications so we don't toast old notifications
+        const initialRes = await getNotifications(token, { page: 1, limit: 20 });
+        if (!isMounted) return;
+
+        setUnreadCountState(initialRes.unreadCount);
+        initialRes.items.forEach((item) => {
+          seenIdsRef.current.add(item.id);
+        });
+
+        // Start polling interval
+        intervalId = setInterval(async () => {
+          try {
+            const pollRes = await getNotifications(token, { page: 1, limit: 10 });
+            if (!isMounted) return;
+
+            setUnreadCountState(pollRes.unreadCount);
+
+            let hasNewUnread = false;
+            pollRes.items.forEach((item) => {
+              if (!seenIdsRef.current.has(item.id)) {
+                seenIdsRef.current.add(item.id);
+                // If it is unread, show a toast
+                if (!item.isRead) {
+                  hasNewUnread = true;
+                  
+                  const isAccepted = item.title.toLowerCase().includes('chấp nhận') || item.title.toLowerCase().includes('chúc mừng');
+                  const isRejected = item.title.toLowerCase().includes('từ chối') || item.title.toLowerCase().includes('chưa phù hợp');
+                  
+                  if (isAccepted) {
+                    toast.success(item.title, {
+                      description: item.body,
+                      duration: 8000,
+                    });
+                  } else if (isRejected) {
+                    toast.error(item.title, {
+                      description: item.body,
+                      duration: 8000,
+                    });
+                  } else {
+                    toast.info(item.title, {
+                      description: item.body,
+                      duration: 8000,
+                    });
+                  }
+                }
+              }
+            });
+
+            if (hasNewUnread) {
+              router.refresh();
+            }
+          } catch (err) {
+            console.error('Error polling notifications:', err);
+          }
+        }, 5000);
+
+      } catch (err) {
+        console.error('Error setting up notification polling:', err);
+      }
+    };
+
+    fetchSessionAndPoll();
+
+    return () => {
+      isMounted = false;
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [isAuthenticated, router]);
+
   return (
     <header className="sticky top-0 z-50 border-b border-gray-100 bg-white shadow-sm">
       <nav className="flex h-20 w-full items-center justify-between gap-4 px-4 sm:px-8 lg:px-12">
@@ -156,13 +254,13 @@ export function SiteHeader({
               className="transition-standard group relative rounded-full p-2.5 text-slate-600 hover:bg-primary-50 hover:text-primary-600"
             >
               <i className="fa-regular fa-bell text-xl" />
-              {unreadCount > 0 && (
+              {unreadCountState > 0 && (
                 <span className="absolute top-2 right-2 flex h-2.5 w-2.5">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary-400 opacity-75" />
                   <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary-600" />
                 </span>
               )}
-              <span className="sr-only">{unreadCount} thông báo chưa đọc</span>
+              <span className="sr-only">{unreadCountState} thông báo chưa đọc</span>
             </Link>
           ) : (
             <button
@@ -170,13 +268,13 @@ export function SiteHeader({
               type="button"
             >
               <i className="fa-regular fa-bell text-xl" />
-              {unreadCount > 0 && (
+              {unreadCountState > 0 && (
                 <span className="absolute top-2 right-2 flex h-2.5 w-2.5">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary-400 opacity-75" />
                   <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary-600" />
                 </span>
               )}
-              <span className="sr-only">{unreadCount} thông báo chưa đọc</span>
+              <span className="sr-only">{unreadCountState} thông báo chưa đọc</span>
             </button>
           )}
 
