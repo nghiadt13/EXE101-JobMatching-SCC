@@ -110,12 +110,12 @@ export function CvPreviewModal({
       revoked = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [shouldLoadUploadedFile, cv, accessToken]);
+  }, [shouldLoadUploadedFile, cv, activeToken]);
 
   const fileUrl = shouldLoadUploadedFile && cv && fileState.cvId === cv.id ? fileState.url : null;
   const fileStatus: 'idle' | 'loading' | 'ready' | 'error' = !shouldLoadUploadedFile
     ? 'idle'
-    : !accessToken || (cv && fileState.cvId === cv.id && fileState.error)
+    : !activeToken || (cv && fileState.cvId === cv.id && fileState.error)
       ? 'error'
       : fileUrl
         ? 'ready'

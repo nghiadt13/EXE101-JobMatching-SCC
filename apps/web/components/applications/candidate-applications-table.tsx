@@ -237,9 +237,15 @@ function CompanyAvatar({
 
 function StatsSummary({ items }: { items: ApplicationItem[] }) {
   const total = items.length;
-  const reviewing = items.filter((i) => i.status === 'REVIEWING').length;
-  const interviews = items.filter((i) => i.status === 'INTERVIEW').length;
-  const offers = items.filter((i) => i.status === 'OFFER').length;
+  const pendingCount = items.filter((i) =>
+    ['PENDING_MATCHING', 'APPLIED', 'REVIEWING'].includes(i.status)
+  ).length;
+  const acceptedCount = items.filter((i) =>
+    ['ACCEPTED', 'INTERVIEW', 'OFFER'].includes(i.status)
+  ).length;
+  const rejectedCount = items.filter((i) =>
+    ['REJECTED', 'WITHDRAWN'].includes(i.status)
+  ).length;
   const scoredItems = items.filter((i) => i.status !== 'PENDING_MATCHING');
   const avgScore =
     scoredItems.length > 0
@@ -251,7 +257,7 @@ function StatsSummary({ items }: { items: ApplicationItem[] }) {
 
   const stats = [
     {
-      label: 'Tổng jobs',
+      label: 'Tổng đơn',
       value: total,
       icon: <Briefcase className="h-4 w-4" />,
       color: 'text-blue-600',
@@ -259,24 +265,24 @@ function StatsSummary({ items }: { items: ApplicationItem[] }) {
     },
     {
       label: 'Đang xem xét',
-      value: reviewing,
+      value: pendingCount,
       icon: <Clock className="h-4 w-4" />,
       color: 'text-amber-600',
       bg: 'bg-amber-50',
     },
     {
-      label: 'Phỏng vấn',
-      value: interviews,
-      icon: <CalendarCheck className="h-4 w-4" />,
-      color: 'text-purple-600',
-      bg: 'bg-purple-50',
-    },
-    {
-      label: 'Offer nhận được',
-      value: offers,
-      icon: <Trophy className="h-4 w-4" />,
+      label: 'Đã được nhận',
+      value: acceptedCount,
+      icon: <CheckCircle2 className="h-4 w-4" />,
       color: 'text-emerald-600',
       bg: 'bg-emerald-50',
+    },
+    {
+      label: 'Đã bị từ chối',
+      value: rejectedCount,
+      icon: <XCircle className="h-4 w-4" />,
+      color: 'text-rose-600',
+      bg: 'bg-rose-50',
     },
     {
       label: 'Điểm phù hợp TB',
@@ -318,9 +324,15 @@ function StatsSummary({ items }: { items: ApplicationItem[] }) {
 function ApplicationsInsightSidebar({ items }: { items: ApplicationItem[] }) {
   const goodMatchThreshold = 70;
   const total = items.length;
-  const reviewing = items.filter((i) => i.status === 'REVIEWING').length;
-  const interviews = items.filter((i) => i.status === 'INTERVIEW').length;
-  const offers = items.filter((i) => i.status === 'OFFER').length;
+  const pendingCount = items.filter((i) =>
+    ['PENDING_MATCHING', 'APPLIED', 'REVIEWING'].includes(i.status)
+  ).length;
+  const acceptedCount = items.filter((i) =>
+    ['ACCEPTED', 'INTERVIEW', 'OFFER'].includes(i.status)
+  ).length;
+  const rejectedCount = items.filter((i) =>
+    ['REJECTED', 'WITHDRAWN'].includes(i.status)
+  ).length;
   const pending = items.filter((i) => i.status === 'PENDING_MATCHING').length;
   const scoredItems = items.filter((i) => i.status !== 'PENDING_MATCHING');
   const avgScore =
@@ -343,24 +355,24 @@ function ApplicationsInsightSidebar({ items }: { items: ApplicationItem[] }) {
   const statusItems = [
     {
       label: 'Đang xem xét',
-      value: reviewing,
+      value: pendingCount,
       icon: <Clock className="h-4 w-4" />,
       color: 'text-blue-600',
       bg: 'bg-blue-50',
     },
     {
-      label: 'Phỏng vấn',
-      value: interviews,
-      icon: <CalendarCheck className="h-4 w-4" />,
-      color: 'text-violet-600',
-      bg: 'bg-violet-50',
-    },
-    {
-      label: 'Offer',
-      value: offers,
-      icon: <Trophy className="h-4 w-4" />,
+      label: 'Đã được nhận',
+      value: acceptedCount,
+      icon: <CheckCircle2 className="h-4 w-4" />,
       color: 'text-emerald-600',
       bg: 'bg-emerald-50',
+    },
+    {
+      label: 'Đã bị từ chối',
+      value: rejectedCount,
+      icon: <XCircle className="h-4 w-4" />,
+      color: 'text-rose-600',
+      bg: 'bg-rose-50',
     },
   ];
 

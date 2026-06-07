@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   ApplicationStatus,
@@ -56,6 +57,19 @@ const statusVariant: Record<string, 'default' | 'success' | 'warning' | 'info' |
 
 export function RecruiterApplicationsTable({ items, action, token }: RecruiterApplicationsTableProps) {
   const [selectedCv, setSelectedCv] = useState<CvItem | null>(null);
+  const router = useRouter();
+
+  const hasPending = items.some((i) => i.status === 'PENDING_MATCHING');
+
+  useEffect(() => {
+    if (!hasPending) return;
+
+    const intervalId = setInterval(() => {
+      router.refresh();
+    }, 5000);
+
+    return () => clearInterval(intervalId);
+  }, [hasPending, router]);
 
   const handleAction = async (formData: FormData) => {
     try {
