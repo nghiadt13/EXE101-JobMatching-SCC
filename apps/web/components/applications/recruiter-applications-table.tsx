@@ -66,11 +66,7 @@ export function RecruiterApplicationsTable({ items, action, token, filterStatus 
     setLocalItems(items);
   }, [items]);
 
-  const hasPending = localItems.some((i) => i.status === 'PENDING_MATCHING');
-
   useEffect(() => {
-    if (!hasPending) return;
-
     let isMounted = true;
     const intervalId = setInterval(async () => {
       try {
@@ -102,7 +98,7 @@ export function RecruiterApplicationsTable({ items, action, token, filterStatus 
       isMounted = false;
       clearInterval(intervalId);
     };
-  }, [hasPending, token, filterStatus]);
+  }, [token, filterStatus]);
 
   const handleAction = async (formData: FormData) => {
     try {
