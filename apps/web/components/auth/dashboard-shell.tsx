@@ -6,6 +6,7 @@ import { MobileNav } from './mobile-nav';
 import { SiteHeader } from '@/components/layout/site-header';
 import { Breadcrumbs, type BreadcrumbItem } from '@/components/ui/breadcrumbs';
 import { getNavForRole, getNavIcon, isNavItemActive } from '@/lib/navigation';
+import { RecruiterNavBadge } from '@/components/applications/recruiter-nav-badge';
 
 type DashboardShellProps = {
   title: string;
@@ -102,7 +103,10 @@ export function DashboardShell({
                       }`}
                     >
                       <Icon className="h-5 w-5 shrink-0" />
-                      {item.label}
+                      <span className="flex-1 text-left">{item.label}</span>
+                      {item.href === '/dashboard/recruiter/applications' && (
+                        <RecruiterNavBadge />
+                      )}
                     </Link>
                   );
                 })}

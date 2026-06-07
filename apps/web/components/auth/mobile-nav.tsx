@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Menu, X } from 'lucide-react';
 import { getNavIcon, isNavItemActive, type NavItem } from '@/lib/navigation';
+import { RecruiterNavBadge } from '@/components/applications/recruiter-nav-badge';
 
 type MobileNavProps = {
   items: NavItem[];
@@ -43,7 +44,10 @@ export function MobileNav({ items, currentPath }: MobileNavProps) {
                   }`}
                 >
                   <Icon className="h-4 w-4 shrink-0" />
-                  {item.label}
+                  <span className="flex-1 text-left">{item.label}</span>
+                  {item.href === '/dashboard/recruiter/applications' && (
+                    <RecruiterNavBadge />
+                  )}
                 </Link>
               );
             })}
