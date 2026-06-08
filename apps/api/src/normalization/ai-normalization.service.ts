@@ -61,6 +61,9 @@ export class AiNormalizationService {
         prompt,
         deadline,
         'jd_cv_evaluation',
+        undefined,
+        undefined,
+        'pro',
       );
       const evaluation = this.normalizeJdEvaluation(
         parsed,
@@ -113,6 +116,7 @@ export class AiNormalizationService {
         'ai_normalization',
         domain,
         providerOverride,
+        'fast',
       );
       const profile = this.normalizeProfile(parsed, domain, rawText);
       return {
@@ -190,7 +194,7 @@ export class AiNormalizationService {
   }
 
   private readConfiguredProvider(): string {
-    return (process.env['LLM_PROVIDER'] ?? 'gemini').trim().toLowerCase();
+    return (process.env['LLM_PROVIDER'] ?? 'deepseek').trim().toLowerCase();
   }
 
   private readCvParseProvider(): string {
@@ -223,6 +227,7 @@ export class AiNormalizationService {
     operation: 'ai_normalization' | 'jd_cv_evaluation',
     domain?: Domain,
     providerOverride?: string,
+    tier: 'fast' | 'pro' = 'fast',
   ): Promise<{ client: LlmClient; parsed: unknown }> {
     const primary = providerOverride
       ? this.resolveClientByProvider(providerOverride)
@@ -236,10 +241,11 @@ export class AiNormalizationService {
         const first = await client.generateText(
           prompt,
           this.readRemainingTimeMs(deadline),
+          tier,
         );
         const directJson = this.extractJson(first);
         const parsed =
-          directJson ?? (await this.tryRepairJson(client, first, deadline));
+          directJson ?? (await this.tryRepairJson(client, first, deadline, tier));
 
         if (!parsed) {
           throw new AiNormalizationError(
@@ -335,11 +341,10 @@ export class AiNormalizationService {
       '',
       'For each requirement in requirementEvaluations:',
       '  - status: "met" (strong evidence), "partial" (some evidence but incomplete), "missing" (no evidence), "not_applicable" (requirement clearly does not apply)',
-      '  - evidence: 1-3 insightful Vietnamese sentences that ANALYZE how the candidate demonstrates (or lacks) this skill.',
-      '    + Reference specific projects, roles, technologies, certifications from the CV.',
-      '    + Explain the depth of experience (e.g., "Đã xây dựng 2 dự án production sử dụng React hooks và Redux" instead of "Skills list includes React").',
-      '    + For "partial" status: explain what the candidate has AND what is still lacking.',
-      '    + For "missing" status: briefly note why this skill was not found.',
+      '  - evidence: An array of 2 to 3 detailed Vietnamese sentences analyzing how the candidate matches (or does not match) the requirement. Do NOT output a single sentence. Follow this exact structure for the elements in the array:',
+      '    + Sentence 1 (Concrete Evidence): Mention specific projects, companies, duration, or roles from the CV that contain this skill (or explicitly state if it is completely absent). Example: "Trong thời gian làm Nhân viên Chăm sóc khách hàng tại SUNWORLD CÁT BÀ (2022-2024), ứng viên đã chịu trách nhiệm trực tiếp tư vấn dịch vụ tại quầy."',
+      '    + Sentence 2 (Depth & Context Evaluation): Analyze the level of proficiency, scope of work, or tools used. Explain HOW they applied this skill. Example: "Kinh nghiệm này giúp ứng viên rèn luyện khả năng thấu hiểu tâm lý khách hàng và giải quyết các tình huống khiếu nại thực tế."',
+      '    + Sentence 3 (Gap Analysis or Impact): If status is "partial" or "missing", explain exactly what required aspects are missing so that the candidate does not fully meet the requirement. If status is "met", state how this experience matches and benefits the target role.',
       '  - confidence: "high" (clear and specific evidence), "medium" (indirect or inferred evidence), "low" (weak or ambiguous)',
       '',
       'For each constraint in constraintEvaluations:',
@@ -347,7 +352,11 @@ export class AiNormalizationService {
       '  - evidence: brief Vietnamese explanation',
       '',
       'For candidateSummary:',
-      '  - headline: A concise Vietnamese professional assessment (1-2 sentences), e.g.: "Fullstack Developer có nền tảng vững về Java Spring Boot với 3+ năm kinh nghiệm, phù hợp tốt cho vị trí Backend nhưng cần bổ sung kinh nghiệm Angular production."',
+      '  - headline: A detailed Vietnamese professional assessment (3-4 sentences). Do NOT output a short general evaluation. Follow this structure:',
+      '    + Sentence 1: General evaluation of the candidate\'s experience level and core background.',
+      '    + Sentence 2: Key strengths matching the JD requirements.',
+      '    + Sentence 3: Key weaknesses, gaps, or missing requirements.',
+      '    + Sentence 4: Final fit verdict and potential next steps or recommendations.',
       '  - Extract experience, skills, and location relevant to THIS specific JD.',
       '',
       'For projectRelevance in candidateSummary:',
@@ -678,6 +687,7 @@ export class AiNormalizationService {
     client: LlmClient,
     rawModelText: string,
     deadline: number,
+    tier: 'fast' | 'pro' = 'fast',
   ): Promise<unknown> {
     const repairPrompt = [
       'Fix this to valid JSON only. Keep original keys and values.',
@@ -686,6 +696,7 @@ export class AiNormalizationService {
     const repaired = await client.generateText(
       repairPrompt,
       Math.min(REPAIR_TIMEOUT_CAP_MS, this.readRemainingTimeMs(deadline)),
+      tier,
     );
     return this.extractJson(repaired);
   }

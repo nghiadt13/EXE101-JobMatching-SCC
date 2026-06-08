@@ -9,9 +9,12 @@ interface RequirementsSectionProps {
 
 const VISIBLE_COUNT = 5;
 
-export function RequirementsSection({ skills, certifications = [] }: RequirementsSectionProps) {
+export function RequirementsSection({ skills = [], certifications = [] }: RequirementsSectionProps) {
   const [expandedSkills, setExpandedSkills] = useState(false);
   const [expandedCerts, setExpandedCerts] = useState(false);
+
+  const safeSkills = skills || [];
+  const safeCerts = certifications || [];
 
   function renderList(items: string[], expanded: boolean, setExpanded: (val: boolean) => void) {
     const hasMore = items.length > VISIBLE_COUNT;
@@ -62,23 +65,23 @@ export function RequirementsSection({ skills, certifications = [] }: Requirement
 
   return (
     <div className="space-y-8">
-      {skills.length > 0 && (
+      {safeSkills.length > 0 && (
         <section id="requirements-skills">
           <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
             <span className="material-symbols-outlined text-primary">verified_user</span>
             Skills Requirements
           </h3>
-          {renderList(skills, expandedSkills, setExpandedSkills)}
+          {renderList(safeSkills, expandedSkills, setExpandedSkills)}
         </section>
       )}
 
-      {certifications.length > 0 && (
+      {safeCerts.length > 0 && (
         <section id="requirements-certs">
           <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
             <span className="material-symbols-outlined text-primary">workspace_premium</span>
             Certifications
           </h3>
-          {renderList(certifications, expandedCerts, setExpandedCerts)}
+          {renderList(safeCerts, expandedCerts, setExpandedCerts)}
         </section>
       )}
     </div>

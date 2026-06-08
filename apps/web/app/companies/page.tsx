@@ -31,9 +31,12 @@ function getParam(value: string | string[] | undefined): string {
   return Array.isArray(value) ? value[0] ?? '' : value ?? '';
 }
 
-function getCompanyTypeLabel(type: string): string {
-  if (type === 'pro') return 'Pro';
-  if (type === 'normal') return 'Đang tăng trưởng';
+function getCompanyTypeLabel(type: string | null | undefined): string {
+  if (!type) return 'Đang tăng trưởng';
+  const t = type.toLowerCase().trim();
+  if (t === 'pro') return 'Pro';
+  if (t === 'corporation' || t === 'large' || t === 'big') return 'Tập đoàn lớn';
+  if (t === 'normal') return 'Đang tăng trưởng';
   return 'Startup';
 }
 

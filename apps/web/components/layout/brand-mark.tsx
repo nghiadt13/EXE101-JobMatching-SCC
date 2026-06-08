@@ -22,7 +22,7 @@ export function SCCBrandIcon({ className }: SCCBrandIconProps) {
       aria-hidden="true"
     >
       <Image
-        src="/logo.jpg"
+        src="/brand-logo.png"
         alt="SCC Logo"
         fill
         className="object-contain"
