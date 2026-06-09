@@ -1,25 +1,32 @@
-# HR Recruitment Platform - MVP
+# Smart Job Matching Platform - SCC
 
-Hệ thống tuyển dụng MVP với AI matching giữa CV và Job Description.
+Hệ thống tuyển dụng thông minh tích hợp AI hỗ trợ chuẩn hóa dữ liệu hồ sơ và tự động đề xuất, đánh giá độ phù hợp (matching) chuyên sâu giữa CV và Job Description.
 
-## Tech Stack
+## Tech Stack & AI Infrastructure
 
-- Frontend: Next.js 16 + TypeScript + Tailwind CSS
-- Backend: NestJS + TypeScript + Prisma ORM
-- Database: PostgreSQL
-- Auth: NextAuth.js v5 (Credentials + JWT)
-- AI: LLM Provider (Gemini or OpenAI - configurable via LLM_PROVIDER env)
-- Storage: Local filesystem (MVP)
+- **Frontend**: Next.js 16 + TypeScript + Tailwind CSS + NextAuth.js v5 (Credentials + Google & Facebook OAuth)
+- **Backend**: NestJS + TypeScript + Prisma ORM
+- **Database**: PostgreSQL (tích hợp tiện ích mở rộng **pgvector** hỗ trợ tìm kiếm ngữ nghĩa)
+- **AI Engine & LLM Providers**:
+  - **DeepSeek API**:
+    - **DeepSeek Pro** (`deepseek-v4-pro`): Sử dụng cho đánh giá chi tiết độ phù hợp CV và JD với lập luận sắc bén và phân tích chiều sâu.
+    - **DeepSeek Flash** (`deepseek-v4-flash`): Trích xuất, chuẩn hóa thông tin CV/JD đa định dạng (PDF/Docx) hiệu năng cao giúp giảm tối đa thời gian chờ của người dùng khi tải CV lên.
+  - **Google Gemini API**:
+    - **Gemini Embedding** (`gemini-embedding-2`): Tạo vector embedding 768 chiều cho CV và Job Description để thực hiện tìm kiếm ngữ nghĩa.
+    - **Gemini Pro/Flash**: Dự phòng hoặc cấu hình linh hoạt cho việc chuẩn hóa và đánh giá qua biến môi trường.
+- **Matching Pipeline**: Đề xuất việc làm thông minh dựa trên tìm kiếm ngữ nghĩa (Cosine Similarity) kết hợp Hậu lọc ngành nghề tự động (AI Category Post-Filter) và Đánh giá chi tiết 2 tầng (Two-Stage Matching Pipeline).
+- **Storage**: Local filesystem (MVP)
 
 ## Core Features
 
-- Authentication + RBAC (Admin, Recruiter, Candidate)
-- User/Profile management
-- CV upload/parsing/edit/primary selection
-- Job management lifecycle (Draft/Published/Closed)
-- Schema-based recruiter-facing matching with deterministic scoring
-- Application flow (apply/review/status transitions)
-- Role-based dashboard stats
+- **Authentication + RBAC**: Hỗ trợ Admin, Nhà tuyển dụng (Recruiter), Ứng viên (Candidate) và Đăng nhập mạng xã hội (Google, Facebook OAuth).
+- **Smart CV Builder**: Tải lên CV (PDF/Docx), tự động phân tích bằng AI, chỉnh sửa và tạo bản CV chuẩn hóa trực quan.
+- **Smart Job Search**: Tìm kiếm việc làm thông minh bằng từ khóa kết hợp bộ lọc (mức lương, vị trí, cấp bậc, ngành nghề).
+- **Smart Job Match (Tìm kiếm việc thông minh)**: Đề xuất việc làm tự động bằng Vector Search (Cosine Similarity) dựa trên kỹ năng và hồ sơ ứng viên.
+- **Two-Stage AI Evaluation (Đánh giá CV chi tiết)**:
+  - **Tầng 1 (Lọc & Phân loại)**: Vector Search kết hợp AI Hard-Filter theo ngành nghề ngăn chặn tình trạng đề xuất sai lệch chéo ngành (ví dụ: IT match sang Sales).
+  - **Tầng 2 (Đánh giá chuyên sâu)**: Sử dụng DeepSeek Pro chấm điểm và đưa ra bằng chứng chi tiết bằng tiếng Việt (2-3 câu phân tích sâu sắc cho từng yêu cầu và 3-4 câu đánh giá tổng quan).
+- **Recruitment Lifecycle**: Quản lý quy trình ứng tuyển từ nộp đơn, duyệt hồ sơ đến cập nhật trạng thái ứng viên.
 
 ## AI Matching Docs
 
