@@ -5,6 +5,9 @@
   "author": "",
   "private": true,
   "license": "UNLICENSED",
+  "engines": {
+    "node": "20.x"
+  },
   "scripts": {
     "build": "nest build",
     "prebuild": "prisma generate",
@@ -12,7 +15,7 @@
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
-    "start:prod": "node dist/main",
+    "start:prod": "node --dns-result-order=ipv4first dist/src/main.js",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "pretest": "prisma generate",
     "test": "jest",
@@ -23,7 +26,8 @@
     "seed": "prisma db seed",
     "seed:companies": "ts-node prisma/seed-topcv.ts",
     "seed:homepage:vn": "ts-node prisma/seeds/homepage-vn-showcase/seed.ts",
-    "seed:homepage:vn:rollback": "ts-node prisma/seeds/homepage-vn-showcase/rollback.ts"
+    "seed:homepage:vn:rollback": "ts-node prisma/seeds/homepage-vn-showcase/rollback.ts",
+    "db:migrate:deploy": "prisma migrate deploy"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
