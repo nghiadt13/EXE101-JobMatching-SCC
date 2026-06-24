@@ -4,6 +4,46 @@ import { PrismaClient } from '@prisma/client';
 import { Pool } from 'pg';
 import { AppLogger } from '../common/logging/app-logger.service';
 
+const SUPABASE_DIRECT_HOST_PATTERN = /^db\.[a-z0-9]+\.supabase\.co$/;
+
+function resolveDatabaseConnectionString(): string {
+  const connectionString =
+    process.env['DATABASE_URL'] ??
+    'postgresql://postgres:postgres@localhost:5432/postgres';
+
+  assertProductionDatabaseUrl(connectionString);
+
+  return connectionString;
+}
+
+function assertProductionDatabaseUrl(connectionString: string): void {
+  const isRender = Boolean(
+    process.env['RENDER'] || process.env['RENDER_SERVICE_ID'],
+  );
+  if (!isRender) {
+    return;
+  }
+
+  let databaseUrl: URL;
+  try {
+    databaseUrl = new URL(connectionString);
+  } catch {
+    throw new Error(
+      'DATABASE_URL is not a valid PostgreSQL connection string.',
+    );
+  }
+
+  if (SUPABASE_DIRECT_HOST_PATTERN.test(databaseUrl.hostname)) {
+    throw new Error(
+      'Render cannot reliably connect to Supabase direct database host ' +
+        databaseUrl.hostname +
+        ' because it resolves to IPv6 and fails with ENETUNREACH. ' +
+        'Use the Supabase Connection Pooler URL in Render DATABASE_URL instead, ' +
+        'for example postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres?sslmode=require.',
+    );
+  }
+}
+
 const REQUIRED_SCHEMA_COLUMNS = [
   { tableName: 'CV', columnName: 'skillAtoms' },
   { tableName: 'Job', columnName: 'skillAtoms' },
@@ -16,11 +56,9 @@ export class PrismaService
   implements OnModuleInit, OnModuleDestroy
 {
   constructor(private readonly logger: AppLogger) {
-    const connectionString =
-      process.env['DATABASE_URL'] ??
-      'postgresql://postgres:postgres@localhost:5432/postgres';
-
+    const connectionString = resolveDatabaseConnectionString();
     const pool = new Pool({ connectionString });
+
     super({
       adapter: new PrismaPg(pool),
     });
