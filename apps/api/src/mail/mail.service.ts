@@ -22,6 +22,10 @@ export class MailService {
         'RESEND_API_KEY is not configured. Emails will not be sent.',
       );
     }
+    const fromEmail = this.configService.get<string>('MAIL_FROM');
+    if (fromEmail) {
+      this.defaultFrom = fromEmail;
+    }
   }
 
   async sendWelcomeEmail(to: string, userName: string) {
