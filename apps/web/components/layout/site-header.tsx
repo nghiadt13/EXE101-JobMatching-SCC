@@ -7,7 +7,10 @@ import { signOut } from 'next-auth/react';
 import { SCCBrandLogo } from './brand-mark';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { getNotifications } from '@/lib/notifications-client';
+import {
+  getNotifications,
+  NotificationApiError,
+} from '@/lib/notifications-client';
 
 const FALLBACK_AVATAR =
   'https://lh3.googleusercontent.com/aida-public/AB6AXuDJWS7D-glrmKnFu1VhcuuzOu_7JGrK2arpYsJhWT1gTvdQviF_WOQofU7PVeH7WcAnTep-bGy3eDxC-u5JWJ6btQ_PpU8N7RLp6ze8iuUAyxMNaPvh7vsNqNncmWtgpXqIkFfN-CwD9wvu3QBjNDz0P-aYmdSzPgd5pPKYsFLSoGF3ETtkfmQJmnIBQiJXzHR3C5WIeRcyyfW5do8LWB-YCjSE7LC6BWr8-hHiTUWfuLW5jH4sd6yFney9N9Bx4mjD9jH2lhNszDE';
@@ -57,9 +60,13 @@ function NavbarChevronAccent({
   );
 }
 
+function isNotificationAuthError(error: unknown) {
+  return error instanceof NotificationApiError && error.status === 401;
+}
+
 export function SiteHeader({
   user,
-  unreadCount = 1,
+  unreadCount = 0,
   isAuthenticated = false,
   role,
 }: SiteHeaderProps) {
@@ -164,11 +171,19 @@ export function SiteHeader({
               router.refresh();
             }
           } catch (err) {
+            if (isNotificationAuthError(err)) {
+              setUnreadCountState(0);
+              return;
+            }
             console.error('Error polling notifications:', err);
           }
         }, 5000);
 
       } catch (err) {
+        if (isNotificationAuthError(err)) {
+          setUnreadCountState(0);
+          return;
+        }
         console.error('Error setting up notification polling:', err);
       }
     };

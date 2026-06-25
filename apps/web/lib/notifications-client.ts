@@ -1,5 +1,14 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api';
 
+export class NotificationApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+  ) {
+    super(message);
+  }
+}
+
 async function apiRequest<T>(
   token: string,
   path: string,
@@ -16,7 +25,15 @@ async function apiRequest<T>(
   });
   
   if (!response.ok) {
-    throw new Error(response.statusText);
+    const body = (await response.json().catch(() => null)) as
+      | { message?: unknown }
+      | null;
+    const message =
+      typeof body?.message === 'string'
+        ? body.message
+        : response.statusText || 'Request failed';
+
+    throw new NotificationApiError(message, response.status);
   }
   if (response.status === 204) return {} as T;
   return response.json() as Promise<T>;
