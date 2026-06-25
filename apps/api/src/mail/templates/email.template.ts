@@ -116,39 +116,48 @@ export function getBaseTemplate(title: string, content: string) {
   `;
 }
 
-export function getWelcomeEmailHtml(userName: string): string {
+export function getWelcomeEmailHtml(userName: string, webUrl = 'https://exe-101-job-matching-scc-web.vercel.app'): string {
   const content = `
     <p>Hi <strong>${userName}</strong>,</p>
     <p>Welcome to <strong>Smart Job Matching</strong>! We're thrilled to have you on board.</p>
     <p>Our platform uses advanced AI and Cosine Similarity to find the perfect job opportunities that match your unique skills and experience.</p>
     <p>To get started, simply complete your profile and upload your latest CV. We'll handle the rest.</p>
     <div class="btn-container">
-      <a href="https://jobmatching.com" class="btn">Complete Profile</a>
+      <a href="${webUrl}/" class="btn">Complete Profile</a>
     </div>
   `;
   return getBaseTemplate('Welcome to Smart Job Matching', content);
 }
 
-export function getUpgradeEmailHtml(userName: string, planName: string, orderCode: string): string {
+export function getUpgradeEmailHtml(
+  userName: string,
+  planName: string,
+  orderCode: string,
+  webUrl = 'https://exe-101-job-matching-scc-web.vercel.app',
+): string {
   const content = `
     <p>Hi <strong>${userName}</strong>,</p>
     <p>Thank you for upgrading to <strong>${planName}</strong>! Your payment was successful and your premium features are now active.</p>
     <p>Order Code: <strong>${orderCode}</strong></p>
     <p>You now have full access to advanced AI matching, premium job insights, and priority support.</p>
     <div class="btn-container">
-      <a href="https://jobmatching.com/pricing" class="btn">Explore Pro Features</a>
+      <a href="${webUrl}/" class="btn">Explore Pro Features</a>
     </div>
   `;
   return getBaseTemplate('Welcome to Pro', content);
 }
 
-export function getSmartMatchesEmailHtml(userName: string, matchesCount: number): string {
+export function getSmartMatchesEmailHtml(
+  userName: string,
+  matchesCount: number,
+  webUrl = 'https://exe-101-job-matching-scc-web.vercel.app',
+): string {
   const content = `
     <p>Hi <strong>${userName}</strong>,</p>
     <p>Great news! Our AI has just finished scanning and found <strong>${matchesCount} new jobs</strong> that strongly match your profile.</p>
     <p>We use advanced Vector Cosine Similarity to ensure these recommendations align perfectly with your skills and career goals.</p>
     <div class="btn-container">
-      <a href="https://jobmatching.com/candidate/recommendation" class="btn">View Your Matches</a>
+      <a href="${webUrl}/dashboard/candidate/applications" class="btn">View Your Matches</a>
     </div>
   `;
   return getBaseTemplate('Your Smart Job Matches Are Ready', content);
