@@ -60,6 +60,7 @@ model User {
   jobs          Job[]
   savedJobs     SavedJob[]
   notifications Notification[]
+  transactions  Transaction[]
 
   @@index([email])
   @@index([role])
@@ -324,6 +325,31 @@ model Notification {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@index([userId, isRead])
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+model Transaction {
+  id              String            @id @default(cuid())
+  userId          String
+  amount          Int
+  planName        String?
+  referenceCode   String?
+  orderCode       String            @unique
+  status          TransactionStatus @default(PENDING)
+  paymentMethod   String            @default("VietQR")
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([orderCode])
 }
 
 model RecommendationScan {

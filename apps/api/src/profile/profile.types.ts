@@ -6,6 +6,7 @@ export interface ProfileView {
   name: string;
   role: UserRole;
   avatar: string | null;
+  planName: string;
   candidate: {
     phone: string | null;
     location: Record<string, unknown> | null;

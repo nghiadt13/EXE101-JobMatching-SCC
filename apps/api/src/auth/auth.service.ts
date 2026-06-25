@@ -64,6 +64,7 @@ export class AuthService {
           email: true,
           name: true,
           role: true,
+          planName: true,
         },
       });
     } catch (error) {
@@ -93,6 +94,7 @@ export class AuthService {
         password: true,
         name: true,
         role: true,
+        planName: true,
         deletedAt: true,
       },
     });
@@ -111,6 +113,7 @@ export class AuthService {
       email: user.email,
       name: user.name,
       role: user.role,
+      planName: user.planName,
     });
   }
 
@@ -122,6 +125,7 @@ export class AuthService {
         email: true,
         name: true,
         role: true,
+        planName: true,
         avatar: true,
         deletedAt: true,
       },
@@ -146,6 +150,7 @@ export class AuthService {
             email: true,
             name: true,
             role: true,
+            planName: true,
           },
         });
         authUser = updated;
@@ -155,6 +160,7 @@ export class AuthService {
           email: existingUser.email,
           name: existingUser.name,
           role: existingUser.role,
+          planName: existingUser.planName,
         };
       }
     } else {
@@ -179,6 +185,7 @@ export class AuthService {
           email: true,
           name: true,
           role: true,
+          planName: true,
         },
       });
 
@@ -199,6 +206,7 @@ export class AuthService {
         email: true,
         name: true,
         role: true,
+        planName: true,
       },
     });
 

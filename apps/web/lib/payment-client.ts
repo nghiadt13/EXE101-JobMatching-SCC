@@ -1,20 +1,6 @@
-import { ApiError, UserRole } from './api-client';
+import { ApiError } from './api-client';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api';
-
-export type ProfileResponse = {
-  id: string;
-  email: string;
-  name: string;
-  role: UserRole;
-  avatar: string | null;
-  planName: string;
-  candidate: {
-    phone: string | null;
-    location: Record<string, unknown> | null;
-    bio: string | null;
-  } | null;
-};
 
 async function apiRequest<T>(
   token: string,
@@ -30,6 +16,7 @@ async function apiRequest<T>(
     },
     cache: 'no-store',
   });
+
   const body = (await response.json().catch(() => null)) as
     | { message?: string | string[] }
     | null;
@@ -47,22 +34,34 @@ async function apiRequest<T>(
   return body as T;
 }
 
-export function getMyProfile(token: string) {
-  return apiRequest<ProfileResponse>(token, '/profile', { method: 'GET' });
+export type PaymentLinkResponse = {
+  checkoutUrl: string;
+  orderCode: number;
+  simulated: boolean;
+  error?: string;
+};
+
+export type PaymentVerifyResponse = {
+  success: boolean;
+  user?: {
+    id: string;
+    email: string;
+    name: string;
+    planName: string;
+  };
+  message?: string;
+};
+
+export function createPaymentLink(token: string, amount: number) {
+  return apiRequest<PaymentLinkResponse>(token, '/payment/create-link', {
+    method: 'POST',
+    body: JSON.stringify({ amount }),
+  });
 }
 
-export function updateMyProfile(
-  token: string,
-  payload: {
-    name?: string;
-    avatar?: string;
-    phone?: string;
-    bio?: string;
-    location?: Record<string, unknown>;
-  },
-) {
-  return apiRequest<ProfileResponse>(token, '/profile', {
-    method: 'PATCH',
-    body: JSON.stringify(payload),
+export function verifyPayment(token: string, orderCode: number, simulated?: boolean) {
+  return apiRequest<PaymentVerifyResponse>(token, '/payment/verify', {
+    method: 'POST',
+    body: JSON.stringify({ orderCode, simulated }),
   });
 }

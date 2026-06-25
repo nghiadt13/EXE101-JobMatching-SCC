@@ -16,6 +16,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './users/users.module';
 import { NormalizationModule } from './normalization/normalization.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { PaymentModule } from './payment/payment.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     MatchingModule,
     DashboardModule,
     NotificationsModule,
+    PaymentModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -76,6 +76,43 @@ export function SiteHeader({
   const userDisplayName =
     user?.name?.trim() || (isAuthenticated ? 'Người dùng' : 'Khách');
   const userPlan = user?.planName?.trim() || 'Gói miễn phí';
+  const [currentPlan, setCurrentPlan] = useState(userPlan);
+
+  useEffect(() => {
+    setCurrentPlan(userPlan);
+  }, [userPlan]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let isMounted = true;
+    const fetchLatestProfile = async () => {
+      try {
+        const sessionRes = await fetch('/api/auth/session');
+        if (!sessionRes.ok) return;
+        const session = await sessionRes.json();
+        const token = session?.accessToken;
+        if (!token) return;
+
+        const profileRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api'}/profile`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        if (profileRes.ok && isMounted) {
+          const profile = await profileRes.json();
+          if (profile?.planName) {
+            setCurrentPlan(profile.planName);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching latest plan name in header:', err);
+      }
+    };
+    fetchLatestProfile();
+    return () => {
+      isMounted = false;
+    };
+  }, [isAuthenticated]);
   const userEmail =
     user?.email?.trim() ||
     (isAuthenticated ? 'Tài khoản đã đăng nhập' : 'Tài khoản khách');
@@ -227,6 +264,12 @@ export function SiteHeader({
               </Link>
               <Link
                 className="transition-standard flex items-center gap-1.5 text-[15px] font-semibold text-slate-600 hover:text-primary-600"
+                href="/pricing"
+              >
+                <i className="fa-solid fa-gem text-xs text-amber-500 animate-pulse" /> Nâng cấp gói
+              </Link>
+              <Link
+                className="transition-standard flex items-center gap-1.5 text-[15px] font-semibold text-slate-600 hover:text-primary-600"
                 href="/dashboard/recruiter/jobs"
               >
                 <i className="fa-solid fa-plus-circle text-sm" /> Đăng tuyển
@@ -251,6 +294,12 @@ export function SiteHeader({
                 href="/dashboard/candidate/cvs"
               >
                 Tạo CV <i className="fa-solid fa-chevron-down text-xs" />
+              </Link>
+              <Link
+                className="transition-standard flex items-center gap-1.5 text-[15px] font-semibold text-slate-600 hover:text-primary-600"
+                href="/pricing"
+              >
+                Nâng cấp <i className="fa-solid fa-gem text-xs text-amber-500" />
               </Link>
               <a
                 className="transition-standard flex items-center gap-1.5 text-[15px] font-semibold text-slate-600 hover:text-primary-600"
@@ -330,7 +379,7 @@ export function SiteHeader({
                 <p className="text-sm leading-none font-bold text-slate-800">
                   {userDisplayName}
                 </p>
-                <p className="mt-1.5 text-[11px] text-gray-500">{userPlan}</p>
+                <p className="mt-1.5 text-[11px] text-gray-500">{currentPlan}</p>
               </div>
               <i
                 className={`fa-solid fa-chevron-down mr-1 hidden text-xs text-gray-400 transition-transform duration-200 md:block ${

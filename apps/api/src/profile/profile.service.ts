@@ -20,6 +20,7 @@ export class ProfileService {
         name: true,
         role: true,
         avatar: true,
+        planName: true,
         candidates: {
           select: {
             phone: true,
@@ -41,6 +42,7 @@ export class ProfileService {
       name: user.name,
       role: user.role,
       avatar: user.avatar,
+      planName: user.planName,
       candidate:
         user.role === UserRole.CANDIDATE
           ? {

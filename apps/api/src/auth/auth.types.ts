@@ -11,6 +11,7 @@ export interface AuthUser {
   email: string;
   name: string;
   role: UserRole;
+  planName: string;
 }
 
 export interface AuthResponse {

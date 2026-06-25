@@ -179,6 +179,7 @@ const authConfig: NextAuthConfig = {
             email: authResponse.user.email,
             name: authResponse.user.name,
             role: authResponse.user.role,
+            planName: authResponse.user.planName,
             accessToken,
           };
         } catch {
@@ -254,6 +255,7 @@ const authConfig: NextAuthConfig = {
         user.email = authResponse.user.email;
         user.name = authResponse.user.name;
         user.role = authResponse.user.role;
+        user.planName = authResponse.user.planName;
         user.accessToken = accessToken;
 
         return true;
@@ -269,6 +271,7 @@ const authConfig: NextAuthConfig = {
       if (user) {
         token.userId = typeof user.id === 'string' ? user.id : undefined;
         token.role = isUserRole(user.role) ? user.role : undefined;
+        token.planName = typeof user.planName === 'string' ? user.planName : undefined;
         token.accessToken =
           typeof user.accessToken === 'string' ? user.accessToken : undefined;
       }
@@ -278,6 +281,7 @@ const authConfig: NextAuthConfig = {
       if (session.user) {
         session.user.id = typeof token.userId === 'string' ? token.userId : '';
         session.user.role = isUserRole(token.role) ? token.role : undefined;
+        session.user.planName = typeof token.planName === 'string' ? token.planName : undefined;
       }
       session.accessToken =
         typeof token.accessToken === 'string' ? token.accessToken : '';

@@ -6,6 +6,7 @@ export type AuthApiResponse = {
     email: string;
     name: string;
     role: UserRole;
+    planName: string;
   };
   token: string;
   accessToken?: string;
