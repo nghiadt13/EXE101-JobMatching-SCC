@@ -600,6 +600,52 @@ async function main() {
     ],
   });
 
+  // Seed transaction history for demo users
+  await prisma.transaction.createMany({
+    data: [
+      {
+        userId: candidateAnnaUser.id,
+        amount: 0,
+        planName: 'Free Plan',
+        orderCode: 'FREE-ANNA-001',
+        status: 'SUCCESS',
+        paymentMethod: 'system',
+      },
+      {
+        userId: candidateAnnaUser.id,
+        amount: 199000,
+        planName: 'Career Plus',
+        orderCode: 'PRO-ANNA-002',
+        status: 'SUCCESS',
+        paymentMethod: 'VietQR',
+      },
+      {
+        userId: candidateBaoUser.id,
+        amount: 0,
+        planName: 'Free Plan',
+        orderCode: 'FREE-BAO-001',
+        status: 'SUCCESS',
+        paymentMethod: 'system',
+      },
+      {
+        userId: recruiterAlpha.id,
+        amount: 0,
+        planName: 'Free Plan',
+        orderCode: 'FREE-REC-A-001',
+        status: 'SUCCESS',
+        paymentMethod: 'system',
+      },
+      {
+        userId: recruiterAlpha.id,
+        amount: 499000,
+        planName: 'Pro Recruiter',
+        orderCode: 'PRO-REC-A-002',
+        status: 'SUCCESS',
+        paymentMethod: 'VietQR',
+      },
+    ],
+  });
+
   console.log('Seed completed with deterministic demo dataset');
   users.forEach((user) => {
     console.log(`${user.role}: ${user.email} / ${DEFAULT_PASSWORD}`);

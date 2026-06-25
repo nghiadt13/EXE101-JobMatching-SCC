@@ -16,7 +16,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { QueryUsersDto } from './dto/query-users.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UsersService } from './users.service';
-import { UserView, UsersListResponse } from './users.types';
+import { UserView, UsersListResponse, AdminUserDetailResponse } from './users.types';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -27,6 +27,11 @@ export class UsersController {
   @Get()
   list(@Query() query: QueryUsersDto): Promise<UsersListResponse> {
     return this.usersService.list(query);
+  }
+
+  @Get(':id/detail')
+  getDetail(@Param('id') id: string): Promise<AdminUserDetailResponse> {
+    return this.usersService.getDetail(id);
   }
 
   @Get(':id')

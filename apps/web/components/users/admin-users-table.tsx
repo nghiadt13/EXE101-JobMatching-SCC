@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { UserRole } from '@/lib/api-client';
 import { AdminUser } from '@/lib/users-client';
 import { Badge } from '@/components/ui/badge';
@@ -60,21 +61,26 @@ export function AdminUsersTable({ users, currentUserId, updateAction, deleteActi
                 </form>
               </td>
               <td className="px-4 py-3">
-                {user.id === currentUserId ? (
-                  <Button type="button" variant="danger" size="sm" disabled>
-                    Delete
+                <div className="flex gap-2">
+                  <Button asChild variant="outline" size="sm">
+                    <Link href={`/dashboard/admin/users/${user.id}`}>Chi tiết</Link>
                   </Button>
-                ) : (
-                  <ConfirmForm
-                    title="Delete this user?"
-                    description="This action will soft-delete the account. Make sure this is not the wrong user before continuing."
-                    confirmLabel="Delete user"
-                    action={deleteAction}
-                    triggerLabel="Delete"
-                    triggerVariant="danger"
-                    hiddenInputs={{ userId: user.id }}
-                  />
-                )}
+                  {user.id === currentUserId ? (
+                    <Button type="button" variant="danger" size="sm" disabled>
+                      Delete
+                    </Button>
+                  ) : (
+                    <ConfirmForm
+                      title="Delete this user?"
+                      description="This action will soft-delete the account. Make sure this is not the wrong user before continuing."
+                      confirmLabel="Delete user"
+                      action={deleteAction}
+                      triggerLabel="Delete"
+                      triggerVariant="danger"
+                      hiddenInputs={{ userId: user.id }}
+                    />
+                  )}
+                </div>
               </td>
             </tr>
           ))}

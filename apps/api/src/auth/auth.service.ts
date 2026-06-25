@@ -117,6 +117,12 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
+    // Track last login time
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() },
+    });
+
     return this.buildAuthResponse({
       id: user.id,
       email: user.email,
@@ -150,28 +156,22 @@ export class AuthService {
       const shouldUpdateAvatar =
         !!dto.avatar && existingUser.avatar !== dto.avatar;
 
-      if (shouldUpdateAvatar) {
-        const updated = await this.prisma.user.update({
-          where: { id: existingUser.id },
-          data: { avatar: dto.avatar },
-          select: {
-            id: true,
-            email: true,
-            name: true,
-            role: true,
-            planName: true,
-          },
-        });
-        authUser = updated;
-      } else {
-        authUser = {
-          id: existingUser.id,
-          email: existingUser.email,
-          name: existingUser.name,
-          role: existingUser.role,
-          planName: existingUser.planName,
-        };
-      }
+      // Track last login time for existing social users
+      await this.prisma.user.update({
+        where: { id: existingUser.id },
+        data: {
+          lastLoginAt: new Date(),
+          ...(shouldUpdateAvatar ? { avatar: dto.avatar } : {}),
+        },
+      });
+
+      authUser = {
+        id: existingUser.id,
+        email: existingUser.email,
+        name: existingUser.name,
+        role: existingUser.role,
+        planName: existingUser.planName,
+      };
     } else {
       const dummyPassword = randomUUID();
       const dummyPasswordHash = await bcrypt.hash(

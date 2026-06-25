@@ -7,7 +7,11 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { QueryUsersDto } from './dto/query-users.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { UserView, UsersListResponse } from './users.types';
+import {
+  UserView,
+  UsersListResponse,
+  AdminUserDetailResponse,
+} from './users.types';
 
 @Injectable()
 export class UsersService {
@@ -87,6 +91,75 @@ export class UsersService {
     });
 
     return { success: true };
+  }
+
+  async getDetail(id: string): Promise<AdminUserDetailResponse> {
+    const user = await this.prisma.user.findFirst({
+      where: { id, deletedAt: null },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        avatar: true,
+        planName: true,
+        createdAt: true,
+        lastLoginAt: true,
+        candidates: {
+          select: {
+            cvs: {
+              where: { deletedAt: null },
+              orderBy: { createdAt: 'desc' as const },
+              select: {
+                id: true,
+                fileName: true,
+                fileSize: true,
+                mimeType: true,
+                source: true,
+                isPrimary: true,
+                createdAt: true,
+              },
+            },
+          },
+        },
+        transactions: {
+          orderBy: { createdAt: 'desc' as const },
+          select: {
+            id: true,
+            amount: true,
+            planName: true,
+            orderCode: true,
+            status: true,
+            paymentMethod: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Calculate total usage days
+    const now = new Date();
+    const totalUsageDays = Math.floor(
+      (now.getTime() - user.createdAt.getTime()) / (1000 * 60 * 60 * 24),
+    );
+
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      avatar: user.avatar,
+      planName: user.planName,
+      createdAt: user.createdAt,
+      lastLoginAt: user.lastLoginAt,
+      totalUsageDays,
+      cvs: user.candidates[0]?.cvs ?? [],
+      transactions: user.transactions,
+    };
   }
 
   private async ensureActiveUser(id: string): Promise<void> {

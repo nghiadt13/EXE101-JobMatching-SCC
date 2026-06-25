@@ -44,16 +44,17 @@ enum RecommendationScanStatus {
 // ─── Models ───────────────────────────────────────────────────────────────────
 
 model User {
-  id        String    @id @default(cuid())
-  email     String    @unique
-  password  String
-  name      String
-  role      UserRole  @default(CANDIDATE)
-  avatar    String?
-  planName  String    @default("Free Plan")
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  id          String    @id @default(cuid())
+  email       String    @unique
+  password    String
+  name        String
+  role        UserRole  @default(CANDIDATE)
+  avatar      String?
+  planName    String    @default("Free Plan")
+  lastLoginAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
 
   // Relations
   candidates    Candidate[]

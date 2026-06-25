@@ -4,14 +4,13 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { signIn } from 'next-auth/react';
+import { signIn, getSession } from 'next-auth/react';
 import { z } from 'zod';
 import { PillInput } from '@/components/ui/pill-input';
 import { SocialButton } from '@/components/ui/social-button';
 import { AuthModal } from '@/components/auth/auth-modal';
 import { AuthToast } from '@/components/auth/auth-toast';
 import { useSocialAuthErrorToast } from '@/components/auth/use-social-auth-error';
-import { PUBLIC_JOBS_LISTING_ROUTE } from '@/lib/routes';
 
 const loginSchema = z.object({
   email: z.email('Email is invalid'),
@@ -70,7 +69,27 @@ export function LoginForm({ callbackUrl }: LoginFormProps) {
       return;
     }
 
-    const destination = safeCallbackUrl(callbackUrl) ?? PUBLIC_JOBS_LISTING_ROUTE;
+    // Get session to determine role-based redirect
+    const session = await getSession();
+    const role = session?.user?.role;
+
+    let destination = safeCallbackUrl(callbackUrl);
+    if (!destination) {
+      switch (role) {
+        case 'ADMIN':
+          destination = '/dashboard/admin';
+          break;
+        case 'RECRUITER':
+          destination = '/dashboard/recruiter';
+          break;
+        case 'CANDIDATE':
+          destination = '/dashboard/candidate';
+          break;
+        default:
+          destination = '/jobs/list';
+      }
+    }
+
     router.push(destination);
     router.refresh();
   };

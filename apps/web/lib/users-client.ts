@@ -13,6 +13,40 @@ export type AdminUser = {
   deletedAt: string | null;
 };
 
+export type AdminUserCv = {
+  id: string;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  source: string;
+  isPrimary: boolean;
+  createdAt: string;
+};
+
+export type AdminTransaction = {
+  id: string;
+  amount: number;
+  planName: string | null;
+  orderCode: string;
+  status: string;
+  paymentMethod: string;
+  createdAt: string;
+};
+
+export type AdminUserDetail = {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  avatar: string | null;
+  planName: string;
+  createdAt: string;
+  lastLoginAt: string | null;
+  totalUsageDays: number;
+  cvs: AdminUserCv[];
+  transactions: AdminTransaction[];
+};
+
 export type UsersListResponse = {
   items: AdminUser[];
   pagination: {
@@ -81,5 +115,11 @@ export function updateUserByAdmin(
 export function deleteUserByAdmin(token: string, userId: string) {
   return apiRequest<{ success: true }>(token, `/users/${userId}`, {
     method: 'DELETE',
+  });
+}
+
+export function getUserDetail(token: string, userId: string) {
+  return apiRequest<AdminUserDetail>(token, `/users/${userId}/detail`, {
+    method: 'GET',
   });
 }
