@@ -3,6 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import * as crypto from 'crypto';
 
+import { MailService } from '../mail/mail.service';
+
 @Injectable()
 export class PaymentService {
   private readonly payosClientId: string;
@@ -13,6 +15,7 @@ export class PaymentService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly mailService: MailService,
   ) {
     this.payosClientId = this.configService.get<string>('PAYOS_CLIENT_ID') || '';
     this.payosApiKey = this.configService.get<string>('PAYOS_API_KEY') || '';
@@ -229,11 +232,20 @@ export class PaymentService {
             console.log(`[Success] Created new SUCCESS transaction for user ${userId}.`);
           }
 
-          await this.prisma.user.update({
+          const updatedUser = await this.prisma.user.update({
             where: { id: userId },
-            data: { planName: 'Pro Plan' }
+            data: { planName: 'Pro Plan' },
+            select: { email: true, name: true }
           });
           console.log(`[Success] Upgraded user ID ${userId} to Pro Plan via SePay`);
+          
+          this.mailService.sendUpgradeEmail(
+            updatedUser.email,
+            updatedUser.name,
+            'Pro Plan',
+            payload.referenceCode || Date.now().toString(),
+          ).catch((e) => console.error('Failed to send upgrade email:', e));
+          
           upgraded = true;
         } catch (error) {
           console.log(`[Info] User ID ${userId} error updating plan or transaction...`, error);
@@ -270,11 +282,20 @@ export class PaymentService {
                   }
                 });
               }
-              await this.prisma.user.update({
+              const updatedUser = await this.prisma.user.update({
                 where: { email },
-                data: { planName: 'Pro Plan' }
+                data: { planName: 'Pro Plan' },
+                select: { email: true, name: true }
               });
               console.log(`[Success] Upgraded user ${email} to Pro Plan via SePay (Email match)`);
+              
+              this.mailService.sendUpgradeEmail(
+                updatedUser.email,
+                updatedUser.name,
+                'Pro Plan',
+                payload.referenceCode || Date.now().toString(),
+              ).catch((e) => console.error('Failed to send upgrade email:', e));
+              
               upgraded = true;
             }
           } catch (error) {

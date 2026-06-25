@@ -23,6 +23,8 @@ import type { JwtPayload } from '../../auth/auth.types';
 
 const MAX_RESULTS = 10;
 
+import { MailService } from '../../mail/mail.service';
+
 @Injectable()
 export class RecommendationService {
   constructor(
@@ -30,6 +32,7 @@ export class RecommendationService {
     private readonly logger: AppLogger,
     private readonly semanticSearch: SemanticSearchService,
     private readonly vectorSync: VectorSyncService,
+    private readonly mailService: MailService,
   ) {}
 
   async startScan(
@@ -428,7 +431,7 @@ export class RecommendationService {
   ): Promise<void> {
     const candidate = await this.prisma.candidate.findFirst({
       where: { id: candidateId },
-      select: { userId: true },
+      select: { userId: true, user: { select: { email: true, name: true } } },
     });
     if (!candidate) return;
 
@@ -439,6 +442,14 @@ export class RecommendationService {
         body: `Analyzed ${totalJobs} jobs and found ${resultCount} best-matching positions. View results now!`,
       },
     });
+
+    if (candidate.user?.email && candidate.user?.name) {
+      this.mailService.sendSmartMatchesEmail(
+        candidate.user.email,
+        candidate.user.name,
+        resultCount,
+      ).catch((e) => console.error('Failed to send smart matches email:', e));
+    }
   }
 
   private async createFailureNotification(candidateId: string): Promise<void> {

@@ -21,12 +21,15 @@ import { SocialLoginDto } from './dto/social-login.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import type { AuthResponse, AuthUser, JwtPayload } from './auth.types';
 
+import { MailService } from '../mail/mail.service';
+
 @Injectable()
 export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly mailService: MailService,
   ) {}
 
   async register(dto: RegisterDto): Promise<AuthResponse> {
@@ -81,6 +84,12 @@ export class AuthService {
       }
       throw error;
     }
+
+    // Send welcome email asynchronously
+    this.mailService.sendWelcomeEmail(user.email, user.name).catch((err) => {
+      // Catch error to not block the registration flow
+      console.error('Failed to send welcome email', err);
+    });
 
     return this.buildAuthResponse(user);
   }

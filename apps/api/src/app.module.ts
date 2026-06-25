@@ -17,6 +17,7 @@ import { UsersModule } from './users/users.module';
 import { NormalizationModule } from './normalization/normalization.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { PaymentModule } from './payment/payment.module';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { PaymentModule } from './payment/payment.module';
     DashboardModule,
     NotificationsModule,
     PaymentModule,
+    MailModule,
   ],
   controllers: [AppController],
   providers: [AppService],
