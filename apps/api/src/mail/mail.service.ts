@@ -12,7 +12,7 @@ export class MailService {
   private resend: Resend;
   private readonly logger = new Logger(MailService.name);
   private defaultFrom = 'onboarding@resend.dev';
-  private webUrl = 'https://exe-101-job-matching-scc-web.vercel.app';
+  private webUrl = 'https://www.jobmatching-scc.id.vn';
 
   constructor(private configService: ConfigService) {
     const apiKey = this.configService.get<string>('RESEND_API_KEY');

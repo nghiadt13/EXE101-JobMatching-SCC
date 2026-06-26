@@ -116,7 +116,7 @@ export function getBaseTemplate(title: string, content: string) {
   `;
 }
 
-export function getWelcomeEmailHtml(userName: string, webUrl = 'https://exe-101-job-matching-scc-web.vercel.app'): string {
+export function getWelcomeEmailHtml(userName: string, webUrl = 'https://www.jobmatching-scc.id.vn'): string {
   const content = `
     <p>Hi <strong>${userName}</strong>,</p>
     <p>Welcome to <strong>Smart Job Matching</strong>! We're thrilled to have you on board.</p>
@@ -133,7 +133,7 @@ export function getUpgradeEmailHtml(
   userName: string,
   planName: string,
   orderCode: string,
-  webUrl = 'https://exe-101-job-matching-scc-web.vercel.app',
+  webUrl = 'https://www.jobmatching-scc.id.vn',
 ): string {
   const content = `
     <p>Hi <strong>${userName}</strong>,</p>
@@ -150,14 +150,14 @@ export function getUpgradeEmailHtml(
 export function getSmartMatchesEmailHtml(
   userName: string,
   matchesCount: number,
-  webUrl = 'https://exe-101-job-matching-scc-web.vercel.app',
+  webUrl = 'https://www.jobmatching-scc.id.vn',
 ): string {
   const content = `
     <p>Hi <strong>${userName}</strong>,</p>
     <p>Great news! Our AI has just finished scanning and found <strong>${matchesCount} new jobs</strong> that strongly match your profile.</p>
-    <p>We use advanced Vector Cosine Similarity to ensure these recommendations align perfectly with your skills and career goals.</p>
+    <p>Our world-class AI has scoured thousands of listings to handpick the absolute best, most lucrative opportunities tailored to your exceptional talent!</p>
     <div class="btn-container">
-      <a href="${webUrl}/dashboard/candidate/applications" class="btn">View Your Matches</a>
+      <a href="${webUrl}/dashboard/candidate/recommendations" class="btn">View Your Matches</a>
     </div>
   `;
   return getBaseTemplate('Your Smart Job Matches Are Ready', content);
