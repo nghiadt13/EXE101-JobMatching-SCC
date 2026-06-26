@@ -100,7 +100,7 @@ export function getBaseTemplate(title: string, content: string) {
       <div class="container">
         <div class="header"></div>
         <div class="logo-area">
-          <div class="logo-text">SMART JOB MATCHING</div>
+          <div class="logo-text">SCC SMART JOB MATCHING</div>
         </div>
         <div class="content">
           <h1>${title}</h1>
