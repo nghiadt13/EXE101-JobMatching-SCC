@@ -1553,6 +1553,9 @@ export class JobsService {
 
   private isFeatureEnabled(envKey: string): boolean {
     const value = process.env[envKey];
+    if (value === undefined) {
+      return true;
+    }
     return value === '1' || value === 'true' || value === 'yes';
   }
 
