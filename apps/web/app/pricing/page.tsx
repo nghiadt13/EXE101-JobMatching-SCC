@@ -164,7 +164,7 @@ export default function PricingPage() {
     }
     setPaymentLoading(true);
     try {
-      const amount = planCycle === 'monthly' ? 10000 : 990000;
+      const amount = planCycle === 'monthly' ? 49000 : 490000;
       const planName = planCycle === 'monthly' ? 'PRO · Theo tháng' : 'PRO · Theo năm';
       await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api'}/payment/intent`, {
         method: 'POST',
@@ -419,8 +419,8 @@ export default function PricingPage() {
                     </td>
                     <td className="py-4 text-center font-black text-slate-900 bg-indigo-50/40">
                       {planCycle === 'monthly'
-                        ? '10.000đ / tháng'
-                        : '990.000đ / năm'}
+                        ? '49.000đ / tháng'
+                        : '490.000đ / năm'}
                     </td>
                   </tr>
                   <tr className="border-b border-slate-100 hover:bg-slate-50/50">
@@ -602,7 +602,7 @@ export default function PricingPage() {
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={`https://vietqr.app/img/?bank=${bankId}&acc=${accountNumber}&template=compact&amount=${
-                        planCycle === 'monthly' ? 10000 : 990000
+                        planCycle === 'monthly' ? 49000 : 490000
                       }&des=${encodeURIComponent(`SCC ${session?.user?.id}`)}&showinfo=true`}
                       alt="VietQR Payment Code"
                       className="w-48 h-48 object-contain"
@@ -665,8 +665,8 @@ export default function PricingPage() {
                       <div className="flex items-center justify-between mt-0.5">
                         <span className="text-base font-extrabold text-indigo-600">
                           {(planCycle === 'monthly'
-                            ? 10000
-                            : 990000
+                            ? 49000
+                            : 490000
                           ).toLocaleString('vi-VN')}
                           đ
                         </span>
@@ -674,8 +674,8 @@ export default function PricingPage() {
                           onClick={() =>
                             copyToClipboard(
                               (planCycle === 'monthly'
-                                ? 10000
-                                : 990000
+                                ? 49000
+                                : 490000
                               ).toString(),
                               'Số tiền',
                             )

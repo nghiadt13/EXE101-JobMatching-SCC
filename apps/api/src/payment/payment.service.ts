@@ -195,7 +195,7 @@ export class PaymentService {
     const transferType = payload?.transferType || 'in';
     
     // Check if it's an incoming transaction with sufficient amount
-    if (transferType === 'in' && amount >= 10000) {
+    if (transferType === 'in' && amount >= 49000) {
       // 1. Try to match by User ID (e.g., "SCC clk123456...")
       const idMatch = content.match(/SCC\s+([a-zA-Z0-9]+)/i);
       let upgraded = false;
