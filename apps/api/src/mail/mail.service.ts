@@ -36,15 +36,19 @@ export class MailService {
   async sendWelcomeEmail(to: string, userName: string) {
     if (!this.resend) return;
     try {
-      await this.resend.emails.send({
+      const { data, error } = await this.resend.emails.send({
         from: this.defaultFrom,
         to,
         subject: 'Welcome to Smart Job Matching',
         html: getWelcomeEmailHtml(userName, this.webUrl),
       });
-      this.logger.log(`Welcome email sent to ${to}`);
+      if (error) {
+        this.logger.error(`Failed to send welcome email to ${to}: ${JSON.stringify(error)}`);
+        return;
+      }
+      this.logger.log(`Welcome email sent to ${to} (id: ${data?.id})`);
     } catch (error) {
-      this.logger.error(`Failed to send welcome email to ${to}`, error);
+      this.logger.error(`Unexpected error sending welcome email to ${to}`, error);
     }
   }
 
@@ -56,30 +60,38 @@ export class MailService {
   ) {
     if (!this.resend) return;
     try {
-      await this.resend.emails.send({
+      const { data, error } = await this.resend.emails.send({
         from: this.defaultFrom,
         to,
         subject: 'Welcome to Pro',
         html: getUpgradeEmailHtml(userName, planName, orderCode, this.webUrl),
       });
-      this.logger.log(`Upgrade email sent to ${to}`);
+      if (error) {
+        this.logger.error(`Failed to send upgrade email to ${to}: ${JSON.stringify(error)}`);
+        return;
+      }
+      this.logger.log(`Upgrade email sent to ${to} (id: ${data?.id})`);
     } catch (error) {
-      this.logger.error(`Failed to send upgrade email to ${to}`, error);
+      this.logger.error(`Unexpected error sending upgrade email to ${to}`, error);
     }
   }
 
   async sendSmartMatchesEmail(to: string, userName: string, matchesCount: number) {
     if (!this.resend) return;
     try {
-      await this.resend.emails.send({
+      const { data, error } = await this.resend.emails.send({
         from: this.defaultFrom,
         to,
         subject: 'Your Smart Job Matches Are Ready',
         html: getSmartMatchesEmailHtml(userName, matchesCount, this.webUrl),
       });
-      this.logger.log(`Smart matches email sent to ${to}`);
+      if (error) {
+        this.logger.error(`Failed to send smart matches email to ${to}: ${JSON.stringify(error)}`);
+        return;
+      }
+      this.logger.log(`Smart matches email sent to ${to} (id: ${data?.id})`);
     } catch (error) {
-      this.logger.error(`Failed to send smart matches email to ${to}`, error);
+      this.logger.error(`Unexpected error sending smart matches email to ${to}`, error);
     }
   }
 }
