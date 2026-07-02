@@ -72,6 +72,7 @@ export function SiteHeader({
 }: SiteHeaderProps) {
   const isRecruiter = role === 'RECRUITER';
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const userDisplayName =
     user?.name?.trim() || (isAuthenticated ? 'Người dùng' : 'Khách');
@@ -492,12 +493,144 @@ export function SiteHeader({
             </Link>
           )}
 
+          {/* Hamburger Menu Button for Mobile */}
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-600 hover:bg-gray-100 lg:hidden"
+            type="button"
+            aria-label="Toggle menu"
+          >
+            {isMobileMenuOpen ? (
+              <i className="fa-solid fa-xmark text-xl" />
+            ) : (
+              <i className="fa-solid fa-bars text-xl" />
+            )}
+          </button>
+
           <NavbarChevronAccent
             className="hidden h-14 w-14 rotate-0 2xl:flex"
             innerClassName="h-14 w-14"
           />
         </div>
       </nav>
+
+      {/* Mobile Navigation Drawer */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-[100] lg:hidden">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+          {/* Drawer Content */}
+          <div className="fixed inset-y-0 right-0 z-50 w-full max-w-[280px] bg-white p-6 shadow-2xl flex flex-col justify-between transform transition-transform duration-300">
+            <div>
+              {/* Header */}
+              <div className="mb-6 flex items-center justify-between border-b border-gray-100 pb-4">
+                <span className="font-bold text-slate-800">
+                  SCC <span className="text-primary-600">JobsHub</span>
+                </span>
+                <button
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="rounded-lg p-1.5 text-slate-400 hover:bg-gray-100 hover:text-slate-600"
+                >
+                  <i className="fa-solid fa-xmark text-lg" />
+                </button>
+              </div>
+
+              {/* Navigation Links */}
+              <div className="flex flex-col space-y-4">
+                {isRecruiter ? (
+                  <>
+                    <Link
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center gap-2.5 text-[15px] font-semibold text-slate-600 hover:text-primary-600"
+                      href="/dashboard/recruiter/jobs"
+                    >
+                      <i className="fa-solid fa-briefcase text-sm" /> Việc làm của tôi
+                    </Link>
+                    <Link
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center gap-2.5 text-[15px] font-semibold text-slate-600 hover:text-primary-600"
+                      href="/dashboard/recruiter/applications"
+                    >
+                      <i className="fa-solid fa-clipboard-list text-sm" /> Đơn ứng tuyển
+                    </Link>
+                    <Link
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center gap-2.5 text-[15px] font-semibold text-slate-600 hover:text-primary-600"
+                      href="/pricing"
+                    >
+                      <i className="fa-solid fa-gem text-xs text-amber-500" /> Nâng cấp gói
+                    </Link>
+                    <Link
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center gap-2.5 text-[15px] font-semibold text-slate-600 hover:text-primary-600"
+                      href="/dashboard/recruiter/jobs"
+                    >
+                      <i className="fa-solid fa-plus-circle text-sm" /> Đăng tuyển
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center gap-2.5 text-[15px] font-semibold text-slate-600 hover:text-primary-600"
+                      href="/jobs"
+                    >
+                      Tìm việc làm
+                    </Link>
+                    <Link
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center gap-2.5 text-[15px] font-semibold text-slate-600 hover:text-primary-600"
+                      href="/companies"
+                    >
+                      Công ty
+                    </Link>
+                    <Link
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center gap-2.5 text-[15px] font-semibold text-slate-600 hover:text-primary-600"
+                      href="/dashboard/candidate/cvs"
+                    >
+                      Tạo CV
+                    </Link>
+                    <Link
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center gap-2.5 text-[15px] font-semibold text-slate-600 hover:text-primary-600"
+                      href="/pricing"
+                    >
+                      Nâng cấp <i className="fa-solid fa-gem text-xs text-amber-500" />
+                    </Link>
+                    <a
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center gap-2.5 text-[15px] font-semibold text-slate-600 hover:text-primary-600"
+                      href="#"
+                    >
+                      Công cụ
+                    </a>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Bottom Section */}
+            {!isRecruiter && (
+              <div className="border-t border-gray-100 pt-4">
+                <Link
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  href="/register?role=recruiter"
+                  className="block w-full rounded-lg bg-slate-50 p-3 text-center transition-colors hover:bg-slate-100"
+                >
+                  <span className="block text-xs font-medium text-slate-400">Bạn là nhà tuyển dụng?</span>
+                  <span className="mt-1 flex items-center justify-center gap-1.5 text-sm font-extrabold text-slate-800">
+                    Đăng tuyển ngay <i className="fa-solid fa-angles-right text-xs" />
+                  </span>
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </header>
   );
 }
