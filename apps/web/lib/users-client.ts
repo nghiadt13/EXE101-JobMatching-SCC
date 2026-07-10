@@ -8,6 +8,9 @@ export type AdminUser = {
   name: string;
   role: UserRole;
   avatar: string | null;
+  planName: string;
+  lastLoginAt: string | null;
+  transactionCount: number;
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
@@ -88,12 +91,18 @@ async function apiRequest<T>(
   return body as T;
 }
 
-export function getUsers(token: string, query?: { page?: number; role?: UserRole }) {
+export function getUsers(
+  token: string,
+  query?: { page?: number; role?: UserRole; search?: string; limit?: number },
+) {
   const params = new URLSearchParams();
   params.set('page', String(query?.page ?? 1));
-  params.set('limit', '20');
+  params.set('limit', String(query?.limit ?? 20));
   if (query?.role) {
     params.set('role', query.role);
+  }
+  if (query?.search) {
+    params.set('search', query.search);
   }
 
   return apiRequest<UsersListResponse>(token, `/users?${params.toString()}`, {

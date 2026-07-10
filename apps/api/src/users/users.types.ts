@@ -6,6 +6,9 @@ export interface UserView {
   name: string;
   role: UserRole;
   avatar: string | null;
+  planName: string;
+  lastLoginAt: Date | null;
+  transactionCount: number;
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;

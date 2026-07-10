@@ -120,7 +120,7 @@ export function DashboardShell({
         ) : null}
 
         <main className="relative flex-1 overflow-x-hidden">
-          <div className="max-w-7xl px-4 py-6 sm:px-6 lg:px-6 lg:py-8">
+          <div className="px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
             <div className="mb-4 flex items-center justify-end gap-2 lg:hidden">
               <MobileNav items={navItems} currentPath={currentPath} />
               <SignOutButton />

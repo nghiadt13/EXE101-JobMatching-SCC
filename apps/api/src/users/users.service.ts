@@ -22,7 +22,7 @@ export class UsersService {
     const limit = query.limit ?? 10;
     const where = this.buildWhere(query);
 
-    const [items, totalItems] = await Promise.all([
+    const [rawItems, totalItems] = await Promise.all([
       this.prisma.user.findMany({
         where,
         skip: (page - 1) * limit,
@@ -32,6 +32,20 @@ export class UsersService {
       }),
       this.prisma.user.count({ where }),
     ]);
+
+    const items: UserView[] = rawItems.map((u) => ({
+      id: u.id,
+      email: u.email,
+      name: u.name,
+      role: u.role,
+      avatar: u.avatar,
+      planName: u.planName,
+      lastLoginAt: u.lastLoginAt,
+      transactionCount: u._count.transactions,
+      createdAt: u.createdAt,
+      updatedAt: u.updatedAt,
+      deletedAt: u.deletedAt,
+    }));
 
     return {
       items,
@@ -45,7 +59,7 @@ export class UsersService {
   }
 
   async getById(id: string, includeDeleted?: boolean): Promise<UserView> {
-    const user = await this.prisma.user.findFirst({
+    const raw = await this.prisma.user.findFirst({
       where: {
         id,
         ...(includeDeleted ? {} : { deletedAt: null }),
@@ -53,17 +67,29 @@ export class UsersService {
       select: this.userViewSelect,
     });
 
-    if (!user) {
+    if (!raw) {
       throw new NotFoundException('User not found');
     }
 
-    return user;
+    return {
+      id: raw.id,
+      email: raw.email,
+      name: raw.name,
+      role: raw.role,
+      avatar: raw.avatar,
+      planName: raw.planName,
+      lastLoginAt: raw.lastLoginAt,
+      transactionCount: raw._count.transactions,
+      createdAt: raw.createdAt,
+      updatedAt: raw.updatedAt,
+      deletedAt: raw.deletedAt,
+    };
   }
 
   async update(id: string, dto: UpdateUserDto): Promise<UserView> {
     await this.ensureActiveUser(id);
 
-    const user = await this.prisma.user.update({
+    const raw = await this.prisma.user.update({
       where: { id },
       data: {
         ...(dto.name !== undefined ? { name: dto.name } : {}),
@@ -73,7 +99,19 @@ export class UsersService {
       select: this.userViewSelect,
     });
 
-    return user;
+    return {
+      id: raw.id,
+      email: raw.email,
+      name: raw.name,
+      role: raw.role,
+      avatar: raw.avatar,
+      planName: raw.planName,
+      lastLoginAt: raw.lastLoginAt,
+      transactionCount: raw._count.transactions,
+      createdAt: raw.createdAt,
+      updatedAt: raw.updatedAt,
+      deletedAt: raw.deletedAt,
+    };
   }
 
   async softDelete(
@@ -201,6 +239,13 @@ export class UsersService {
       name: true,
       role: true,
       avatar: true,
+      planName: true,
+      lastLoginAt: true,
+      _count: {
+        select: {
+          transactions: true,
+        },
+      },
       createdAt: true,
       updatedAt: true,
       deletedAt: true,
